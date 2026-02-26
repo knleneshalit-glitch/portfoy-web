@@ -509,54 +509,60 @@ if menu == "📊 Genel Özet":
                             
         conn.close()
 
-    # --- SAĞ PANEL KAPANMA SORUNUNU ÇÖZEN POPUP ---
+    # =========================================================================
+    # AÇILIR MENÜ (POPUP) FONKSİYONLARI VE AYARLARI
+    # =========================================================================
+    
+    hazir_tablo_varliklar = {
+        "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", "Gram Platin": "GRAM_PLATIN",
+        "Ons Altın": "GC=F", "Ons Gümüş": "SI=F", "Ons Platin": "PL=F",
+        "Dolar/TL": "USDTRY=X", "Euro/TL": "EURTRY=X", "Sterlin/TL": "GBPTRY=X", 
+        "İsviçre Frangı": "CHFTRY=X", "Japon Yeni": "JPYTRY=X",
+        "Bitcoin": "BTC-USD", "Ethereum": "ETH-USD", "Solana": "SOL-USD", 
+        "Avalanche": "AVAX-USD", "Binance Coin": "BNB-USD", "Ripple (XRP)": "XRP-USD"
+    }
+
+    # 1. ARKA PLAN İŞLEMLERİ (Bu fonksiyonlar menüyü kapatmadan listeyi günceller)
+    def sil_aksiyonu():
+        item = st.session_state.sil_secim
+        if item != "Seçiniz..." and item in st.session_state.sag_panel_listesi:
+            del st.session_state.sag_panel_listesi[item]
+
+    def hizli_ekle_aksiyonu():
+        secilen = st.session_state.tablo_hizli_popup
+        if secilen != "Seçiniz...":
+            st.session_state.sag_panel_listesi[secilen] = hazir_tablo_varliklar[secilen]
+
+    def arama_ekle_aksiyonu(bulunanlar):
+        secilen = st.session_state.tablo_sonuc_popup
+        if secilen != "Lütfen Seçin...":
+            st.session_state.sag_panel_listesi[secilen.split('-')[0].strip()] = bulunanlar[secilen]
+
+    # 2. EKRANI KAPATMAYAN YENİ POPUP MENÜSÜ
     @st.dialog("⚙️ Sağ Tablo Ayarları")
     def tablo_ayarlari_popup():
-        
-        # --- 1. SÜRÜKLE BIRAK SIRALAMA ---
         st.markdown("**1. Sıralamayı Değiştir (Sürükle & Bırak)**")
-        st.caption("👆 *Farenizle kutuları tutarak istediğiniz sıraya taşıyın.*")
+        st.caption("👆 *Kutuları sürükleyerek sırayı belirleyin. Menü asla kapanmaz.*")
         
         mevcut_liste = list(st.session_state.sag_panel_listesi.keys())
         
         if mevcut_liste:
-            # Sürükle-Bırak eklentisi burada devreye giriyor!
             yeni_sira = sort_items(mevcut_liste, direction="vertical")
-            
-            # Eğer kutuyu taşıyıp sırayı değiştirdiysen, hafızayı anında günceller
             if yeni_sira != mevcut_liste:
                 st.session_state.sag_panel_listesi = {k: st.session_state.sag_panel_listesi[k] for k in yeni_sira}
-                st.rerun()
                 
             st.markdown("---")
-            
-            # --- 2. SİLME BÖLÜMÜ ---
             st.markdown("**2. Listeden Çıkar**")
-            silinecek = st.selectbox("Kaldırmak istediğiniz varlığı seçin:", ["Seçiniz..."] + mevcut_liste, key="sil_secim", label_visibility="collapsed")
-            if silinecek != "Seçiniz...":
-                if st.button("❌ Varlığı Sil", key="sil_buton", use_container_width=True):
-                    del st.session_state.sag_panel_listesi[silinecek]
-                    st.rerun()
+            st.selectbox("Kaldırmak istediğiniz varlığı seçin:", ["Seçiniz..."] + mevcut_liste, key="sil_secim", label_visibility="collapsed")
+            # on_click özelliği sayesinde butona basılınca sadece silme işlemi yapılır, menü KAPANMAZ!
+            st.button("❌ Varlığı Sil", on_click=sil_aksiyonu, use_container_width=True)
         else:
             st.info("Listeniz şu an boş.")
             
         st.markdown("---")
-        
-        # --- 3. HIZLI EKLEME MENÜLERİ ---
         st.markdown("**3. Hızlı Ekle (Maden, Döviz, Kripto)**")
-        hazir_tablo_varliklar = {
-            "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", "Gram Platin": "GRAM_PLATIN",
-            "Ons Altın": "GC=F", "Ons Gümüş": "SI=F", "Ons Platin": "PL=F",
-            "Dolar/TL": "USDTRY=X", "Euro/TL": "EURTRY=X", "Sterlin/TL": "GBPTRY=X", 
-            "İsviçre Frangı": "CHFTRY=X", "Japon Yeni": "JPYTRY=X",
-            "Bitcoin": "BTC-USD", "Ethereum": "ETH-USD", "Solana": "SOL-USD", 
-            "Avalanche": "AVAX-USD", "Binance Coin": "BNB-USD", "Ripple (XRP)": "XRP-USD"
-        }
-        secili_hazir_t = st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_tablo_varliklar.keys()), key="tablo_hizli_popup", label_visibility="collapsed")
-        if secili_hazir_t != "Seçiniz...":
-            if st.button("➕ Tabloya Ekle", key="btn_tablo_hizli_popup", use_container_width=True):
-                st.session_state.sag_panel_listesi[secili_hazir_t] = hazir_tablo_varliklar[secili_hazir_t]
-                st.rerun()
+        st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_tablo_varliklar.keys()), key="tablo_hizli_popup", label_visibility="collapsed")
+        st.button("➕ Tabloya Ekle", on_click=hizli_ekle_aksiyonu, use_container_width=True, key="btn_hizli")
 
         st.markdown("---")
         st.markdown("**4. Hisse/Fon Ara**")
@@ -564,15 +570,16 @@ if menu == "📊 Genel Özet":
         if arama_tablo:
             bulunanlar_tablo = yahoo_arama(arama_tablo) 
             if bulunanlar_tablo:
-                secilen_t = st.selectbox("Sonuçlar:", ["Lütfen Seçin..."] + list(bulunanlar_tablo.keys()), key="tablo_sonuc_popup")
-                if secilen_t != "Lütfen Seçin...":
-                    if st.button("➕ Tabloya Ekle", key="btn_tablo_ara_popup", use_container_width=True):
-                        st.session_state.sag_panel_listesi[secilen_t.split('-')[0].strip()] = bulunanlar_tablo[secilen_t]
-                        st.rerun()
+                st.selectbox("Sonuçlar:", ["Lütfen Seçin..."] + list(bulunanlar_tablo.keys()), key="tablo_sonuc_popup")
+                st.button("➕ Arama Sonucunu Ekle", on_click=arama_ekle_aksiyonu, kwargs={"bulunanlar": bulunanlar_tablo}, use_container_width=True, key="btn_ara")
 
-    # --- SAĞ KOLON (TAM KOYU TASARIM - KÜÇÜLTÜLMÜŞ KOMPAKT FONT) ---
+        st.markdown("---")
+        # Final işlemi: SADECE bu butona basılınca ekranı yeniler ve popup kapanır.
+        if st.button("✅ İşlemleri Bitir ve Kapat", type="primary", use_container_width=True):
+            st.rerun() 
+
+    # --- SAĞ KOLON (TABLO GÖRÜNÜMÜ) ---
     with sag_kolon:
-        # Başlık (Çark yanından kaldırıldı, sadece temiz başlık)
         st.markdown("<h3 style='margin:0; margin-bottom: 10px; white-space:nowrap; font-size:20px;'>📊 Canlı Piyasa</h3>", unsafe_allow_html=True)
 
         @st.cache_data(ttl=300)
@@ -626,7 +633,6 @@ if menu == "📊 Genel Özet":
         html_govde = tablo_verisi_hazirla_html(st.session_state.sag_panel_listesi)
         
         if html_govde:
-            # margin-bottom: 15px eklendi ki altındaki butonla yapışmasın
             st.markdown(f"""<div style="background-color: #111827; padding: 12px; border-radius: 12px; border: 1px solid #1f2937; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); margin-bottom: 15px;">
 <table style="width: 100%; border-collapse: collapse; font-family: inherit;">
 <thead>
