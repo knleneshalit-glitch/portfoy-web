@@ -438,7 +438,9 @@ if menu == "📊 Genel Özet":
     # --- SAĞ PANEL KAPANMA SORUNUNU ÇÖZEN POPUP ---
     @st.dialog("⚙️ Sağ Tablo Ayarları")
     def tablo_ayarlari_popup():
-        st.markdown("**1. Gösterilenleri Çıkar**")
+        st.markdown("**1. Gösterilenler & Sıralama**")
+        st.caption("💡 *İpucu: Bir varlığı en alta almak için önce çarpıya (X) basıp listeden silin, ardından alttaki menülerden tekrar ekleyin.*")
+        
         aktif_tablo_secimleri = st.multiselect(
             "Kaldırmak için çarpıya basın:",
             options=list(st.session_state.sag_panel_listesi.keys()),
@@ -446,20 +448,26 @@ if menu == "📊 Genel Özet":
             key="tablo_sil_popup",
             label_visibility="collapsed"
         )
-        if len(aktif_tablo_secimleri) != len(st.session_state.sag_panel_listesi):
+        
+        # Sıralama veya silme işlemi yapıldıysa hafızayı güncelleyip tabloyu yeniler
+        if list(aktif_tablo_secimleri) != list(st.session_state.sag_panel_listesi.keys()):
             st.session_state.sag_panel_listesi = {k: st.session_state.sag_panel_listesi[k] for k in aktif_tablo_secimleri}
             st.rerun()
             
         st.markdown("---")
-        st.markdown("**2. Hızlı Ekle**")
+        st.markdown("**2. Hızlı Ekle (Maden, Döviz, Kripto)**")
         hazir_tablo_varliklar = {
-            "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", 
-            "Ons Altın": "GC=F", "Dolar/TL": "USDTRY=X", "Euro/TL": "EURTRY=X",
-            "Bitcoin": "BTC-USD", "Ethereum": "ETH-USD"
+            "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", "Gram Platin": "GRAM_PLATIN",
+            "Ons Altın": "GC=F", "Ons Gümüş": "SI=F", "Ons Platin": "PL=F",
+            "Dolar/TL": "USDTRY=X", "Euro/TL": "EURTRY=X", "Sterlin/TL": "GBPTRY=X", 
+            "İsviçre Frangı": "CHFTRY=X", "Japon Yeni": "JPYTRY=X",
+            "Bitcoin": "BTC-USD", "Ethereum": "ETH-USD", "Solana": "SOL-USD", 
+            "Avalanche": "AVAX-USD", "Binance Coin": "BNB-USD", "Ripple (XRP)": "XRP-USD"
         }
         secili_hazir_t = st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_tablo_varliklar.keys()), key="tablo_hizli_popup", label_visibility="collapsed")
         if secili_hazir_t != "Seçiniz...":
             if st.button("➕ Tabloya Ekle", key="btn_tablo_hizli_popup", use_container_width=True):
+                # Yeni eklenen her zaman en alta (sona) eklenir
                 st.session_state.sag_panel_listesi[secili_hazir_t] = hazir_tablo_varliklar[secili_hazir_t]
                 st.rerun()
 
@@ -480,33 +488,55 @@ if menu == "📊 Genel Özet":
         baslik_kolonu, ayar_kolonu = st.columns([4, 1])
         baslik_kolonu.subheader("📊 Canlı Piyasa")
         
-        # Popover yerine Popup'ı tetikleyen Buton
         if ayar_kolonu.button("⚙️", key="tablo_ayar_buton"):
             tablo_ayarlari_popup()
 
         @st.cache_data(ttl=300)
         def tablo_verisi_hazirla(sozluk):
             tablo_verileri = []
-            try: usd_hist = yf.Ticker("USDTRY=X").history(period="5d")['Close']
-            except: usd_hist = pd.Series([1.0, 1.0])
-
+            
             for ad, kod in sozluk.items():
                 try:
-                    if kod == "GRAM_ALTIN": fiyatlar = (yf.Ticker("GC=F").history(period="5d")['Close'] * usd_hist) / 31.1035
-                    elif kod == "GRAM_GUMUS": fiyatlar = (yf.Ticker("SI=F").history(period="5d")['Close'] * usd_hist) / 31.1035
-                    else: fiyatlar = yf.Ticker(kod).history(period="5d")['Close']
-                    
-                    fiyatlar = fiyatlar.dropna()
-                    if not fiyatlar.empty:
-                        bugun = float(fiyatlar.iloc[-1])
-                        dun = float(fiyatlar.iloc[-2]) if len(fiyatlar) > 1 else bugun
-                        degisim_yuzde = ((bugun - dun) / dun) * 100 if dun > 0 else 0.0
-                    else:
-                        bugun, degisim_yuzde = 0.0, 0.0
+                    # ALTIN, GÜMÜŞ VE PLATİN İÇİN ÖZEL GÜVENLİ HESAPLAMA (Tarih Kaymasını Önler)
+                    if kod in ["GRAM_ALTIN", "GRAM_GUMUS", "GRAM_PLATIN"]:
+                        ons_kod = "GC=F" if kod == "GRAM_ALTIN" else ("SI=F" if kod == "GRAM_GUMUS" else "PL=F")
+                        ons_data = yf.Ticker(ons_kod).history(period="5d")['Close']
+                        usd_data = yf.Ticker("USDTRY=X").history(period="5d")['Close']
                         
+                        # pd.concat ile günleri zorla eşleştiriyoruz, ffill ile boşlukları dolduruyoruz
+                        df_ortak = pd.concat([ons_data, usd_data], axis=1, keys=['ONS', 'USD']).ffill().dropna()
+                        
+                        if not df_ortak.empty:
+                            bugun_ons = float(df_ortak['ONS'].iloc[-1])
+                            bugun_usd = float(df_ortak['USD'].iloc[-1])
+                            bugun = (bugun_ons * bugun_usd) / 31.1035
+                            
+                            # Dünkü veriyi al (Eğer sadece 1 günlük veri varsa dünü bugün kabul et)
+                            if len(df_ortak) > 1:
+                                dun_ons = float(df_ortak['ONS'].iloc[-2])
+                                dun_usd = float(df_ortak['USD'].iloc[-2])
+                                dun = (dun_ons * dun_usd) / 31.1035
+                            else:
+                                dun = bugun
+                        else:
+                            bugun, dun = 0.0, 0.0
+
+                    # DİĞER HİSSE VE DÖVİZLER İÇİN STANDART HESAPLAMA
+                    else:
+                        fiyatlar = yf.Ticker(kod).history(period="5d")['Close'].dropna()
+                        if not fiyatlar.empty:
+                            bugun = float(fiyatlar.iloc[-1])
+                            dun = float(fiyatlar.iloc[-2]) if len(fiyatlar) > 1 else bugun
+                        else:
+                            bugun, dun = 0.0, 0.0
+                        
+                    degisim_yuzde = ((bugun - dun) / dun) * 100 if dun > 0 else 0.0
                     tablo_verileri.append({"Varlık": ad, "Fiyat": bugun, "Değişim": degisim_yuzde})
-                except:
-                    tablo_verileri.append({"Varlık": ad[:10], "Fiyat": 0.0, "Değişim": 0.0})
+                    
+                except Exception as e:
+                    # Herhangi bir hatada program çökmesin diye 0 basar
+                    tablo_verileri.append({"Varlık": ad[:15], "Fiyat": 0.0, "Değişim": 0.0})
+                    
             return pd.DataFrame(tablo_verileri)
 
         df_sag_tablo = tablo_verisi_hazirla(st.session_state.sag_panel_listesi)
