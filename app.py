@@ -355,106 +355,72 @@ st.markdown("""
 
         
 # =============================================================================
-# KUSURSUZ 3 PANELLİ UYGULAMA MİMARİSİ
-# (Sol: Sidebar, Orta: İçerik, Sağ: Piyasa - Sayfa Asla Kaymaz!)
+# MASAÜSTÜ UYGULAMASI (DESKTOP APP) MİMARİSİ
 # =============================================================================
 
-# Ana ekranı 3'e 1 oranında iki sabit kolona bölüyoruz
+# SAĞ PANELİ SİYAH YAPIP SEKMELERİ KIRMIZIYA BOYAYAN CSS SİHRİ
+st.markdown("""
+<style>
+    /* Sağdaki MASTER VERİ panelini koyu ve sabit bir kutu yap */
+    [data-testid="column"]:nth-of-type(2) {
+        background-color: #1a1a1a;
+        border-left: 2px solid #333;
+        padding: 0px 15px 15px 15px;
+        border-radius: 5px;
+        height: 85vh;
+        overflow-y: auto;
+    }
+    
+    /* Sağ panelin içindeki sekme (Tab) tasarımlarını kırmızı/siyah yap */
+    [data-baseweb="tab-list"] { background-color: #1a1a1a; gap: 5px; }
+    [data-baseweb="tab"] { color: #aaaaaa !important; font-weight: bold; }
+    [aria-selected="true"] { background-color: #dc2626 !important; color: white !important; border-radius: 3px; }
+</style>
+""", unsafe_allow_html=True)
+
+# Ekranı Böl
 col_orta, col_sag = st.columns([3, 1])
 
-# --- ORTA PENCERE (MENÜ İÇERİKLERİ) ---
-with col_orta:
-    # height=800 sayesinde bu alan dışarı taşmaz, sadece kendi içinde kayar!
-    orta_pencere = st.container(height=800, border=False)
-    
-    with orta_pencere:
-        # BÜTÜN SAYFALARIN BURANIN ALTINDA OLACAK
-        if menu == "📊 Genel Özet":
-            st.title("Portföy Analizi")
-            # ... (Genel Özet kodların)
-            
-        elif menu == "💼 Varlıklar & İşlemler":
-            st.title("Varlık & İşlem Yönetimi")
-            # ... (Varlıklar formların ve tabloların)
-            
-        elif menu == "🔥 Isı Haritası":
-            st.title("Piyasa Isı Haritası")
-            # ... (Diğer sayfaların)
-
-
-# --- SAĞ PENCERE (CANLI PİYASA) ---
+# --- SAĞ PENCERE: MASTER VERİ PANELY ---
 with col_sag:
-    # Bu da sağdaki penceren. Ana sayfadan bağımsız kendi içinde kayar.
-    sag_pencere = st.container(height=800, border=True)
+    st.markdown("<h3 style='color: white; text-align: center; margin-top: 15px;'>MASTER VERİ</h3>", unsafe_allow_html=True)
     
-    with sag_pencere:
-        st.subheader("📡 Canlı Piyasa")
+    # Görselindeki gibi sekmeler (Piyasa, Takvim, Temettü)
+    tab_piyasa, tab_takvim, tab_temettu = st.tabs(["PİYASA", "TAKVİM", "TEMETTÜ"])
+    
+    with tab_piyasa:
+        # Senin canlı piyasa veri çekme kodların ve tablon buraya gelecek
+        # Şimdilik örnek veri basıyorum:
+        df_ornek = pd.DataFrame({
+            "Sembol": ["USD", "EUR", "GAU", "BTC"],
+            "Fiyat": ["43.88", "51.91", "7,316.05", "67,912.24"],
+            "%": ["+0.05", "+0.50", "-0.34", "+0.07"]
+        })
+        st.dataframe(df_ornek, hide_index=True, use_container_width=True)
         
-        # 1. Kullanıcının Takip Listesi Hafızası
-        if "takip_listesi" not in st.session_state:
-            st.session_state.takip_listesi = {
-                "USDTRY=X": "USD/TL",
-                "EURTRY=X": "EUR/TL",
-                "GC=F": "ONS ALTIN",
-                "BTC-USD": "BITCOIN",
-                "THYAO.IS": "THY" # İstediğin hisseyi böyle ekleyebilirsin
-            }
+        # En alttaki DÜZENLE butonu
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        if st.button("⚙️ DÜZENLE", use_container_width=True):
+            st.info("Düzenleme menüsü açılacak...")
 
-        # 2. Veri Ekle / Çıkar Menüsü
-        with st.expander("⚙️ Veri Ekle / Çıkar"):
-            yeni_kod = st.text_input("Kod (Örn: AAPL, SASA.IS)")
-            yeni_ad = st.text_input("Görünecek Ad")
-            if st.button("➕ Ekle") and yeni_kod:
-                eklenecek_ad = yeni_ad.upper() if yeni_ad else yeni_kod.upper()
-                st.session_state.takip_listesi[yeni_kod.upper()] = eklenecek_ad
-                st.rerun()
-                
-            st.markdown("---")
-            silinecek = st.selectbox("Çıkar:", ["Seçiniz..."] + list(st.session_state.takip_listesi.values()))
-            if st.button("🗑️ Sil") and silinecek != "Seçiniz...":
-                for k, v in list(st.session_state.takip_listesi.items()):
-                    if v == silinecek:
-                        del st.session_state.takip_listesi[k]
-                        st.rerun()
-
-        # 3. Fiyat Çekme Motoru (Sadece listedekileri çeker)
-        @st.cache_data(ttl=120)
-        def dinamik_fiyat_cek(sembol_sozlugu):
-            import yfinance as yf
-            sonuclar = []
-            for sembol, isim in sembol_sozlugu.items():
-                try:
-                    hist = yf.Ticker(sembol).history(period="5d")
-                    if not hist.empty and len(hist) >= 2:
-                        guncel = float(hist['Close'].iloc[-1])
-                        eski = float(hist['Close'].iloc[-2])
-                        yuzde = ((guncel - eski) / eski) * 100
-                        isaret = "₺" if "TL" in isim or ".IS" in sembol else "$"
-                        sonuclar.append({"Sembol": isim, "Fiyat": f"{guncel:,.2f} {isaret}", "Değişim (%)": yuzde})
-                except:
-                    pass # Hata verenleri yoksay
-            return sonuclar
-
-        # 4. Tablo ve Renklendirme
-        df_canli = pd.DataFrame(dinamik_fiyat_cek(st.session_state.takip_listesi))
+    with tab_takvim:
+        st.write("Ekonomik takvim verileri buraya gelecek.")
         
-        def renklendir(val):
-            if isinstance(val, float):
-                if val > 0: return 'color: #00ffcc; font-weight: bold;'
-                elif val < 0: return 'color: #ff4d4d; font-weight: bold;'
-            return 'color: #aaaaaa;'
+    with tab_temettu:
+        st.write("Temettü tarihleri buraya gelecek.")
+
+
+# --- ORTA PENCERE: ANA SAYFA VE İŞLEM BUTONU ---
+with col_orta:
+    if menu == "📊 Genel Özet":
+        st.title("Döviz ve Kıymetli Madenler")
+        
+        # Görselindeki o İşlem Ekle popup'ını açan buton!
+        if st.button("➕ YENİ İŞLEM EKLE", type="primary"):
+            islem_ekle_popup()
             
-        if not df_canli.empty:
-            try:
-                renkli_tablo = df_canli.style.map(renklendir, subset=['Değişim (%)'])
-            except AttributeError:
-                renkli_tablo = df_canli.style.applymap(renklendir, subset=['Değişim (%)'])
-                
-            st.dataframe(
-                renkli_tablo.format({"Değişim (%)": "{:+.2f}%"}),
-                hide_index=True, 
-                use_container_width=True
-            )
+        # Altına da senin geniş varlık tabloların gelecek
+        st.write("Tabloların burada olacak...")
 
 # -----------------------------------------------------------------------------
 # SAYFA 1: GENEL ÖZET
@@ -1206,6 +1172,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
