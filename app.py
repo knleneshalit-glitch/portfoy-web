@@ -367,7 +367,7 @@ if menu == "📊 Genel Özet":
 
         ticker_html = f"""
         <div style="background-color: #0e1117; padding: 0px 10px; border-radius: 5px; border: 1px solid #30333d; overflow: hidden; white-space: nowrap; height: 42px; display: flex; align-items: center;">
-            <div style="display: inline-block; padding-left: 100%; animation: marquee 50s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
+            <div style="display: inline-block; padding-left: 100%; animation: marquee 80s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
                 {" &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_data)}
             </div>
         </div>
@@ -972,3 +972,4 @@ elif menu == "📈 Piyasa Analizi":
                 st.markdown("---")
                 vol = ham_veri.pct_change().std() * 100
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")
+
