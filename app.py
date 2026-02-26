@@ -510,23 +510,44 @@ if menu == "📊 Genel Özet":
     # --- SAĞ PANEL KAPANMA SORUNUNU ÇÖZEN POPUP ---
     @st.dialog("⚙️ Sağ Tablo Ayarları")
     def tablo_ayarlari_popup():
-        st.markdown("**1. Gösterilenler & Sıralama**")
-        st.caption("💡 *İpucu: Bir varlığı en alta almak için önce çarpıya (X) basıp listeden silin, ardından alttaki menülerden tekrar ekleyin.*")
         
-        aktif_tablo_secimleri = st.multiselect(
-            "Kaldırmak için çarpıya basın:",
-            options=list(st.session_state.sag_panel_listesi.keys()),
-            default=list(st.session_state.sag_panel_listesi.keys()),
-            key="tablo_sil_popup",
-            label_visibility="collapsed"
-        )
+        # --- YENİ NESİL SIRALAMA VE SİLME PANELİ ---
+        st.markdown("**1. Mevcut Varlıklar (Sırala & Sil)**")
         
-        # Sıralama veya silme işlemi yapıldıysa hafızayı güncelleyip tabloyu yeniler
-        if list(aktif_tablo_secimleri) != list(st.session_state.sag_panel_listesi.keys()):
-            st.session_state.sag_panel_listesi = {k: st.session_state.sag_panel_listesi[k] for k in aktif_tablo_secimleri}
-            st.rerun()
+        mevcut_liste = list(st.session_state.sag_panel_listesi.keys())
+        
+        if not mevcut_liste:
+            st.info("Listeniz şu an boş. Alttan ekleme yapabilirsiniz.")
+        else:
+            for i, varlik_adi in enumerate(mevcut_liste):
+                # Her varlık için yan yana: İsim | Yukarı | Aşağı | Sil kolonları
+                c_isim, c_yukari, c_asagi, c_sil = st.columns([5, 1.2, 1.2, 1.2])
+                
+                # İsim gösterimi
+                c_isim.markdown(f"<div style='padding-top: 5px; font-weight: 500;'>{varlik_adi}</div>", unsafe_allow_html=True)
+                
+                # Yukarı Taşı Butonu (En üstteyse deaktif olur)
+                if c_yukari.button("⬆️", key=f"up_{varlik_adi}", disabled=(i == 0), help="Yukarı Taşı"):
+                    # Bir üstteki ile yer değiştir
+                    mevcut_liste[i], mevcut_liste[i-1] = mevcut_liste[i-1], mevcut_liste[i]
+                    st.session_state.sag_panel_listesi = {k: st.session_state.sag_panel_listesi[k] for k in mevcut_liste}
+                    st.rerun()
+                    
+                # Aşağı Taşı Butonu (En alttaysa deaktif olur)
+                if c_asagi.button("⬇️", key=f"down_{varlik_adi}", disabled=(i == len(mevcut_liste)-1), help="Aşağı Taşı"):
+                    # Bir alttaki ile yer değiştir
+                    mevcut_liste[i], mevcut_liste[i+1] = mevcut_liste[i+1], mevcut_liste[i]
+                    st.session_state.sag_panel_listesi = {k: st.session_state.sag_panel_listesi[k] for k in mevcut_liste}
+                    st.rerun()
+                    
+                # Silme Butonu
+                if c_sil.button("❌", key=f"del_{varlik_adi}", help="Listeden Çıkar"):
+                    del st.session_state.sag_panel_listesi[varlik_adi]
+                    st.rerun()
             
         st.markdown("---")
+        
+        # --- HIZLI EKLEME MENÜLERİ (Aynen Kalıyor) ---
         st.markdown("**2. Hızlı Ekle (Maden, Döviz, Kripto)**")
         hazir_tablo_varliklar = {
             "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", "Gram Platin": "GRAM_PLATIN",
@@ -539,7 +560,6 @@ if menu == "📊 Genel Özet":
         secili_hazir_t = st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_tablo_varliklar.keys()), key="tablo_hizli_popup", label_visibility="collapsed")
         if secili_hazir_t != "Seçiniz...":
             if st.button("➕ Tabloya Ekle", key="btn_tablo_hizli_popup", use_container_width=True):
-                # Yeni eklenen her zaman en alta (sona) eklenir
                 st.session_state.sag_panel_listesi[secili_hazir_t] = hazir_tablo_varliklar[secili_hazir_t]
                 st.rerun()
 
