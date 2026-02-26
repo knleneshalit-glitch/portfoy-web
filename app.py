@@ -444,11 +444,20 @@ if menu == "📊 Genel Özet":
             cc3.metric("🚀 Net K/Z", f"{net_kz:+,.0f} ₺", f"%{yuzde_kz:.2f}")
             
             st.write("---")
-            st.dataframe(df_varlik.style.format({
-                'miktar': '{:.2f}', 'ort_maliyet': '{:.2f} ₺', 
-                'guncel_fiyat': '{:.2f} ₺', 'Yatirim': '{:.2f} ₺', 
-                'Guncel': '{:.2f} ₺', 'Kar_Zarar': '{:+.2f} ₺', 'Degisim_%': '%{:.2f}'
-            }), use_container_width=True)
+            df_gosterim = df_varlik.rename(columns={
+                'sembol': 'Varlık',
+                'miktar': 'Adet',
+                'ort_maliyet': 'Maliyet',
+                'guncel_fiyat': 'Fiyat',
+                'Kar_Zarar': 'K/Z (₺)',
+                'Degisim_%': 'Değişim (%)'
+            })
+
+            st.dataframe(df_gosterim.style.format({
+                'Adet': '{:.2f}', 'Maliyet': '{:.2f} ₺', 
+                'Fiyat': '{:.2f} ₺', 'Yatirim': '{:,.2f} ₺', 
+                'Guncel': '{:,.2f} ₺', 'K/Z (₺)': '{:+,.2f} ₺', 'Değişim (%)': '%{:.2f}'
+            }), use_container_width=True, hide_index=True)
 
             col_grafik, col_hedef = st.columns([2, 1])
             
@@ -548,10 +557,15 @@ if menu == "📊 Genel Özet":
 
     # --- SAĞ KOLON (TABLO GÖRÜNÜMÜ) ---
     with sag_kolon:
-        baslik_kolonu, ayar_kolonu = st.columns([4, 1])
-        baslik_kolonu.subheader("📊 Canlı Piyasa")
+        # vertical_alignment="center" ile çark ve yazı tam aynı hizada durur
+        # [5, 1] oranı ile yazıya daha fazla yer açtık, kayma yapmaz
+        baslik_kolonu, ayar_kolonu = st.columns([5, 1], vertical_alignment="center")
         
-        if ayar_kolonu.button("⚙️", key="tablo_ayar_buton"):
+        # 'white-space: nowrap' ekleyerek yazının asla alt satıra geçmemesini garanti ediyoruz
+        baslik_kolonu.markdown("<h3 style='margin:0; white-space:nowrap;'>📊 Canlı Piyasa</h3>", unsafe_allow_html=True)
+        
+        # Çark butonu
+        if ayar_kolonu.button("⚙️", key="tablo_ayar_buton", use_container_width=True):
             tablo_ayarlari_popup()
 
         @st.cache_data(ttl=300)
