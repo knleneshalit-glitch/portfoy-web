@@ -292,10 +292,10 @@ footer_css = f"""
         padding-left: 10px;
     }}
     
-    /* Animasyon (35 saniyede bir tur) */
+    /* Animasyon (80 saniyede bir tur) */
     .marquee-content {{
         display: inline-block;
-        animation: marquee 65s linear infinite;
+        animation: marquee 80s linear infinite;
     }}
     
     /* Fareyle üzerine gelince kaymayı durdur */
@@ -1142,6 +1142,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
