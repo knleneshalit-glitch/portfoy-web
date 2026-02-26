@@ -241,15 +241,17 @@ if menu == "📊 Genel Özet":
         except:
             return {}
 
-    # 2. HAFIZA (SESSION STATE) AYARLARI
-    # Varsayılan olarak ekranda nelerin olacağını belirliyoruz
-    if 'takip_listesi_bant' not in st.session_state:
-        st.session_state.takip_listesi_bant = {
-            "Dolar/TL": "USDTRY=X",
-            "Euro/TL": "EURTRY=X",
-            "Gram Altın": "GRAM_ALTIN",
-            "Bitcoin": "BTC-USD"
-        }
+    # 2. ARAMA YAPILABİLECEK GENİŞ KAPSAMLI LİSTE
+    sabit_secenekler = {
+        "Dolar (USD)": "USDTRY=X", "Euro (EUR)": "EURTRY=X", "Sterlin (GBP)": "GBPTRY=X", 
+        "Japon Yeni (JPY)": "JPYTRY=X", "İsviçre Frangı (CHF)": "CHFTRY=X",
+        "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", "Gram Platin": "GRAM_PLATIN",
+        "Ons Altın": "GC=F", "Ons Gümüş": "SI=F", "Ons Platin": "PL=F",
+        "Bitcoin (BTC)": "BTC-USD", "Ethereum (ETH)": "ETH-USD",
+        "BIST 100": "XU100.IS", "Türk Hava Yolları": "THYAO.IS", "Tüpraş": "TUPRS.IS", 
+        "Aselsan": "ASELS.IS", "Koç Holding": "KCHOL.IS", "İş Bankası (C)": "ISCTR.IS",
+        "Apple": "AAPL", "Tesla": "TSLA", "Nvidia": "NVDA", "Microsoft": "MSFT"
+    }
 
     # 3. VERİ ÇEKME MOTORU
     @st.cache_data(ttl=300) 
