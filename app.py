@@ -1260,26 +1260,24 @@ elif menu == "📈 Piyasa Analizi":
 
     # 3. GRAFİK VE VERİ ÇEKME EKRANI
     if analiz_sembol:
-        # Başlık ve Filtreleri 3 Kolona Böldük (Başlık | Grafik Tipi | Periyot)
-        c_baslik, c_tip, c_periyot = st.columns([2, 1, 1], vertical_alignment="bottom")
+        import plotly.graph_objects as go # Mum grafiği için gerekli
+        
+        c_baslik, c_periyot = st.columns([3, 1], vertical_alignment="bottom")
         c_baslik.subheader(f"📊 {analiz_isim}")
         
-        grafik_tipleri = ["Alan (Area)", "Çizgi (Line)", "Sütun (Bar)"]
-        secili_grafik = c_tip.selectbox("Grafik Tipi:", grafik_tipleri)
+        periyotlar = {"1 Haftalık": "5d", "1 Aylık": "1mo", "3 Aylık": "3mo", "6 Aylık": "6mo", "1 Yıllık": "1y", "5 Yıllık": "5y"}
+        secili_periyot = c_periyot.selectbox("Zaman Aralığı Seçin:", list(periyotlar.keys()), index=2)
         
-        periyotlar = {"1 Ay": "1mo", "3 Ay": "3mo", "6 Ay": "6mo", "1 Yıl": "1y", "5 Yıl": "5y"}
-        secili_periyot = c_periyot.selectbox("Zaman Aralığı:", list(periyotlar.keys()), index=1)
-        
-        with st.spinner("Grafik yükleniyor..."):
+        with st.spinner("Piyasa verileri ve grafikler hazırlanıyor..."):
             try:
                 fiziksel_altinlar = ["GRAM_ALTIN", "CEYREK-ALTIN", "YARIM-ALTIN", "TAM-ALTIN", "ATA-ALTIN", "GRAM_GUMUS"]
                 
                 if analiz_sembol in fiziksel_altinlar:
                     ons_kod = "SI=F" if "GUMUS" in analiz_sembol else "GC=F"
-                    ons_data = yf.Ticker(ons_kod).history(period=periyotlar[secili_periyot])['Close']
-                    usd_data = yf.Ticker("USDTRY=X").history(period=periyotlar[secili_periyot])['Close']
+                    ons_data = yf.Ticker(ons_kod).history(period=periyotlar[secili_periyot])
+                    usd_data = yf.Ticker("USDTRY=X").history(period=periyotlar[secili_periyot])
                     
-                    df_ortak = pd.concat([ons_data, usd_data], axis=1, keys=['ONS', 'USD']).ffill().dropna()
+                    df_ortak = pd.concat([ons_data['Close'], usd_data['Close']], axis=1, keys=['ONS', 'USD']).ffill().dropna()
                     fiyat_serisi = (df_ortak['ONS'] * df_ortak['USD']) / 31.1035
                     
                     if analiz_sembol == "CEYREK-ALTIN": fiyat_serisi *= 1.6065
@@ -1288,22 +1286,28 @@ elif menu == "📈 Piyasa Analizi":
                     elif analiz_sembol == "ATA-ALTIN": fiyat_serisi *= 6.6080
                     
                     df_grafik = fiyat_serisi.reset_index()
-                    df_grafik.columns = ['Tarih', 'Fiyat']
-                    df_grafik['Tarih'] = pd.to_datetime(df_grafik['Tarih']).dt.date
+                    df_grafik.columns = ['Date', 'Close']
+                    # Sadece Close olduğu için diğerlerini de Close'a eşitliyoruz (Fiziksel madenlerde mum grafiği hata vermesin diye)
+                    df_grafik['Open'] = df_grafik['High'] = df_grafik['Low'] = df_grafik['Close']
                 else:
                     df_grafik = yf.Ticker(analiz_sembol).history(period=periyotlar[secili_periyot]).reset_index()
-                    df_grafik = df_grafik[['Date', 'Close']].rename(columns={'Date': 'Tarih', 'Close': 'Fiyat'})
-                    df_grafik['Tarih'] = pd.to_datetime(df_grafik['Tarih']).dt.date
                 
                 if not df_grafik.empty:
-                    son_fiyat = float(df_grafik['Fiyat'].iloc[-1])
-                    ilk_fiyat = float(df_grafik['Fiyat'].iloc[0])
+                    df_grafik['Tarih'] = pd.to_datetime(df_grafik['Date']).dt.date
+                    
+                    son_fiyat = float(df_grafik['Close'].iloc[-1])
+                    ilk_fiyat = float(df_grafik['Close'].iloc[0])
                     degisim_yuzdesi = ((son_fiyat - ilk_fiyat) / ilk_fiyat) * 100
-                    en_yuksek = float(df_grafik['Fiyat'].max())
-                    en_dusuk = float(df_grafik['Fiyat'].min())
+                    en_yuksek = float(df_grafik['High'].max())
+                    en_dusuk = float(df_grafik['Low'].min())
                     
                     renk = "#10b981" if degisim_yuzdesi >= 0 else "#ef4444"
                     ok = "▲" if degisim_yuzdesi >= 0 else "▼"
+                    
+                    # 4'lü İstatistik Paneli
+                    st.markdown(f"""
+                    <div style="background-color: #1a1c24; padding: 15px; border-radius: 12px; border: 1px solid #30333d; margin-bottom: 20px;">
+                    """, unsafe_allow_html=True)
                     
                     metrik_c1, metrik_c2, metrik_c3, metrik_c4 = st.columns(4)
                     metrik_c1.metric("Şu Anki Fiyat", f"{son_fiyat:,.2f}", f"{ok} %{abs(degisim_yuzdesi):.2f}")
@@ -1311,39 +1315,46 @@ elif menu == "📈 Piyasa Analizi":
                     metrik_c3.metric("En Düşük", f"{en_dusuk:,.2f}")
                     metrik_c4.metric("Dönem Başı", f"{ilk_fiyat:,.2f}")
                     
-                    # --- SEÇİLEN TİPE GÖRE GRAFİĞİ ÇİZ ---
-                    if secili_grafik == "Alan (Area)":
-                        fig = px.area(df_grafik, x='Tarih', y='Fiyat')
-                        fig.update_traces(line_color=renk, fillcolor=renk, fillpattern_shape="", opacity=0.15)
-                    
-                    elif secili_grafik == "Çizgi (Line)":
-                        fig = px.line(df_grafik, x='Tarih', y='Fiyat')
-                        fig.update_traces(line_color=renk, line_width=3)
-                    
-                    elif secili_grafik == "Sütun (Bar)":
-                        fig = px.bar(df_grafik, x='Tarih', y='Fiyat')
-                        fig.update_traces(marker_color=renk)
-                    
-                    # Ortak Grafik Ayarları (Zemin, Yazı Renkleri, Çizgiler)
-                    fig.update_layout(
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        font_color="#e2e8f0",
-                        margin=dict(l=0, r=0, t=20, b=0),
-                        xaxis_title="",
-                        yaxis_title="Fiyat",
-                        xaxis=dict(showgrid=False),
-                        yaxis=dict(showgrid=True, gridcolor="#333333")
-                    )
-                    
-                    st.markdown(f"""
-                    <div style="background-color: #1a1c24; padding: 15px; border-radius: 12px; border: 1px solid #30333d; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-                    """, unsafe_allow_html=True)
-                    
-                    st.plotly_chart(fig, use_container_width=True)
-                    
                     st.markdown("</div>", unsafe_allow_html=True)
                     
+                    # GRAFİK SEKMELERİ (TABS) DÜZENİ
+                    tab_alan, tab_cizgi, tab_sutun, tab_mum = st.tabs(["🌊 Alan Grafiği", "📈 Çizgi Grafiği", "📊 Sütun Grafiği", "🕯️ Mum Grafiği"])
+                    
+                    ortak_layout = dict(
+                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                        font_color="#e2e8f0", margin=dict(l=0, r=0, t=10, b=0),
+                        xaxis_title="", yaxis_title="Fiyat",
+                        xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor="#333333")
+                    )
+
+                    with tab_alan:
+                        fig1 = px.area(df_grafik, x='Tarih', y='Close')
+                        fig1.update_traces(line_color=renk, fillcolor=renk, opacity=0.15)
+                        fig1.update_layout(**ortak_layout)
+                        st.plotly_chart(fig1, use_container_width=True)
+                        
+                    with tab_cizgi:
+                        fig2 = px.line(df_grafik, x='Tarih', y='Close')
+                        fig2.update_traces(line_color=renk, line_width=3)
+                        fig2.update_layout(**ortak_layout)
+                        st.plotly_chart(fig2, use_container_width=True)
+                        
+                    with tab_sutun:
+                        fig3 = px.bar(df_grafik, x='Tarih', y='Close')
+                        fig3.update_traces(marker_color=renk)
+                        fig3.update_layout(**ortak_layout)
+                        st.plotly_chart(fig3, use_container_width=True)
+                        
+                    with tab_mum:
+                        fig4 = go.Figure(data=[go.Candlestick(
+                            x=df_grafik['Tarih'],
+                            open=df_grafik['Open'], high=df_grafik['High'],
+                            low=df_grafik['Low'], close=df_grafik['Close'],
+                            increasing_line_color='#10b981', decreasing_line_color='#ef4444'
+                        )])
+                        fig4.update_layout(**ortak_layout, xaxis_rangeslider_visible=False)
+                        st.plotly_chart(fig4, use_container_width=True)
+
                 else:
                     st.warning("Bu varlık için grafik verisi bulunamadı.")
             except Exception as e:
