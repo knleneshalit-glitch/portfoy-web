@@ -342,15 +342,20 @@ if menu == "📊 Genel Özet":
     st.title("Portföy Analizi")
     
     # --- 1. KAYAN PİYASA BANDI (TICKER) ---
-    # fiyatlar sözlüğünden verileri çekiyoruz
+    # Güvenlik Yastığı: Eğer fiyatlar internetten çekilemediyse (None ise) sistemi çökertme, boş kabul et.
+    try:
+        guncel_f = fiyatlar if hasattr(fiyatlar, "get") else {}
+    except NameError:
+        guncel_f = {}
+
     ticker_data = [
-        f"🇺🇸 USD: {fiyatlar.get('USDTRY=X', 0):.2f} ₺",
-        f"🇪🇺 EUR: {fiyatlar.get('EURTRY=X', 0):.2f} ₺",
-        f"🟡 GR ALTIN: {fiyatlar.get('GRAM-ALTIN', 0):.2f} ₺",
-        f"🥈 GR GÜMÜŞ: {fiyatlar.get('GRAM-GUMUS', 0):.2f} ₺",
-        f"💍 GR PLATİN: {fiyatlar.get('GRAM-PLATIN', 0):.2f} ₺",
-        f"🏆 ONS ALTIN: {fiyatlar.get('GC=F', 0):.2f} $",
-        f"₿ BTC: {fiyatlar.get('BTC-USD', 0):,.0f} $"
+        f"🇺🇸 USD: {guncel_f.get('USDTRY=X', 0):.2f} ₺",
+        f"🇪🇺 EUR: {guncel_f.get('EURTRY=X', 0):.2f} ₺",
+        f"🟡 GR ALTIN: {guncel_f.get('GRAM-ALTIN', 0):.2f} ₺",
+        f"🥈 GR GÜMÜŞ: {guncel_f.get('GRAM-GUMUS', 0):.2f} ₺",
+        f"💍 GR PLATİN: {guncel_f.get('GRAM-PLATIN', 0):.2f} ₺",
+        f"🏆 ONS ALTIN: {guncel_f.get('GC=F', 0):.2f} $",
+        f"₿ BTC: {guncel_f.get('BTC-USD', 0):,.0f} $"
     ]
 
     # HTML ve CSS ile kayma efekti
@@ -988,6 +993,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
