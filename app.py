@@ -568,6 +568,7 @@ if menu == "📊 Genel Özet":
         if ayar_alani.button("⚙️", key="tablo_ayar_buton", help="Düzenle"):
             tablo_ayarlari_popup()
 
+        # Tablo Veri Hazırlama Motoru (HTML Çıktısı Üretir)
         @st.cache_data(ttl=300)
         def tablo_verisi_hazirla_html(sozluk):
             satirlar_html = ""
@@ -582,22 +583,16 @@ if menu == "📊 Genel Özet":
                     if kod in ["GRAM_ALTIN", "GRAM_GUMUS", "GRAM_PLATIN"]:
                         ons_kod = "GC=F" if kod == "GRAM_ALTIN" else ("SI=F" if kod == "GRAM_GUMUS" else "PL=F")
                         ons_data = yf.Ticker(ons_kod).history(period="5d")['Close']
-                        
-                        # pd.concat ile günleri zorla eşleştiriyoruz, ffill ile boşlukları dolduruyoruz
                         df_ortak = pd.concat([ons_data, usd_hist], axis=1, keys=['ONS', 'USD']).ffill().dropna()
                         
                         if not df_ortak.empty:
                             bugun = (float(df_ortak['ONS'].iloc[-1]) * float(df_ortak['USD'].iloc[-1])) / 31.1035
-                            
-                            # Dünkü veriyi al
                             if len(df_ortak) > 1:
                                 dun = (float(df_ortak['ONS'].iloc[-2]) * float(df_ortak['USD'].iloc[-2])) / 31.1035
                             else:
                                 dun = bugun
                         else:
                             bugun, dun = 0.0, 0.0
-
-                    # DİĞER HİSSE VE DÖVİZLER İÇİN STANDART HESAPLAMA
                     else:
                         fiyatlar = yf.Ticker(kod).history(period="5d")['Close'].dropna()
                         if not fiyatlar.empty:
@@ -610,45 +605,39 @@ if menu == "📊 Genel Özet":
                     renk = "#10b981" if degisim_yuzde > 0 else "#ef4444"
                     ok = "▲" if degisim_yuzde > 0 else "▼"
 
-                    # HTML Satırı Oluşturma
-                    satirlar_html += f"""
-                    <tr style="border-bottom: 1px solid #333;">
-                        <td style="padding: 12px 8px; color: #ddd; font-size: 14px;">{ad}</td>
-                        <td style="padding: 12px 8px; color: #fff; font-weight: bold; text-align: right; font-size: 14px;">{bugun:,.2f}</td>
-                        <td style="padding: 12px 8px; color: {renk}; font-weight: bold; text-align: right; font-size: 14px;">{ok} {abs(degisim_yuzde):.2f}%</td>
-                    </tr>
-                    """
+                    # DİKKAT: Baştaki boşluklar bilerek silindi! (Raw Text olmaması için)
+                    satirlar_html += f'<tr style="border-bottom: 1px solid #333;">'
+                    satirlar_html += f'<td style="padding: 12px 8px; color: #ddd; font-size: 14px;">{ad}</td>'
+                    satirlar_html += f'<td style="padding: 12px 8px; color: #fff; font-weight: bold; text-align: right; font-size: 14px;">{bugun:,.2f}</td>'
+                    satirlar_html += f'<td style="padding: 12px 8px; color: {renk}; font-weight: bold; text-align: right; font-size: 14px;">{ok} {abs(degisim_yuzde):.2f}%</td>'
+                    satirlar_html += f'</tr>'
                 except Exception as e:
-                    # Hata durumunda boş satır ekle
-                    satirlar_html += f"""
-                    <tr style="border-bottom: 1px solid #333;">
-                        <td style="padding: 12px 8px; color: #ddd; font-size: 14px;">{ad[:15]}</td>
-                        <td style="padding: 12px 8px; color: #fff; font-weight: bold; text-align: right; font-size: 14px;">0.00</td>
-                        <td style="padding: 12px 8px; color: #888; font-weight: bold; text-align: right; font-size: 14px;">0.00%</td>
-                    </tr>
-                    """
+                    satirlar_html += f'<tr style="border-bottom: 1px solid #333;">'
+                    satirlar_html += f'<td style="padding: 12px 8px; color: #ddd; font-size: 14px;">{ad[:15]}</td>'
+                    satirlar_html += f'<td style="padding: 12px 8px; color: #fff; font-weight: bold; text-align: right; font-size: 14px;">0.00</td>'
+                    satirlar_html += f'<td style="padding: 12px 8px; color: #888; font-weight: bold; text-align: right; font-size: 14px;">0.00%</td>'
+                    satirlar_html += f'</tr>'
             return satirlar_html
 
-        # Özel Tasarlanmış Koyu HTML Tablosunu Ekrana Basma
+        # HTML Tablosunu Ekrana Basma
         html_govde = tablo_verisi_hazirla_html(st.session_state.sag_panel_listesi)
         
         if html_govde:
-            st.markdown(f"""
-            <div style="background-color: #1a1c24; padding: 15px; border-radius: 12px; border: 1px solid #30333d; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-top: 10px;">
-                <table style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-                    <thead>
-                        <tr style="border-bottom: 2px solid #444; text-align: left;">
-                            <th style="padding: 8px; color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Varlık</th>
-                            <th style="padding: 8px; color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: right;">Fiyat</th>
-                            <th style="padding: 8px; color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: right;">Değişim</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {html_govde}
-                    </tbody>
-                </table>
-            </div>
-            """, unsafe_allow_html=True)
+            # HTML Kodları bilerek en sola yaslandı (Streamlit kod bloğu sanmasın diye)
+            st.markdown(f"""<div style="background-color: #1a1c24; padding: 15px; border-radius: 12px; border: 1px solid #30333d; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-top: 10px;">
+<table style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+<thead>
+<tr style="border-bottom: 2px solid #444; text-align: left;">
+<th style="padding: 8px; color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Varlık</th>
+<th style="padding: 8px; color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: right;">Fiyat</th>
+<th style="padding: 8px; color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: right;">Değişim</th>
+</tr>
+</thead>
+<tbody>
+{html_govde}
+</tbody>
+</table>
+</div>""", unsafe_allow_html=True)
         else:
             st.info("Tablo boş. Dişli çarktan veri ekleyin.")
 
