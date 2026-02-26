@@ -241,15 +241,24 @@ if menu == "📊 Genel Özet":
         except:
             return {}
 
-    # 2. HAFIZA (SESSION STATE) AYARLARI
-    # Varsayılan olarak ekranda nelerin olacağını belirliyoruz
-    if 'takip_listesi_bant' not in st.session_state:
-        st.session_state.takip_listesi_bant = {
-            "Dolar/TL": "USDTRY=X",
-            "Euro/TL": "EURTRY=X",
-            "Gram Altın": "GRAM_ALTIN",
-            "Bitcoin": "BTC-USD"
-        }
+    # --- GLOBAL HAFIZA (SESSION STATE) AYARLARI ---
+if 'takip_listesi_bant' not in st.session_state:
+    st.session_state.takip_listesi_bant = {
+        "Dolar/TL": "USDTRY=X",
+        "Euro/TL": "EURTRY=X",
+        "Gram Altın": "GRAM_ALTIN",
+        "Bitcoin": "BTC-USD"
+    }
+
+# ŞİMDİ EKLENEN KISIM: Sağ tablonun hafızası
+if 'sag_panel_listesi' not in st.session_state:
+    st.session_state.sag_panel_listesi = {
+        "BIST 100": "XU100.IS",
+        "S&P 500": "^GSPC",
+        "Gram Altın": "GRAM_ALTIN",
+        "Dolar/TL": "USDTRY=X",
+        "Bitcoin": "BTC-USD"
+    }
 
     # 3. VERİ ÇEKME MOTORU
     @st.cache_data(ttl=300) 
@@ -367,7 +376,7 @@ if menu == "📊 Genel Özet":
 
         ticker_html = f"""
         <div style="background-color: #0e1117; padding: 0px 10px; border-radius: 5px; border: 1px solid #30333d; overflow: hidden; white-space: nowrap; height: 42px; display: flex; align-items: center;">
-            <div style="display: inline-block; padding-left: 100%; animation: marquee 80s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
+            <div style="display: inline-block; padding-left: 100%; animation: marquee 50s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
                 {" &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_data)}
             </div>
         </div>
@@ -457,6 +466,103 @@ if menu == "📊 Genel Özet":
                             st.rerun()
                             
         conn.close() 
+
+# =========================================================================
+    # SAĞ KOLON: CANLI PİYASA TABLOSU VE AYARLARI
+    # =========================================================================
+    with sag_kolon:
+        baslik_kolonu, ayar_kolonu = st.columns([4, 1])
+        baslik_kolonu.subheader("📊 Canlı Piyasa")
+        
+        # --- TABLO AYARLARI (DİŞLİ ÇARK) ---
+        with ayar_kolonu.popover("⚙️"):
+            st.markdown("**Tablo Ayarları**")
+            
+            # 1. Silme İşlemi
+            aktif_tablo_secimleri = st.multiselect(
+                "Kaldırmak için çarpıya basın:",
+                options=list(st.session_state.sag_panel_listesi.keys()),
+                default=list(st.session_state.sag_panel_listesi.keys()),
+                key="tablo_sil"
+            )
+            if len(aktif_tablo_secimleri) != len(st.session_state.sag_panel_listesi):
+                st.session_state.sag_panel_listesi = {k: st.session_state.sag_panel_listesi[k] for k in aktif_tablo_secimleri}
+                st.rerun()
+                
+            st.markdown("---")
+            
+            # 2. Hızlı Ekleme (Hazır Liste)
+            hazir_tablo_varliklar = {
+                "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", 
+                "Ons Altın": "GC=F", "Dolar/TL": "USDTRY=X", "Euro/TL": "EURTRY=X",
+                "Bitcoin": "BTC-USD", "Ethereum": "ETH-USD"
+            }
+            secili_hazir_tablo = st.selectbox("Hızlı Ekle:", ["Seçiniz..."] + list(hazir_tablo_varliklar.keys()), key="tablo_hizli")
+            if secili_hazir_tablo != "Seçiniz...":
+                if st.button("➕ Tabloya Ekle", key="btn_tablo_hizli", use_container_width=True):
+                    st.session_state.sag_panel_listesi[secili_hazir_tablo] = hazir_tablo_varliklar[secili_hazir_tablo]
+                    st.rerun()
+
+            st.markdown("---")
+            
+            # 3. Yahoo Canlı Arama (Hisse/Fon)
+            arama_tablo = st.text_input("Hisse/Fon Ara:", placeholder="Örn: AAPL, THYAO", key="tablo_ara")
+            if arama_tablo:
+                bulunanlar_tablo = yahoo_arama(arama_tablo) # Banttaki aynı arama motorunu kullanıyoruz
+                if bulunanlar_tablo:
+                    secilen_t = st.selectbox("Sonuçlar:", ["Lütfen Seçin..."] + list(bulunanlar_tablo.keys()), key="tablo_sonuc")
+                    if secilen_t != "Lütfen Seçin...":
+                        if st.button("➕ Tabloya Ekle", key="btn_tablo_ara", use_container_width=True):
+                            st.session_state.sag_panel_listesi[secilen_t.split('-')[0].strip()] = bulunanlar_tablo[secilen_t]
+                            st.rerun()
+
+        # --- VERİ ÇEKME VE YÜZDE HESAPLAMA MOTORU ---
+        @st.cache_data(ttl=300)
+        def tablo_verisi_hazirla(sozluk):
+            tablo_verileri = []
+            try:
+                usd_hist = yf.Ticker("USDTRY=X").history(period="5d")['Close']
+            except:
+                usd_hist = pd.Series([1.0, 1.0])
+
+            for ad, kod in sozluk.items():
+                try:
+                    if kod == "GRAM_ALTIN":
+                        fiyatlar = (yf.Ticker("GC=F").history(period="5d")['Close'] * usd_hist) / 31.1035
+                    elif kod == "GRAM_GUMUS":
+                        fiyatlar = (yf.Ticker("SI=F").history(period="5d")['Close'] * usd_hist) / 31.1035
+                    else:
+                        fiyatlar = yf.Ticker(kod).history(period="5d")['Close']
+                    
+                    fiyatlar = fiyatlar.dropna()
+                    bugun = float(fiyatlar.iloc[-1])
+                    dun = float(fiyatlar.iloc[-2]) if len(fiyatlar) > 1 else bugun
+                    degisim_yuzde = ((bugun - dun) / dun) * 100 if dun > 0 else 0.0
+                    
+                    tablo_verileri.append({"Varlık": ad, "Fiyat": bugun, "Değişim": degisim_yuzde})
+                except:
+                    tablo_verileri.append({"Varlık": ad[:10], "Fiyat": 0.0, "Değişim": 0.0})
+                    
+            return pd.DataFrame(tablo_verileri)
+
+        # Tabloyu oluştur
+        df_sag_tablo = tablo_verisi_hazirla(st.session_state.sag_panel_listesi)
+        
+        if not df_sag_tablo.empty:
+            # Yüzdeleri yeşil ve kırmızıya boyama kuralı
+            def renk_kurali(val):
+                renk = '#10b981' if val > 0 else '#ef4444' if val < 0 else '#888888'
+                return f'color: {renk}; font-weight: bold;'
+
+            st.dataframe(
+                df_sag_tablo.style
+                .format({"Fiyat": "{:,.2f}", "Değişim": "{:+.2f}%"})
+                .map(renk_kurali, subset=['Değişim']),
+                hide_index=True,
+                use_container_width=True
+            )
+        else:
+            st.info("Tablo boş. Dişli çarktan veri ekleyin.")
 
 # -----------------------------------------------------------------------------
 # SAYFA 2: ISI HARİTASI
@@ -972,4 +1078,3 @@ elif menu == "📈 Piyasa Analizi":
                 st.markdown("---")
                 vol = ham_veri.pct_change().std() * 100
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")
-
