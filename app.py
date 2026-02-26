@@ -335,117 +335,100 @@ footer_css = f"""
 # HTML kodunu tüm sayfalarda geçerli olacak şekilde ekrana bas
 st.markdown(footer_css, unsafe_allow_html=True)
 
-# =============================================================================
-# 4. SAYFALARIN İÇERİĞİ
-# =============================================================================
-
 # -----------------------------------------------------------------------------
 # SAYFA 1: GENEL ÖZET
 # -----------------------------------------------------------------------------
 if menu == "📊 Genel Özet":
     st.title("Portföy Analizi")
     
-    # --- KAYAN PİYASA BANDI (TICKER) ---
-# Fiyatlar sözlüğünden verileri çekiyoruz (fiyatlar değişkeninin tanımlı olduğundan emin ol)
-ticker_data = [
-    f"🇺🇸 USD: {fiyatlar.get('USDTRY=X', 0):.2f} ₺",
-    f"🇪🇺 EUR: {fiyatlar.get('EURTRY=X', 0):.2f} ₺",
-    f"🟡 GR ALTIN: {fiyatlar.get('GRAM-ALTIN', 0):.2f} ₺",
-    f"🥈 GR GÜMÜŞ: {fiyatlar.get('GRAM-GUMUS', 0):.2f} ₺",
-    f"💍 GR PLATİN: {fiyatlar.get('GRAM-PLATIN', 0):.2f} ₺",
-    f"🏆 ONS ALTIN: {fiyatlar.get('GC=F', 0):.2f} $",
-    f"₿ BTC: {fiyatlar.get('BTC-USD', 0):,.0f} $"
-]
+    # --- 1. KAYAN PİYASA BANDI (TICKER) ---
+    # fiyatlar sözlüğünden verileri çekiyoruz
+    ticker_data = [
+        f"🇺🇸 USD: {fiyatlar.get('USDTRY=X', 0):.2f} ₺",
+        f"🇪🇺 EUR: {fiyatlar.get('EURTRY=X', 0):.2f} ₺",
+        f"🟡 GR ALTIN: {fiyatlar.get('GRAM-ALTIN', 0):.2f} ₺",
+        f"🥈 GR GÜMÜŞ: {fiyatlar.get('GRAM-GUMUS', 0):.2f} ₺",
+        f"💍 GR PLATİN: {fiyatlar.get('GRAM-PLATIN', 0):.2f} ₺",
+        f"🏆 ONS ALTIN: {fiyatlar.get('GC=F', 0):.2f} $",
+        f"₿ BTC: {fiyatlar.get('BTC-USD', 0):,.0f} $"
+    ]
 
-# HTML ve CSS ile kayma efekti oluşturma
-ticker_html = f"""
-<div style="background-color: #0e1117; padding: 10px; border-radius: 5px; border: 1px solid #30333d; overflow: hidden; white-space: nowrap;">
-    <div style="display: inline-block; padding-left: 100%; animation: marquee 30s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
-        {" &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_data)}
+    # HTML ve CSS ile kayma efekti
+    ticker_html = f"""
+    <div style="background-color: #0e1117; padding: 10px; border-radius: 5px; border: 1px solid #30333d; overflow: hidden; white-space: nowrap;">
+        <div style="display: inline-block; padding-left: 100%; animation: marquee 30s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
+            {" &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_data)}
+        </div>
     </div>
-</div>
-
-<style>
-@keyframes marquee {{
-    0% {{ transform: translate(0, 0); }}
-    100% {{ transform: translate(-100%, 0); }}
-}}
-</style>
-"""
-
-st.markdown(ticker_html, unsafe_allow_html=True)
-st.markdown("<br>", unsafe_allow_html=True) # Altına biraz boşluk
+    <style>
+    @keyframes marquee {{ 0% {{ transform: translate(0, 0); }} 100% {{ transform: translate(-100%, 0); }} }}
+    </style>
+    """
+    st.markdown(ticker_html, unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    # 2. Portföy Durumu (Kullanıcıya Özel Filtrelenmiş)
-user_id = st.session_state.user.id # Giriş yapan kullanıcının ID'sini alıyoruz
-
-conn = get_db_connection()
-
-# Sorguya WHERE user_id = %s ekleyerek güvenliği sağlıyoruz
-query = "SELECT sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id = %s"
-df_varlik = pd.read_sql_query(query, conn, params=(user_id,))
-
-conn.close() # Bağlantıyı hemen kapatıyoruz
-
-if df_varlik.empty:
-    st.info("Portföyünüzde henüz varlık bulunmuyor.")
-else:
-    # Hesaplamaları yapıyoruz
-    df_varlik['Yatirim'] = df_varlik['miktar'] * df_varlik['ort_maliyet']
-    df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
+    # --- 2. PORTFÖY DURUMU (Kullanıcıya Özel) ---
+    user_id = st.session_state.user.id
+    conn = get_db_connection()
     
-    # İstersen burada kâr/zarar oranını da ekleyebiliriz:
-    df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
-    df_varlik['Degisim_%'] = (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100
-    
-     
+    # Sadece giriş yapan kullanıcının verilerini çekiyoruz
+    query = "SELECT sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id = %s"
+    df_varlik = pd.read_sql_query(query, conn, params=(user_id,))
+
+    if df_varlik.empty:
+        st.info("Portföyünüzde henüz varlık bulunmuyor. Yan menüden işlem ekleyerek başlayabilirsiniz!")
+    else:
+        # Hesaplamalar
+        df_varlik['Yatirim'] = df_varlik['miktar'] * df_varlik['ort_maliyet']
+        df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
+        df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
+        df_varlik['Degisim_%'] = (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100
         
-        
-        
+        # Üst Metrikler
+        top_yatirim = df_varlik['Yatirim'].sum()
+        top_guncel = df_varlik['Guncel'].sum()
+        net_kz = top_guncel - top_yatirim
+        yuzde_kz = (net_kz / top_yatirim * 100) if top_yatirim > 0 else 0 
+          
         cc1, cc2, cc3 = st.columns(3)
         cc1.metric("💼 Toplam Yatırım", f"{top_yatirim:,.2f} ₺")
         cc2.metric("💎 Güncel Bakiye", f"{top_guncel:,.2f} ₺")
         cc3.metric("🚀 Net Kar/Zarar", f"{net_kz:+,.2f} ₺", f"%{yuzde_kz:.2f}")
         
-        # 3. Grafik ve Hedef
+        # Tabloyu şık formatla gösterme
+        st.write("---")
+        st.dataframe(df_varlik.style.format({
+            'miktar': '{:.2f}', 'ort_maliyet': '{:.2f} ₺', 
+            'guncel_fiyat': '{:.2f} ₺', 'Yatirim': '{:.2f} ₺', 
+            'Guncel': '{:.2f} ₺', 'Kar_Zarar': '{:+.2f} ₺', 'Degisim_%': '%{:.2f}'
+        }), use_container_width=True)
+
+        # --- 3. GRAFİK VE HEDEF ---
         col_grafik, col_hedef = st.columns([2, 1])
         
         with col_grafik:
             st.subheader("Varlık Dağılımı")
-            
-            # En büyük 10 varlığı al (Ekrana tam sığması için)
             df_pie = df_varlik.sort_values(by="Guncel", ascending=False).head(10)
             
-            # Plotly ile modern Halka (Donut) Grafik oluşturma
             fig = px.pie(
-                df_pie, 
-                values='Guncel', 
-                names='sembol', 
-                hole=0.4, # Ortasını delik yapar (Donut şekli)
+                df_pie, values='Guncel', names='sembol', hole=0.4,
                 color_discrete_sequence=px.colors.qualitative.Pastel
             )
-            
-            # Yazıların birbirine girmemesi için ayarlar
             fig.update_traces(
-                textposition='inside', 
-                textinfo='percent', # Sadece yüzdeyi dilim içine yazar, ismi sağa atar
-                insidetextorientation='radial'
+                textposition='inside', textinfo='percent', insidetextorientation='radial'
             )
-            
-            # Grafiği tam oturtma ve arka planı şeffaf yapma
             fig.update_layout(
                 margin=dict(t=10, b=10, l=10, r=10),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                # İŞTE DÜZELTİLEN SATIR BURASI ("center" yerine "middle" yazıldı)
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.0) 
             )
-            
             st.plotly_chart(fig, use_container_width=True)
             
         with col_hedef:
             st.subheader("🎯 Hedef İlerlemesi")
             cursor = conn.cursor()
+            
+            # Hedefi sadece bu kullanıcı için çek
             cursor.execute("SELECT ad, tutar FROM hedefler WHERE user_id=%s LIMIT 1", (user_id,))
             hedef = cursor.fetchone()
             
@@ -453,7 +436,7 @@ else:
             h_tutar = hedef[1] if hedef else 1000000
             
             ilerleme = (top_guncel / h_tutar) * 100
-            if ilerleme > 100: ilerleme = 100
+            if ilerleme > 100: ilerleme = 100 # Bar %100'ü geçmesin diye
             
             st.write(f"**{h_ad}** ({h_tutar:,.0f} ₺)")
             st.progress(int(ilerleme))
@@ -462,15 +445,16 @@ else:
             with st.expander("✏️ Hedefi Düzenle"):
                 with st.form("hedef_form"):
                     yeni_ad = st.text_input("Hedef Adı", value=h_ad)
-                    yeni_tutar = st.number_input("Hedef Tutar", value=float(h_tutar), step=10000.0)
+                    yeni_tutar = st.number_input("Hedef Tutar", value=float(h_tutar), step=1000.0)
+                    
                     if st.form_submit_button("Kaydet"):
-                        cursor.execute("DELETE FROM hedefler")
-                        cursor.execute("INSERT INTO hedefler (ad, tutar) VALUES (%s, %s)", (yeni_ad, yeni_tutar))
+                        # Sadece bu kullanıcının hedefini sil ve yenisini ekle
+                        cursor.execute("DELETE FROM hedefler WHERE user_id=%s", (user_id,))
+                        cursor.execute("INSERT INTO hedefler (ad, tutar, user_id) VALUES (%s, %s, %s)", (yeni_ad, yeni_tutar, user_id))
                         conn.commit()
                         st.rerun()
-
-    conn.close()
-
+                        
+    conn.close() # Veritabanı bağlantısını güvenle kapat
 # -----------------------------------------------------------------------------
 # SAYFA 2: ISI HARİTASI (TAMAMEN YENİLENDİ VE HATALAR GİDERİLDİ)
 # -----------------------------------------------------------------------------
@@ -1004,6 +988,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
