@@ -372,7 +372,39 @@ if menu == "📊 Genel Özet":
         """
         st.markdown(ticker_html, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
-        
+        # --- SAĞ TARAFI SABİTLEME CSS KODU ---
+st.markdown("""
+<style>
+    [data-testid="column"]:nth-of-type(2) {
+        position: sticky !important;
+        top: 3rem; 
+        height: calc(100vh - 6rem); 
+        overflow-y: auto; 
+        background-color: #111111; 
+        border-left: 2px solid #333;
+        padding: 15px;
+        border-radius: 8px;
+    }
+    [data-testid="column"]:nth-of-type(2)::-webkit-scrollbar { display: none; }
+</style>
+""", unsafe_allow_html=True)
+
+# --- EKRANI İKİYE BÖL ---
+col_orta, col_sag = st.columns([3, 1.2], gap="large")
+
+with col_orta:
+    # ⚠️ DİKKAT: Eski kodunda bu 'with col_orta:'nın ÜSTÜNDE veya DIŞINDA kalan
+    # 'if menu == "📊 Genel Özet":' veya 'st.title("Portföy Analizi")' varsa ONLARI SİL!
+    # Çift başlık oradan geliyor. Menüler SADECE bu bloğun İÇİNDE başlamalı.
+    
+    if menu == "📊 Genel Özet":
+        st.title("Portföy Analizi")
+        # ... senin Genel Özet kodların (veritabanı, metrikler vb.) ...
+
+    elif menu == "🔥 Isı Haritası":
+        st.title("Portföy Isı Haritası")
+        # ... senin Isı Haritası kodların ...
+
     ana_kolon, sag_kolon = st.columns([3, 1])
 
     with ana_kolon:
