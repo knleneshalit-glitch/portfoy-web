@@ -221,96 +221,108 @@ st.markdown(footer_css, unsafe_allow_html=True)
 # -----------------------------------------------------------------------------
 if menu == "📊 Genel Özet":
     st.title("Portföy Analizi")
-    
-    # 1. KULLANICI SEÇİMLERİNİ HAFIZADA TUTMA
-    if 'bant_sabitler' not in st.session_state:
-        st.session_state.bant_sabitler = ["Dolar (USD)", "Euro (EUR)", "Gram Altın", "Bitcoin (BTC)"]
-    if 'bant_ozeller' not in st.session_state:
-        st.session_state.bant_ozeller = "" # Örn: "THYAO.IS, AAPL"
 
-    # 2. ARAMA YAPILABİLECEK GENİŞ KAPSAMLI LİSTE
-    sabit_secenekler = {
-        "Dolar (USD)": "USDTRY=X", "Euro (EUR)": "EURTRY=X", "Sterlin (GBP)": "GBPTRY=X", 
-        "Japon Yeni (JPY)": "JPYTRY=X", "İsviçre Frangı (CHF)": "CHFTRY=X",
-        "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", "Gram Platin": "GRAM_PLATIN",
-        "Ons Altın": "GC=F", "Ons Gümüş": "SI=F", "Ons Platin": "PL=F",
-        "Bitcoin (BTC)": "BTC-USD", "Ethereum (ETH)": "ETH-USD",
-        "BIST 100": "XU100.IS", "Türk Hava Yolları": "THYAO.IS", "Tüpraş": "TUPRS.IS", 
-        "Aselsan": "ASELS.IS", "Koç Holding": "KCHOL.IS", "İş Bankası (C)": "ISCTR.IS",
-        "Apple": "AAPL", "Tesla": "TSLA", "Nvidia": "NVDA", "Microsoft": "MSFT"
-    }
+    # 1. YAHOO FİNANS CANLI ARAMA MOTORU
+    @st.cache_data(ttl=3600)
+    def yahoo_arama(kelime):
+        url = f"https://query2.finance.yahoo.com/v1/finance/search?q={kelime}"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        try:
+            res = requests.get(url, headers=headers, timeout=5)
+            quotes = res.json().get('quotes', [])
+            sonuclar = {}
+            for q in quotes:
+                sembol = q.get('symbol')
+                isim = q.get('shortname', '')
+                borsa = q.get('exchDisp', '')
+                if sembol:
+                    sonuclar[f"{sembol} - {isim} ({borsa})"] = sembol
+            return sonuclar
+        except:
+            return {}
 
-    # 3. YENİ DİNAMİK VERİ ÇEKME MOTORU
+    # 2. HAFIZA (SESSION STATE) AYARLARI
+    # Varsayılan olarak ekranda nelerin olacağını belirliyoruz
+    if 'takip_listesi_bant' not in st.session_state:
+        st.session_state.takip_listesi_bant = {
+            "Dolar/TL": "USDTRY=X",
+            "Euro/TL": "EURTRY=X",
+            "Gram Altın": "GRAM_ALTIN",
+            "Bitcoin": "BTC-USD"
+        }
+
+    # 3. VERİ ÇEKME MOTORU
     @st.cache_data(ttl=300) 
-    def dinamik_bant_verisi_cek(secili_sabitler, ozel_semboller_str):
+    def dinamik_bant_verisi_cek(takip_sozlugu):
         sonuclar = []
         try:
             usd_fiyat = float(yf.Ticker("USDTRY=X").history(period="1d")['Close'].iloc[-1])
         except:
-            usd_fiyat = 1.0 # İnternet koparsa çökmesin
+            usd_fiyat = 1.0 
 
-        # Listeden seçilenleri işle
-        for isim in secili_sabitler:
-            kod = sabit_secenekler.get(isim)
-            if not kod: continue
-            
+        for ad, kod in takip_sozlugu.items():
             try:
                 if kod == "GRAM_ALTIN":
-                    fiyat = (float(yf.Ticker("GC=F").history(period="1d")['Close'].iloc[-1]) / 31.1035) * usd_fiyat
-                    sonuclar.append(f"🟡 GR ALTIN: {fiyat:.2f} ₺")
+                    f = (float(yf.Ticker("GC=F").history(period="1d")['Close'].iloc[-1]) / 31.1035) * usd_fiyat
+                    sonuclar.append(f"🟡 GR ALTIN: {f:,.2f} ₺")
                 elif kod == "GRAM_GUMUS":
-                    fiyat = (float(yf.Ticker("SI=F").history(period="1d")['Close'].iloc[-1]) / 31.1035) * usd_fiyat
-                    sonuclar.append(f"🥈 GR GÜMÜŞ: {fiyat:.2f} ₺")
+                    f = (float(yf.Ticker("SI=F").history(period="1d")['Close'].iloc[-1]) / 31.1035) * usd_fiyat
+                    sonuclar.append(f"🥈 GR GÜMÜŞ: {f:,.2f} ₺")
                 elif kod == "GRAM_PLATIN":
-                    fiyat = (float(yf.Ticker("PL=F").history(period="1d")['Close'].iloc[-1]) / 31.1035) * usd_fiyat
-                    sonuclar.append(f"💍 GR PLATİN: {fiyat:.2f} ₺")
+                    f = (float(yf.Ticker("PL=F").history(period="1d")['Close'].iloc[-1]) / 31.1035) * usd_fiyat
+                    sonuclar.append(f"💍 GR PLATİN: {f:,.2f} ₺")
                 else:
-                    fiyat = float(yf.Ticker(kod).history(period="1d")['Close'].iloc[-1])
-                    birim = "$" if ("USD" in kod and "TRY" not in kod) or "AAPL" in kod or "TSLA" in kod or "NVDA" in kod or "MSFT" in kod or "=F" in kod else "₺"
-                    ikon = "💵" if "USD" in kod else "💶" if "EUR" in kod else "🪙" if "BTC" in kod or "ETH" in kod else "📈"
-                    sonuclar.append(f"{ikon} {isim.split(' ')[0].upper()}: {fiyat:,.2f} {birim}")
+                    f = float(yf.Ticker(kod).history(period="1d")['Close'].iloc[-1])
+                    birim = "₺" if (".IS" in kod or "TRY" in kod) else "$"
+                    ikon = "💵" if "USD" in kod else "🪙" if "BTC" in kod else "📈"
+                    kisa_ad = ad.split('-')[0].strip()[:15] # İsmi çok uzatmamak için kırpıyoruz
+                    sonuclar.append(f"{ikon} {kisa_ad}: {f:,.2f} {birim}")
             except:
-                sonuclar.append(f"⚠️ {isim}: Hata")
-
-        # Elle yazılan özel kodları işle
-        if ozel_semboller_str.strip():
-            semboller = [s.strip().upper() for s in ozel_semboller_str.split(",") if s.strip()]
-            for s in semboller:
-                try:
-                    fiyat = float(yf.Ticker(s).history(period="1d")['Close'].iloc[-1])
-                    birim = "₺" if ".IS" in s else "$"
-                    sonuclar.append(f"🎯 {s.replace('.IS', '')}: {fiyat:,.2f} {birim}")
-                except:
-                    sonuclar.append(f"⚠️ {s}: Bulunamadı")
-
+                sonuclar.append(f"⚠️ {ad[:10]}: Hata")
         return sonuclar
 
     # 4. ARAYÜZ VE AYARLAR (DİŞLİ ÇARK)
     col_bant, col_ayar = st.columns([12, 1])
     with col_ayar:
         with st.popover("⚙️"):
-            st.markdown("**Bant Ayarları**")
-            yeni_sabitler = st.multiselect(
-                "Arayıp Seçin (Döviz, Maden, Hisse):",
-                options=list(sabit_secenekler.keys()),
-                default=st.session_state.bant_sabitler
-            )
-            yeni_ozeller = st.text_input(
-                "Listede Yoksa Kodunu Yazın (Virgülle ayırın):",
-                value=st.session_state.bant_ozeller,
-                placeholder="Örn: PGSUS.IS, GOOGL"
+            st.markdown("### 🛠️ Bant Ayarları")
+            
+            # --- MEVCUT LİSTEYİ DÜZENLEME ---
+            st.markdown("**1. Gösterilenleri Düzenle**")
+            aktif_secimler = st.multiselect(
+                "Kaldırmak için çarpıya basın:",
+                options=list(st.session_state.takip_listesi_bant.keys()),
+                default=list(st.session_state.takip_listesi_bant.keys())
             )
             
-            if st.button("Kaydet ve Yenile", use_container_width=True):
-                st.session_state.bant_sabitler = yeni_sabitler
-                st.session_state.bant_ozeller = yeni_ozeller
+            if len(aktif_secimler) != len(st.session_state.takip_listesi_bant):
+                st.session_state.takip_listesi_bant = {k: st.session_state.takip_listesi_bant[k] for k in aktif_secimler}
                 st.rerun()
+
+            st.markdown("---")
+            
+            # --- YAHOO CANLI ARAMA ---
+            st.markdown("**2. Yeni Veri Ekle (Canlı Arama)**")
+            arama_kelimesi = st.text_input("Şirket, Fon veya Kripto Ara:", placeholder="Örn: Tesla, AKBNK")
+            
+            # Kullanıcı bir şey yazıp Enter'a basarsa arama çalışır
+            if arama_kelimesi:
+                bulunanlar = yahoo_arama(arama_kelimesi)
+                if bulunanlar:
+                    secilen = st.selectbox("Arama Sonuçları:", ["Lütfen Seçin..."] + list(bulunanlar.keys()))
+                    if secilen != "Lütfen Seçin...":
+                        if st.button("➕ Banda Ekle", use_container_width=True):
+                            sembol = bulunanlar[secilen]
+                            st.session_state.takip_listesi_bant[secilen] = sembol
+                            st.rerun()
+                else:
+                    st.warning("Yahoo Finance üzerinde sonuç bulunamadı.")
 
     # 5. BANDI EKRANA BASMA
     with col_bant:
-        ticker_data = dinamik_bant_verisi_cek(st.session_state.bant_sabitler, st.session_state.bant_ozeller)
+        ticker_data = dinamik_bant_verisi_cek(st.session_state.takip_listesi_bant)
         if not ticker_data:
-            ticker_data = ["Lütfen dişli çarktan gösterilecek verileri seçin veya yazın..."]
+            ticker_data = ["Gösterilecek veri yok. Dişli çarktan ekleme yapın."]
 
         ticker_html = f"""
         <div style="background-color: #0e1117; padding: 0px 10px; border-radius: 5px; border: 1px solid #30333d; overflow: hidden; white-space: nowrap; height: 42px; display: flex; align-items: center;">
