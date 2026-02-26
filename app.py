@@ -345,58 +345,270 @@ if menu == "📊 Genel Özet":
     
     # Kayan banda özel, siteyi yavaşlatmayan (5 dakikada bir güncellenen) fiyat motoru
     @st.cache_data(ttl=300) 
-    # --- SABİT PİYASA İÇİN FİYAT VE YÜZDE MOTORU ---
-@st.cache_data(ttl=300)
-def canli_piyasa_verilerini_cek():
-    import yfinance as yf
-    
-    semboller = {
-        "USD/TL": "USDTRY=X", "EUR/TL": "EURTRY=X", 
-        "ONS ALTIN": "GC=F", "BITCOIN": "BTC-USD", 
-        "ONS GÜMÜŞ": "SI=F", "ONS PLATİN": "PL=F"
-    }
-    
-    veriler = {}
-    for isim, sembol in semboller.items():
+    def bant_fiyatlarini_cek():
+        fiyatlar_sozluk = {}
         try:
-            # Son 5 günü çekiyoruz ki hafta sonu tatil boşluklarına takılıp çökmesin
-            hist = yf.Ticker(sembol).history(period="5d")
-            guncel = hist['Close'].iloc[-1]
-            eski = hist['Close'].iloc[-2] # Dünkü kapanış fiyatı
-            yuzde = ((guncel - eski) / eski) * 100
-            veriler[isim] = {"fiyat": float(guncel), "yuzde": float(yuzde)}
-        except:
-            veriler[isim] = {"fiyat": 0.0, "yuzde": 0.0}
+            import yfinance as yf
+            usd = yf.Ticker("USDTRY=X").history(period="1d")['Close'].iloc[-1]
+            eur = yf.Ticker("EURTRY=X").history(period="1d")['Close'].iloc[-1]
+            ons = yf.Ticker("GC=F").history(period="1d")['Close'].iloc[-1]
+            btc = yf.Ticker("BTC-USD").history(period="1d")['Close'].iloc[-1]
+            gumus_ons = yf.Ticker("SI=F").history(period="1d")['Close'].iloc[-1]
+            platin_ons = yf.Ticker("PL=F").history(period="1d")['Close'].iloc[-1]
+            
+            fiyatlar_sozluk['USD'] = float(usd)
+            fiyatlar_sozluk['EUR'] = float(eur)
+            fiyatlar_sozluk['ONS'] = float(ons)
+            fiyatlar_sozluk['BTC'] = float(btc)
+            fiyatlar_sozluk['GRAM_ALTIN'] = float((ons / 31.1035) * usd) # Ons ve Dolar'dan Gram Altın hesabı
+            fiyatlar_sozluk['GRAM_GUMUS'] = float((gumus_ons / 31.1035) * usd)
+            fiyatlar_sozluk['GRAM_PLATIN'] = float((platin_ons / 31.1035) * usd)
+        except Exception:
+            # İnternet koparsa geçici olarak 0 atar, çökmez
+            fiyatlar_sozluk = {'USD': 0, 'EUR': 0, 'ONS': 0, 'BTC': 0, 'GRAM_ALTIN': 0, 'GRAM_GUMUS': 0, 'GRAM_PLATIN': 0}
+        return fiyatlar_sozluk
 
-    # Gram Altın, Gümüş ve Platin'in Yüzdeli Hesaplanması
-    try:
-        usd_g = veriler["USD/TL"]["fiyat"]
-        usd_e = usd_g / (1 + (veriler["USD/TL"]["yuzde"] / 100))
+    # Motoru çalıştır ve fiyatları al (Bu kısım sende aynı kalıyor)
+    guncel_f = bant_fiyatlarini_cek()
+
+    # Tüm olası seçenekler
+    tum_secenekler = {
+        "Dolar (USD)": f"🇺🇸 USD: {guncel_f.get('USD', 0):.2f} ₺",
+        "Euro (EUR)": f"🇪🇺 EUR: {guncel_f.get('EUR', 0):.2f} ₺",
+        "Gram Altın": f"🟡 GR ALTIN: {guncel_f.get('GRAM_ALTIN', 0):.2f} ₺",
+        "Gram Gümüş": f"🥈 GR GÜMÜŞ: {guncel_f.get('GRAM_GUMUS', 0):.2f} ₺",
+        "Gram Platin": f"💍 GR PLATİN: {guncel_f.get('GRAM_PLATIN', 0):.2f} ₺",
+        "Ons Altın": f"🏆 ONS ALTIN: {guncel_f.get('ONS', 0):.2f} $",
+        "Bitcoin (BTC)": f"₿ BTC: {guncel_f.get('BTC', 0):,.0f} $"
+    }
+
+    # Ekranı ikiye bölüyoruz: %92 Bant için, %8 İkon için
+    col_bant, col_ayar = st.columns([12, 1])
+
+    # 1. Önce Ayar Menüsünü Oluştur (Sağdaki Buton)
+    with col_ayar:
+        # st.popover sayesinde ekranda sadece ikon görünür, tıklayınca menü fırlar
+        with st.popover("⚙️"):
+            secilen_isimler = st.multiselect(
+                "Gösterilecekler:",
+                options=list(tum_secenekler.keys()),
+                default=["Dolar (USD)", "Euro (EUR)", "Gram Altın", "Bitcoin (BTC)"]
+            )
+
+    # 2. Seçime Göre Bandı Oluştur (Soldaki Kayan Yazı)
+    with col_bant:
+        if not secilen_isimler:
+            ticker_data = ["Lütfen dişli çarktan veri seçin..."]
+        else:
+            ticker_data = [tum_secenekler[isim] for isim in secilen_isimler]
+
+        # Kutu yüksekliğini ayarlayıp yazıyı tam ortaya hizaladık (height ve display:flex eklendi)
+        ticker_html = f"""
+        <div style="background-color: #0e1117; padding: 0px 10px; border-radius: 5px; border: 1px solid #30333d; overflow: hidden; white-space: nowrap; height: 42px; display: flex; align-items: center;">
+            <div style="display: inline-block; padding-left: 100%; animation: marquee 30s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
+                {" &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_data)}
+            </div>
+        </div>
+        <style>
+        @keyframes marquee {{ 0% {{ transform: translate(0, 0); }} 100% {{ transform: translate(-100%, 0); }} }}
+        </style>
+        """
+        st.markdown(ticker_html, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+    # --- EKRANI İKİYE BÖLÜYORUZ (Sol Ana İçerik %75, Sağ Piyasa %25) ---
+    ana_kolon, sag_kolon = st.columns([3, 1])
+
+    with ana_kolon:
+        # --- 2. PORTFÖY DURUMU (Kullanıcıya Özel) ---
+        user_id = st.session_state.user.id
+        conn = get_db_connection()
         
-        # Altın
-        ons_g = veriler["ONS ALTIN"]["fiyat"]
-        ons_e = ons_g / (1 + (veriler["ONS ALTIN"]["yuzde"] / 100))
-        gr_g = (ons_g / 31.1035) * usd_g
-        gr_e = (ons_e / 31.1035) * usd_e
-        veriler["GR ALTIN"] = {"fiyat": gr_g, "yuzde": ((gr_g - gr_e) / gr_e) * 100}
+        query = "SELECT sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id = %s"
+        df_varlik = pd.read_sql_query(query, conn, params=(user_id,))
+
+        if df_varlik.empty:
+            st.info("Portföyünüzde henüz varlık bulunmuyor. Yan menüden işlem ekleyerek başlayabilirsiniz!")
+        else:
+            df_varlik['Yatirim'] = df_varlik['miktar'] * df_varlik['ort_maliyet']
+            df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
+            df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
+            df_varlik['Degisim_%'] = (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100
+            
+            top_yatirim = df_varlik['Yatirim'].sum()
+            top_guncel = df_varlik['Guncel'].sum()
+            net_kz = top_guncel - top_yatirim
+            yuzde_kz = (net_kz / top_yatirim * 100) if top_yatirim > 0 else 0 
+              
+            cc1, cc2, cc3 = st.columns(3)
+            cc1.metric("💼 Yatırım", f"{top_yatirim:,.0f} ₺")
+            cc2.metric("💎 Güncel", f"{top_guncel:,.0f} ₺")
+            cc3.metric("🚀 Net K/Z", f"{net_kz:+,.0f} ₺", f"%{yuzde_kz:.2f}")
+            
+            st.write("---")
+            st.dataframe(df_varlik.style.format({
+                'miktar': '{:.2f}', 'ort_maliyet': '{:.2f} ₺', 
+                'guncel_fiyat': '{:.2f} ₺', 'Yatirim': '{:.2f} ₺', 
+                'Guncel': '{:.2f} ₺', 'Kar_Zarar': '{:+.2f} ₺', 'Degisim_%': '%{:.2f}'
+            }), use_container_width=True)
+
+            # --- 3. GRAFİK VE HEDEF (Ana kolonun içinde) ---
+            col_grafik, col_hedef = st.columns([2, 1])
+            
+            with col_grafik:
+                st.subheader("Varlık Dağılımı")
+                df_pie = df_varlik.sort_values(by="Guncel", ascending=False).head(10)
+                
+                # Import eksikse çökmemesi için import kontrolü
+                import plotly.express as px 
+                fig = px.pie(
+                    df_pie, values='Guncel', names='sembol', hole=0.4,
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                fig.update_traces(textposition='inside', textinfo='percent', insidetextorientation='radial')
+                fig.update_layout(
+                    margin=dict(t=10, b=10, l=10, r=10),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.0) 
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                
+            with col_hedef:
+                st.subheader("🎯 Hedef")
+                cursor = conn.cursor()
+                cursor.execute("SELECT ad, tutar FROM hedefler WHERE user_id=%s LIMIT 1", (user_id,))
+                hedef = cursor.fetchone()
+                
+                h_ad = hedef[0] if hedef else "Finansal Özgürlük"
+                h_tutar = hedef[1] if hedef else 1000000
+                
+                ilerleme = (top_guncel / h_tutar) * 100
+                if ilerleme > 100: ilerleme = 100 
+                
+                st.write(f"**{h_ad}** ({h_tutar:,.0f} ₺)")
+                st.progress(int(ilerleme))
+                st.write(f"%{ilerleme:.1f} Tamamlandı")
+                
+                with st.expander("✏️ Düzenle"):
+                    with st.form("hedef_form"):
+                        yeni_ad = st.text_input("Hedef Adı", value=h_ad)
+                        yeni_tutar = st.number_input("Hedef Tutar", value=float(h_tutar), step=1000.0)
+                        if st.form_submit_button("Kaydet"):
+                            cursor.execute("DELETE FROM hedefler WHERE user_id=%s", (user_id,))
+                            cursor.execute("INSERT INTO hedefler (ad, tutar, user_id) VALUES (%s, %s, %s)", (yeni_ad, yeni_tutar, user_id))
+                            conn.commit()
+                            st.rerun()
+                            
+        conn.close() 
+
+    # --- 4. SAĞ KOLON: CANLI PİYASA ---
+    with sag_kolon:
+        st.subheader("📡 Canlı Piyasa")
         
-        # Gümüş
-        g_ons_g = veriler["ONS GÜMÜŞ"]["fiyat"]
-        g_ons_e = g_ons_g / (1 + (veriler["ONS GÜMÜŞ"]["yuzde"] / 100))
-        gr_gum_g = (g_ons_g / 31.1035) * usd_g
-        gr_gum_e = (g_ons_e / 31.1035) * usd_e
-        veriler["GR GÜMÜŞ"] = {"fiyat": gr_gum_g, "yuzde": ((gr_gum_g - gr_gum_e) / gr_gum_e) * 100}
+        # Daha önce Ticker için çektiğimiz guncel_f sözlüğünü tabloya dönüştürüyoruz
+        canli_df = pd.DataFrame({
+            "Sembol": ["USD/TL", "EUR/TL", "GR ALTIN", "GR GÜMÜŞ", "PLATİN", "ONS", "BTC"],
+            "Fiyat": [
+                f"{guncel_f.get('USD', 0):.2f} ₺",
+                f"{guncel_f.get('EUR', 0):.2f} ₺",
+                f"{guncel_f.get('GRAM_ALTIN', 0):.2f} ₺",
+                f"{guncel_f.get('GRAM_GUMUS', 0):.2f} ₺",
+                f"{guncel_f.get('GRAM_PLATIN', 0):.2f} ₺",
+                f"{guncel_f.get('ONS', 0):.2f} $",
+                f"{guncel_f.get('BTC', 0):,.0f} $"
+            ]
+        })
         
-        # Platin
-        p_ons_g = veriler["ONS PLATİN"]["fiyat"]
-        p_ons_e = p_ons_g / (1 + (veriler["ONS PLATİN"]["yuzde"] / 100))
-        gr_p_g = (p_ons_g / 31.1035) * usd_g
-        gr_p_e = (p_ons_e / 31.1035) * usd_e
-        veriler["GR PLATİN"] = {"fiyat": gr_p_g, "yuzde": ((gr_p_g - gr_p_e) / gr_p_e) * 100}
-    except:
-        pass
+        # Tabloyu sağ kolona oturtma
+        st.dataframe(canli_df, hide_index=True, use_container_width=True)
+    
+    # --- 2. PORTFÖY DURUMU (Kullanıcıya Özel) ---
+    user_id = st.session_state.user.id
+    conn = get_db_connection()
+    
+    # Sadece giriş yapan kullanıcının verilerini çekiyoruz
+    query = "SELECT sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id = %s"
+    df_varlik = pd.read_sql_query(query, conn, params=(user_id,))
+
+    if df_varlik.empty:
+        st.info("Portföyünüzde henüz varlık bulunmuyor. Yan menüden işlem ekleyerek başlayabilirsiniz!")
+    else:
+        # Hesaplamalar
+        df_varlik['Yatirim'] = df_varlik['miktar'] * df_varlik['ort_maliyet']
+        df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
+        df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
+        df_varlik['Degisim_%'] = (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100
         
-    return veriler
+        # Üst Metrikler
+        top_yatirim = df_varlik['Yatirim'].sum()
+        top_guncel = df_varlik['Guncel'].sum()
+        net_kz = top_guncel - top_yatirim
+        yuzde_kz = (net_kz / top_yatirim * 100) if top_yatirim > 0 else 0 
+          
+        cc1, cc2, cc3 = st.columns(3)
+        cc1.metric("💼 Toplam Yatırım", f"{top_yatirim:,.2f} ₺")
+        cc2.metric("💎 Güncel Bakiye", f"{top_guncel:,.2f} ₺")
+        cc3.metric("🚀 Net Kar/Zarar", f"{net_kz:+,.2f} ₺", f"%{yuzde_kz:.2f}")
+        
+        # Tabloyu şık formatla gösterme
+        st.write("---")
+        st.dataframe(df_varlik.style.format({
+            'miktar': '{:.2f}', 'ort_maliyet': '{:.2f} ₺', 
+            'guncel_fiyat': '{:.2f} ₺', 'Yatirim': '{:.2f} ₺', 
+            'Guncel': '{:.2f} ₺', 'Kar_Zarar': '{:+.2f} ₺', 'Degisim_%': '%{:.2f}'
+        }), use_container_width=True)
+
+        # --- 3. GRAFİK VE HEDEF ---
+        col_grafik, col_hedef = st.columns([2, 1])
+        
+        with col_grafik:
+            st.subheader("Varlık Dağılımı")
+            df_pie = df_varlik.sort_values(by="Guncel", ascending=False).head(10)
+            
+            fig = px.pie(
+                df_pie, values='Guncel', names='sembol', hole=0.4,
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig.update_traces(
+                textposition='inside', textinfo='percent', insidetextorientation='radial'
+            )
+            fig.update_layout(
+                margin=dict(t=10, b=10, l=10, r=10),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.0) 
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with col_hedef:
+            st.subheader("🎯 Hedef İlerlemesi")
+            cursor = conn.cursor()
+            
+            # Hedefi sadece bu kullanıcı için çek
+            cursor.execute("SELECT ad, tutar FROM hedefler WHERE user_id=%s LIMIT 1", (user_id,))
+            hedef = cursor.fetchone()
+            
+            h_ad = hedef[0] if hedef else "Finansal Özgürlük"
+            h_tutar = hedef[1] if hedef else 1000000
+            
+            ilerleme = (top_guncel / h_tutar) * 100
+            if ilerleme > 100: ilerleme = 100 # Bar %100'ü geçmesin diye
+            
+            st.write(f"**{h_ad}** ({h_tutar:,.0f} ₺)")
+            st.progress(int(ilerleme))
+            st.write(f"%{ilerleme:.1f} Tamamlandı")
+            
+            with st.expander("✏️ Hedefi Düzenle"):
+                with st.form("hedef_form"):
+                    yeni_ad = st.text_input("Hedef Adı", value=h_ad)
+                    yeni_tutar = st.number_input("Hedef Tutar", value=float(h_tutar), step=1000.0)
+                    
+                    if st.form_submit_button("Kaydet"):
+                        # Sadece bu kullanıcının hedefini sil ve yenisini ekle
+                        cursor.execute("DELETE FROM hedefler WHERE user_id=%s", (user_id,))
+                        cursor.execute("INSERT INTO hedefler (ad, tutar, user_id) VALUES (%s, %s, %s)", (yeni_ad, yeni_tutar, user_id))
+                        conn.commit()
+                        st.rerun()
+                        
+    conn.close() # Veritabanı bağlantısını güvenle kapat
 # -----------------------------------------------------------------------------
 # SAYFA 2: ISI HARİTASI (TAMAMEN YENİLENDİ VE HATALAR GİDERİLDİ)
 # -----------------------------------------------------------------------------
