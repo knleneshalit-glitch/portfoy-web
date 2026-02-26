@@ -398,12 +398,9 @@ else:
     df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
     df_varlik['Degisim_%'] = (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100
     
-    st.dataframe(df_varlik) # Verileri ekranda göster
+     
         
-        top_yatirim = df_varlik['Yatirim'].sum()
-        top_guncel = df_varlik['Guncel'].sum()
-        net_kz = top_guncel - top_yatirim
-        yuzde_kz = (net_kz / top_yatirim * 100) if top_yatirim > 0 else 0
+        
         
         cc1, cc2, cc3 = st.columns(3)
         cc1.metric("💼 Toplam Yatırım", f"{top_yatirim:,.2f} ₺")
@@ -1007,6 +1004,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
