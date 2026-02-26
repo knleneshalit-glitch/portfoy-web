@@ -372,6 +372,8 @@ if menu == "📊 Genel Özet":
         f"🇺🇸 USD: {guncel_f.get('USD', 0):.2f} ₺",
         f"🇪🇺 EUR: {guncel_f.get('EUR', 0):.2f} ₺",
         f"🟡 GR ALTIN: {guncel_f.get('GRAM_ALTIN', 0):.2f} ₺",
+        f"🥈 GR GÜMÜŞ: {guncel_f.get('GRAM_GUMUS', 0):.2f} ₺",
+        f"💍 GR PLATİN: {guncel_f.get('GRAM_PLATIN', 0):.2f} ₺",
         f"🏆 ONS ALTIN: {guncel_f.get('ONS', 0):.2f} $",
         f"₿ BTC: {guncel_f.get('BTC', 0):,.0f} $"
     ]
@@ -1011,6 +1013,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
