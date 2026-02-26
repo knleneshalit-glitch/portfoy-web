@@ -733,7 +733,7 @@ elif menu == "💵 Varlıklar & İşlemler":
             position: sticky;
             top: 3rem;
         }
-        [data-testid="column"]:nth-of-type(2)::-webkit-scrollbar { display: none; }
+        [data-testid="column"]:nth-of-type(2):::-webkit-scrollbar { display: none; }
         [data-baseweb="tab-list"] { background-color: #1a1a1a; gap: 5px; }
         [data-baseweb="tab"] { color: #aaaaaa !important; font-weight: bold; }
         [aria-selected="true"] { background-color: #dc2626 !important; color: white !important; border-radius: 3px; }
@@ -745,54 +745,60 @@ elif menu == "💵 Varlıklar & İşlemler":
     with col_orta:
         st.title("Varlık & İşlem Yönetimi")
         
-        hizli_varliklar = {
-            "Manuel Giriş (Aşağıya Yazın)": "",
-            "GRAM ALTIN (Serbest/Kuyumcu)": "GRAM-ALTIN-S",
-            "ÇEYREK ALTIN": "CEYREK-ALTIN",
-            "YARIM ALTIN": "YARIM-ALTIN",
-            "TAM ALTIN": "TAM-ALTIN",
-            "ATA (CUMHURİYET) ALTIN": "ATA-ALTIN",
-            "22 AYAR BİLEZİK (Gr)": "GRAM-ALTIN-22-B",
-            "14 AYAR BİLEZİK (Gr)": "GRAM-ALTIN-14",
-            "22 AYAR GRAM (Gr)": "GRAM-ALTIN-22",
-            "GRAM ALTIN (Banka/Ekran)": "GRAM-ALTIN",
-            "GRAM GÜMÜŞ": "GRAM-GUMUS",
-            "GRAM PLATİN": "GRAM-PLATIN",
-            "ONS ALTIN ($)": "GC=F",
-            "ONS GÜMÜŞ ($)": "SI=F",
-            "ONS PLATİN ($)": "PL=F",
-            "DOLAR (USD/TRY)": "USDTRY=X", 
-            "EURO (EUR/TRY)": "EURTRY=X",
-            "STERLİN (GBP/TRY)": "GBPTRY=X",
-            "BITCOIN ($)": "BTC-USD",
-            "ETHEREUM ($)": "ETH-USD"
-        }
+        # --- 1. AKILLI ARAMA MOTORU (Form Dışında) ---
+        @st.cache_data(ttl=3600)
+        def yahoo_arama_islem(kelime):
+            import requests
+            url = f"https://query2.finance.yahoo.com/v1/finance/search?q={kelime}"
+            headers = {'User-Agent': 'Mozilla/5.0'}
+            try:
+                res = requests.get(url, headers=headers, timeout=5)
+                quotes = res.json().get('quotes', [])
+                sonuclar = {}
+                for q in quotes:
+                    sembol = q.get('symbol')
+                    isim = q.get('shortname', '')
+                    borsa = q.get('exchDisp', '')
+                    if sembol: sonuclar[f"{sembol} - {isim} ({borsa})"] = sembol
+                return sonuclar
+            except:
+                return {}
 
-        with st.expander("➕ YENİ İŞLEM EKLE (Alış / Satış)", expanded=True):
-            with st.form("islem_formu", clear_on_submit=True):
-                c1, c2, c3 = st.columns([1, 2, 2])
+        st.markdown("### ➕ Yeni İşlem Ekle")
+        arama_terimi = st.text_input("🔍 Hisse, Fon veya Kripto Ara:", placeholder="Örn: AAPL, THYAO, BTC...", help="Yazdığınız anda sonuçlar aşağıda listelenir.")
+        
+        secilen_sembol = ""
+        if arama_terimi:
+            sonuclar = yahoo_arama_islem(arama_terimi)
+            if sonuclar:
+                secim = st.selectbox("Bulunan Sonuçlar:", ["Seçiniz..."] + list(sonuclar.keys()))
+                if secim != "Seçiniz...":
+                    secilen_sembol = sonuclar[secim] # Seçilen sembolü hafızaya alır
+            else:
+                st.warning("Sonuç bulunamadı, kodu alt tarafa manuel girebilirsiniz.")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # --- 2. İŞLEM KAYIT FORMU ---
+        with st.expander("📝 İŞLEM DETAYLARINI GİRİN VEYA KAYDEDİN", expanded=True):
+            with st.form("islem_formu", clear_on_submit=False):
+                c1, c2 = st.columns([1, 2])
                 tip = c1.selectbox("İşlem Tipi", ["ALIS", "SATIS"])
-                secilen_isim = c2.selectbox("Hızlı Seçim (Döviz/Maden)", list(hizli_varliklar.keys()))
-                elle_giris = c3.text_input("Veya Hisse Kodu (Örn: AAPL, THYAO.IS)")
+                # Arama yapıldıysa otomatik dolar, yapılmadıysa kullanıcı elle yazar
+                islem_sembol_giris = c2.text_input("Varlık Kodu (Sembol)", value=secilen_sembol, placeholder="Örn: THYAO.IS")
                 
-                c4, c5, c6 = st.columns([1, 2, 2])
-                miktar = c5.number_input("Adet / Miktar", min_value=0.0000, format="%f", step=1.0)
-                fiyat = c6.number_input("Birim Fiyat (₺)", min_value=0.00, format="%f", step=10.0)
+                c4, c5 = st.columns([1, 1])
+                miktar = c4.number_input("Adet / Miktar", min_value=0.0000, format="%f", step=1.0)
+                fiyat = c5.number_input("Birim Fiyat (₺ veya $)", min_value=0.00, format="%f", step=10.0)
                 
-                if st.form_submit_button("İşlemi Kaydet"):
-                    # Sembol belirleme
-                    if elle_giris.strip(): 
-                        sembol = elle_giris.strip().upper()
-                    else: 
-                        sembol = hizli_varliklar[secilen_isim]
-                        
-                    # Hata kontrolleri
+                if st.form_submit_button("💾 İşlemi Kaydet", use_container_width=True):
+                    sembol = islem_sembol_giris.strip().upper()
+                    
                     if not sembol: 
-                        st.error("Lütfen listeden bir varlık seçin veya bir sembol yazın!")
+                        st.error("Lütfen bir varlık kodu (sembol) girin veya yukarıdan arayarak seçin!")
                     elif miktar <= 0: 
                         st.error("Miktar 0'dan büyük olmalıdır.")
                     else:
-                        # === BOŞLUKLARIN DÜZELTİLDİĞİ KISIM BURASI ===
                         maden_doviz_anahtarlar = ["USD", "EUR", "GBP", "CHF", "TRY", "JPY", "GRAM", "ALTIN", "CEYREK", "GUMUS", "PLATIN", "GC=F", "SI=F", "PL=F"]
                         tur = "Döviz/Emtia" if any(x in sembol for x in maden_doviz_anahtarlar) else "Hisse/Fon"
                         
@@ -820,8 +826,10 @@ elif menu == "💵 Varlıklar & İşlemler":
                             cursor.execute("INSERT INTO islemler (sembol, islem_tipi, miktar, fiyat, tarih, user_id) VALUES (%s,%s,%s,%s,%s,%s)", (sembol, tip, miktar, fiyat, date.today().strftime("%Y-%m-%d"), user_id))
                             conn.commit()
                             st.success(f"{sembol} işlemi başarıyla kaydedildi!")
-                        
+                            
                         conn.close()
+
+        # --- 3. SEKMELER (Varlıklarım ve İşlem Geçmişi) ---
         tab1, tab2 = st.tabs(["💼 Mevcut Varlıklarım", "📜 İşlem Geçmişi (Silme)"])
         
         with tab1:
