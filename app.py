@@ -353,12 +353,16 @@ if menu == "📊 Genel Özet":
             eur = yf.Ticker("EURTRY=X").history(period="1d")['Close'].iloc[-1]
             ons = yf.Ticker("GC=F").history(period="1d")['Close'].iloc[-1]
             btc = yf.Ticker("BTC-USD").history(period="1d")['Close'].iloc[-1]
+            gumus_ons = yf.Ticker("SI=F").history(period="1d")['Close'].iloc[-1]
+            platin_ons = yf.Ticker("PL=F").history(period="1d")['Close'].iloc[-1]
             
             fiyatlar_sozluk['USD'] = float(usd)
             fiyatlar_sozluk['EUR'] = float(eur)
             fiyatlar_sozluk['ONS'] = float(ons)
             fiyatlar_sozluk['BTC'] = float(btc)
             fiyatlar_sozluk['GRAM_ALTIN'] = float((ons / 31.1035) * usd) # Ons ve Dolar'dan Gram Altın hesabı
+            fiyatlar_sozluk['GRAM_GUMUS'] = float((gumus_ons / 31.1035) * usd)
+            fiyatlar_sozluk['GRAM_PLATIN'] = float((platin_ons / 31.1035) * usd)
         except Exception:
             # İnternet koparsa geçici olarak 0 atar, çökmez
             fiyatlar_sozluk = {'USD': 0, 'EUR': 0, 'ONS': 0, 'BTC': 0, 'GRAM_ALTIN': 0, 'GRAM_GUMUS': 0, 'GRAM_PLATIN': 0}
@@ -1013,6 +1017,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
