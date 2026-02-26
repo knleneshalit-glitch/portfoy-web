@@ -73,16 +73,14 @@ def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # SQLite'taki AUTOINCREMENT yerine PostgreSQL'de SERIAL kullanılır
-    cursor.execute("CREATE TABLE IF NOT EXISTS varliklar (id SERIAL PRIMARY KEY, tur TEXT, sembol TEXT, miktar REAL, ort_maliyet REAL, guncel_fiyat REAL)")
-    cursor.execute("CREATE TABLE IF NOT EXISTS islemler (id SERIAL PRIMARY KEY, sembol TEXT, islem_tipi TEXT, miktar REAL, fiyat REAL, tarih TEXT)")
-    cursor.execute("CREATE TABLE IF NOT EXISTS hedefler (id SERIAL PRIMARY KEY, ad TEXT, tutar REAL)")
-    cursor.execute("CREATE TABLE IF NOT EXISTS takip_listesi (sembol TEXT, isim TEXT, kisa_kod TEXT)")
+    # Tabloları oluştur (Bunlar geneldir, user_id sadece veri satırlarında olur)
+    cursor.execute("CREATE TABLE IF NOT EXISTS varliklar (id SERIAL PRIMARY KEY, tur TEXT, sembol TEXT, miktar REAL, ort_maliyet REAL, guncel_fiyat REAL, user_id UUID)")
+    cursor.execute("CREATE TABLE IF NOT EXISTS islemler (id SERIAL PRIMARY KEY, sembol TEXT, islem_tipi TEXT, miktar REAL, fiyat REAL, tarih TEXT, user_id UUID)")
+    cursor.execute("CREATE TABLE IF NOT EXISTS hedefler (id SERIAL PRIMARY KEY, ad TEXT, tutar REAL, user_id UUID)")
+    cursor.execute("CREATE TABLE IF NOT EXISTS takip_listesi (sembol TEXT, isim TEXT, kisa_kod TEXT)") # Takip listesi genel kalsın
     
-    cursor.execute("DELETE FROM takip_listesi WHERE sembol='X-GSR'")
-    cursor.execute("DELETE FROM varliklar WHERE sembol='X-GSR'")
-    
-    cursor.execute("SELECT count(*) FROM takip_listesi WHERE user_id=%s", (user_id,))
+    # Takip listesi kontrolü (Burada user_id'ye gerek yok, semboller herkes için aynı)
+    cursor.execute("SELECT count(*) FROM takip_listesi")
     if cursor.fetchone()[0] == 0:
         d = [
             ("USDTRY=X", "DOLAR/TL", "USD"), 
@@ -101,6 +99,7 @@ def init_db():
     
     conn.commit()
     conn.close()
+    
 
 init_db()
 
@@ -971,6 +970,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
