@@ -1190,17 +1190,88 @@ elif menu == "📈 Piyasa Analizi":
 
     st.markdown("---")
 
+# -----------------------------------------------------------------------------
+# SAYFA 4: PİYASA ANALİZİ
+# -----------------------------------------------------------------------------
+elif menu == "📈 Piyasa Analizi":
+    st.title("📈 Piyasa Analizi ve Grafikler")
+    
+    # 1. ARAMA MOTORU FONKSİYONU
+    @st.cache_data(ttl=3600)
+    def yahoo_arama_analiz(kelime):
+        import requests
+        url = f"https://query2.finance.yahoo.com/v1/finance/search?q={kelime}"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        try:
+            res = requests.get(url, headers=headers, timeout=5)
+            quotes = res.json().get('quotes', [])
+            sonuclar = {}
+            for q in quotes:
+                sembol = q.get('symbol')
+                isim = q.get('shortname', '')
+                borsa = q.get('exchDisp', '')
+                if sembol: sonuclar[f"{sembol} - {isim} ({borsa})"] = sembol
+            return sonuclar
+        except:
+            return {}
+
+    # 2. SEÇİM ALANI (Hızlı Seçim vs Arama)
+    st.markdown("### 🔍 İncelemek İstediğiniz Varlığı Seçin")
+    
+    c1, c2 = st.columns(2, gap="large")
+    
+    with c1:
+        st.markdown("**⚡ Hızlı Seçim (Döviz & Maden)**")
+        hizli_varliklar = {
+            "Seçiniz...": "",
+            "GRAM ALTIN": "GRAM_ALTIN",
+            "ÇEYREK ALTIN": "CEYREK-ALTIN",
+            "YARIM ALTIN": "YARIM-ALTIN",
+            "TAM ALTIN": "TAM-ALTIN",
+            "ATA (CUMHURİYET) ALTIN": "ATA-ALTIN",
+            "GRAM GÜMÜŞ": "GRAM_GUMUS",
+            "ONS ALTIN ($)": "GC=F",
+            "DOLAR (USD/TRY)": "USDTRY=X", 
+            "EURO (EUR/TRY)": "EURTRY=X",
+            "BITCOIN ($)": "BTC-USD",
+            "ETHEREUM ($)": "ETH-USD"
+        }
+        secilen_hizli = st.selectbox("Listeden varlık seçin:", list(hizli_varliklar.keys()))
+        
+    with c2:
+        st.markdown("**🔎 Hisse, Fon veya Kripto Ara**")
+        arama_terimi = st.text_input("Şirket/Kripto Adı (Örn: THYAO, AAPL):")
+        secili_arama = ""
+        secili_arama_isim = ""
+        if arama_terimi:
+            sonuclar = yahoo_arama_analiz(arama_terimi)
+            if sonuclar:
+                secim = st.selectbox("Bulunan Sonuçlar:", ["Lütfen Seçin..."] + list(sonuclar.keys()))
+                if secim != "Lütfen Seçin...":
+                    secili_arama = sonuclar[secim]
+                    secili_arama_isim = secim.split('-')[0].strip()
+            else:
+                st.warning("Sonuç bulunamadı.")
+
+    analiz_sembol = secili_arama if secili_arama else hizli_varliklar[secilen_hizli]
+    analiz_isim = secili_arama_isim if secili_arama else (secilen_hizli if secilen_hizli != "Seçiniz..." else "")
+
+    st.markdown("---")
+
     # 3. GRAFİK VE VERİ ÇEKME EKRANI
     if analiz_sembol:
-        c_baslik, c_periyot = st.columns([3, 1], vertical_alignment="center")
-        c_baslik.subheader(f"📊 {analiz_isim} Fiyat Grafiği")
+        # Başlık ve Filtreleri 3 Kolona Böldük (Başlık | Grafik Tipi | Periyot)
+        c_baslik, c_tip, c_periyot = st.columns([2, 1, 1], vertical_alignment="bottom")
+        c_baslik.subheader(f"📊 {analiz_isim}")
+        
+        grafik_tipleri = ["Alan (Area)", "Çizgi (Line)", "Sütun (Bar)"]
+        secili_grafik = c_tip.selectbox("Grafik Tipi:", grafik_tipleri)
         
         periyotlar = {"1 Ay": "1mo", "3 Ay": "3mo", "6 Ay": "6mo", "1 Yıl": "1y", "5 Yıl": "5y"}
         secili_periyot = c_periyot.selectbox("Zaman Aralığı:", list(periyotlar.keys()), index=1)
         
         with st.spinner("Grafik yükleniyor..."):
             try:
-                # Fiziksel altın ve gümüşlerin geçmiş verilerini USD ve ONS çarparak bulma motoru
                 fiziksel_altinlar = ["GRAM_ALTIN", "CEYREK-ALTIN", "YARIM-ALTIN", "TAM-ALTIN", "ATA-ALTIN", "GRAM_GUMUS"]
                 
                 if analiz_sembol in fiziksel_altinlar:
@@ -1208,13 +1279,9 @@ elif menu == "📈 Piyasa Analizi":
                     ons_data = yf.Ticker(ons_kod).history(period=periyotlar[secili_periyot])['Close']
                     usd_data = yf.Ticker("USDTRY=X").history(period=periyotlar[secili_periyot])['Close']
                     
-                    # Tarihleri senkronize et
                     df_ortak = pd.concat([ons_data, usd_data], axis=1, keys=['ONS', 'USD']).ffill().dropna()
-                    
-                    # Temel Has Altın Hesaplaması
                     fiyat_serisi = (df_ortak['ONS'] * df_ortak['USD']) / 31.1035
                     
-                    # Saflık Çarpanları
                     if analiz_sembol == "CEYREK-ALTIN": fiyat_serisi *= 1.6065
                     elif analiz_sembol == "YARIM-ALTIN": fiyat_serisi *= 3.2130
                     elif analiz_sembol == "TAM-ALTIN": fiyat_serisi *= 6.4260
@@ -1224,40 +1291,40 @@ elif menu == "📈 Piyasa Analizi":
                     df_grafik.columns = ['Tarih', 'Fiyat']
                     df_grafik['Tarih'] = pd.to_datetime(df_grafik['Tarih']).dt.date
                 else:
-                    # Normal Hisseler, Fonlar ve Dövizler
                     df_grafik = yf.Ticker(analiz_sembol).history(period=periyotlar[secili_periyot]).reset_index()
                     df_grafik = df_grafik[['Date', 'Close']].rename(columns={'Date': 'Tarih', 'Close': 'Fiyat'})
                     df_grafik['Tarih'] = pd.to_datetime(df_grafik['Tarih']).dt.date
                 
                 if not df_grafik.empty:
-                    # İstatistikleri Çıkar
                     son_fiyat = float(df_grafik['Fiyat'].iloc[-1])
                     ilk_fiyat = float(df_grafik['Fiyat'].iloc[0])
                     degisim_yuzdesi = ((son_fiyat - ilk_fiyat) / ilk_fiyat) * 100
                     en_yuksek = float(df_grafik['Fiyat'].max())
                     en_dusuk = float(df_grafik['Fiyat'].min())
                     
-                    # Değişime göre yeşil/kırmızı renk belirle
                     renk = "#10b981" if degisim_yuzdesi >= 0 else "#ef4444"
                     ok = "▲" if degisim_yuzdesi >= 0 else "▼"
                     
-                    # Göstergeler (Metrics)
                     metrik_c1, metrik_c2, metrik_c3, metrik_c4 = st.columns(4)
                     metrik_c1.metric("Şu Anki Fiyat", f"{son_fiyat:,.2f}", f"{ok} %{abs(degisim_yuzdesi):.2f}")
                     metrik_c2.metric("En Yüksek", f"{en_yuksek:,.2f}")
                     metrik_c3.metric("En Düşük", f"{en_dusuk:,.2f}")
                     metrik_c4.metric("Dönem Başı", f"{ilk_fiyat:,.2f}")
                     
-                    # Estetik Plotly Grafiği (Area Chart)
-                    fig = px.area(df_grafik, x='Tarih', y='Fiyat')
+                    # --- SEÇİLEN TİPE GÖRE GRAFİĞİ ÇİZ ---
+                    if secili_grafik == "Alan (Area)":
+                        fig = px.area(df_grafik, x='Tarih', y='Fiyat')
+                        fig.update_traces(line_color=renk, fillcolor=renk, fillpattern_shape="", opacity=0.15)
                     
-                    fig.update_traces(
-                        line_color=renk, 
-                        fillcolor=renk, 
-                        fillpattern_shape="", 
-                        opacity=0.15 # Zemine doğru hafif şeffaf dolgu
-                    )
+                    elif secili_grafik == "Çizgi (Line)":
+                        fig = px.line(df_grafik, x='Tarih', y='Fiyat')
+                        fig.update_traces(line_color=renk, line_width=3)
                     
+                    elif secili_grafik == "Sütun (Bar)":
+                        fig = px.bar(df_grafik, x='Tarih', y='Fiyat')
+                        fig.update_traces(marker_color=renk)
+                    
+                    # Ortak Grafik Ayarları (Zemin, Yazı Renkleri, Çizgiler)
                     fig.update_layout(
                         paper_bgcolor="rgba(0,0,0,0)",
                         plot_bgcolor="rgba(0,0,0,0)",
@@ -1269,7 +1336,6 @@ elif menu == "📈 Piyasa Analizi":
                         yaxis=dict(showgrid=True, gridcolor="#333333")
                     )
                     
-                    # Antrasit Koyu Tema Kutu İçinde Gösterim
                     st.markdown(f"""
                     <div style="background-color: #1a1c24; padding: 15px; border-radius: 12px; border: 1px solid #30333d; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
                     """, unsafe_allow_html=True)
