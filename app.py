@@ -148,39 +148,47 @@ def guncel_fiyat_bul(sembol, fiyatlar):
 # Menüye özel canlandırıcı CSS dokunuşları
 st.sidebar.markdown("""
 <style>
+    /* Sidebar içeriğini en yukarı çekme */
+    [data-testid="stSidebarContent"] {
+        padding-top: 0rem !important;
+    }
+    
     /* Menü Başlığı Tasarımı */
     .sidebar-title {
-        font-size: 24px !important;
+        font-size: 22px !important;
         font-weight: 800 !important;
         color: #ffffff !important;
         text-align: center;
+        margin-top: -20px; /* Başlığı daha da yukarı çeker */
         margin-bottom: 20px;
-        padding: 10px;
+        padding: 12px;
         background: linear-gradient(90deg, #1e3a8a, #3b82f6);
-        border-radius: 10px;
+        border-radius: 0px 0px 15px 15px; /* Sadece alt köşeleri yuvarlatır */
         box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
     
     /* Menü Seçenekleri Animasyonu */
-    div[data-testid="stSidebarNav"] li, div[class*="stRadio"] label {
+    div[class*="stRadio"] label {
         transition: all 0.3s ease-in-out;
-        padding: 5px 10px !important;
-        border-radius: 8px !important;
+        padding: 8px 12px !important;
+        border-radius: 10px !important;
+        margin-bottom: 5px;
     }
     
     div[class*="stRadio"] label:hover {
-        transform: translateX(8px); /* Sağa kayma animasyonu */
-        background-color: rgba(59, 130, 246, 0.1) !important;
+        transform: translateX(10px); /* Sağa kayma animasyonu */
+        background-color: rgba(59, 130, 246, 0.15) !important;
         color: #3b82f6 !important;
     }
 
     /* Çıkış Butonu Tasarımı */
     .stButton>button[kind="secondary"] {
         width: 100%;
-        border-radius: 20px;
+        border-radius: 15px;
         border: 1px solid #ef4444;
         color: #ef4444;
         transition: 0.3s;
+        font-weight: bold;
     }
     .stButton>button[kind="secondary"]:hover {
         background-color: #ef4444;
@@ -191,15 +199,15 @@ st.sidebar.markdown("""
 """, unsafe_allow_html=True)
 
 with st.sidebar:
-    # 1. En Tepe: Logo ve Başlık
-    st.markdown('<div class="sidebar-title">💎 PORTFÖYÜM PRO</div>', unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
+    # 1. En Tepe: Sade Başlık
+    st.markdown('<div class="sidebar-title">💎 PORTFÖYÜM</div>', unsafe_allow_html=True)
     
     # 2. Orta: Sayfa Gezinme Menüsü
     menu = st.radio(
         "📍 Hızlı Erişim",
         ["📊 Genel Özet", "🔥 Isı Haritası", "💵 Varlıklar & İşlemler", "📈 Piyasa Analizi", "🧮 Hesap Araçları", "📅 Piyasa Takvimi"],
-        index=0
+        index=0,
+        label_visibility="collapsed" # Gereksiz 'Hızlı Erişim' yazısını gizler
     )
     
     st.markdown("---")
@@ -209,7 +217,6 @@ with st.sidebar:
     serbest_altin = st.text_input("Serbest Piyasa Gr Altın (₺):", placeholder="Örn: 3150")
     fiyatlar = fiyatlari_hesapla(serbest_altin)
 
-    # Önceki adımda eklediğimiz performans odaklı güncelleme butonu
     if st.button("🔄 Fiyatları Güncelle", use_container_width=True):
         with st.spinner("Güncelleniyor..."):
             conn = get_db_connection()
@@ -223,8 +230,8 @@ with st.sidebar:
             conn.close()
         st.success("Veriler yenilendi!")
 
-    # 4. En Alt: Güvenli Çıkış (Boşluklarla en aşağıya itiyoruz)
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    # 4. En Alt: Güvenli Çıkış
+    st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🚪 Güvenli Çıkış", type="secondary", use_container_width=True):
         st.session_state.user = None
         st.rerun()
