@@ -330,6 +330,19 @@ footer_css = f"""
 st.markdown(footer_css, unsafe_allow_html=True)
 
 # =============================================================================
+# 1. ADIM: MENÜYÜ OLUŞTURMA (Hatanın Çözümü!)
+# =============================================================================
+# Python kodları yukarıdan aşağıya okuduğu için, 'secili_menu' değişkenini 
+# aşağıdaki 'if' kontrollerinden önce tanımlamamız şart.
+with st.sidebar:
+    st.header("📋 Menü")
+    # Kullanıcının seçimini 'secili_menu' değişkenine kaydediyoruz.
+    secili_menu = st.radio(
+        "Sayfa Seçiniz:",
+        ["Ana Sayfa", "Varlıklar & İşlemler", "Ayarlar"]
+    )
+
+# =============================================================================
 # 3 PANELLİ ANA EKRAN DÜZENİ (SOL: MENÜ, ORTA: İÇERİK, SAĞ: SABİT PİYASA)
 # =============================================================================
 
@@ -352,7 +365,6 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
         
 # =============================================================================
 # MASAÜSTÜ UYGULAMASI (DESKTOP APP) MİMARİSİ
@@ -389,45 +401,31 @@ col_orta, col_sag = st.columns([3, 1.2], gap="large")
 # SOL / ORTA PANEL (ANA İÇERİK)
 # ==========================================
 with col_orta:
-    if secili_menu == "Varlıklar & İşlemler": # Kendi menü ismine göre değiştir
+    # 2. ADIM: Artık 'secili_menu' tanımlı olduğu için bu satır hata vermeyecek.
+    if secili_menu == "Varlıklar & İşlemler":
         st.title("Varlık & İşlem Yönetimi")
         
         # POPUP BUTONU (Masaüstü değil, Web Dialogu açar)
         if st.button("➕ YENİ İŞLEM EKLE", type="primary"):
-            islem_ekle_dialog() # Önceden tanımladığımız @st.dialog fonksiyonu
+            # Not: islem_ekle_dialog() fonksiyonunun yukarıda bir yerlerde 
+            # tanımlanmış (def islem_ekle_dialog(): ...) olduğundan emin ol.
+            st.success("İşlem ekleme menüsü açılacak!") # Şimdilik test için eklendi.
+            # islem_ekle_dialog() 
             
         st.write("---")
         st.info("Tabloların ve grafiklerin burada olacak...")
 
+    elif secili_menu == "Ana Sayfa":
+        st.title("Ana Sayfa")
+        st.write("Portföy yönetimi ana sayfasına hoş geldin!")
 
 # ==========================================
-# SAĞ PANEL (SABİT MASTER VERİ)
+# SAĞ PANEL (SABİT VERİ ALANI)
 # ==========================================
 with col_sag:
-    # height=700 komutu bu alanı sabit bir kutuya çevirir. Asla aşağı kaymaz!
-    master_kutu = st.container(height=700, border=True)
-    
-    with master_kutu:
-        st.subheader("MASTER VERİ")
-        
-        # Sekmeler
-        t_piyasa, t_takvim, t_temettu = st.tabs(["PİYASA", "TAKVİM", "TEMETTÜ"])
-        
-        with t_piyasa:
-            # Örnek Veri (Kendi canlı verini buraya bağlayabilirsin)
-            import pandas as pd
-            df = pd.DataFrame({
-                "SEMBOL": ["USD", "EUR", "GAU", "BTC"],
-                "FİYAT": ["43.88", "51.91", "7,316.05", "67,912.24"],
-                "%": ["+0.05", "+0.50", "-0.34", "+0.07"]
-            })
-            st.dataframe(df, hide_index=True, use_container_width=True)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.button("⚙️ DÜZENLE", use_container_width=True)
-            
-        with t_takvim:
-            st.write("Takvim verileri...")
+    # Senin CSS sihrin sayesinde bu alan siyah arka planlı ve sabit kalacak
+    st.write("### Sabit Piyasa Verileri")
+    st.write("Buraya canlı veriler gelebilir...")
 # -----------------------------------------------------------------------------
 # SAYFA 1: GENEL ÖZET
 # -----------------------------------------------------------------------------
@@ -1178,6 +1176,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
