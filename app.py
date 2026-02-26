@@ -368,52 +368,53 @@ if menu == "📊 Genel Özet":
             fiyatlar_sozluk = {'USD': 0, 'EUR': 0, 'ONS': 0, 'BTC': 0, 'GRAM_ALTIN': 0, 'GRAM_GUMUS': 0, 'GRAM_PLATIN': 0}
         return fiyatlar_sozluk
 
-    # Motoru çalıştır ve fiyatları al
+    # Motoru çalıştır ve fiyatları al (Bu kısım sende aynı kalıyor)
     guncel_f = bant_fiyatlarini_cek()
 
-    # Motoru çalıştır ve fiyatları al (Bu kısım sende zaten var, dokunma)
-    guncel_f = bant_fiyatlarini_cek()
+    # Tüm olası seçenekler
+    tum_secenekler = {
+        "Dolar (USD)": f"🇺🇸 USD: {guncel_f.get('USD', 0):.2f} ₺",
+        "Euro (EUR)": f"🇪🇺 EUR: {guncel_f.get('EUR', 0):.2f} ₺",
+        "Gram Altın": f"🟡 GR ALTIN: {guncel_f.get('GRAM_ALTIN', 0):.2f} ₺",
+        "Gram Gümüş": f"🥈 GR GÜMÜŞ: {guncel_f.get('GRAM_GUMUS', 0):.2f} ₺",
+        "Gram Platin": f"💍 GR PLATİN: {guncel_f.get('GRAM_PLATIN', 0):.2f} ₺",
+        "Ons Altın": f"🏆 ONS ALTIN: {guncel_f.get('ONS', 0):.2f} $",
+        "Bitcoin (BTC)": f"₿ BTC: {guncel_f.get('BTC', 0):,.0f} $"
+    }
 
-    # --- KULLANICI SEÇİMİ İÇİN AYAR MENÜSÜ ---
-    with st.expander("⚙️ Kayan Bant Ayarları"):
-        # Tüm olası seçenekler ve formatları sözlük (dictionary) içinde tutuyoruz
-        tum_secenekler = {
-            "Dolar (USD)": f"🇺🇸 USD: {guncel_f.get('USD', 0):.2f} ₺",
-            "Euro (EUR)": f"🇪🇺 EUR: {guncel_f.get('EUR', 0):.2f} ₺",
-            "Gram Altın": f"🟡 GR ALTIN: {guncel_f.get('GRAM_ALTIN', 0):.2f} ₺",
-            "Gram Gümüş": f"🥈 GR GÜMÜŞ: {guncel_f.get('GRAM_GUMUS', 0):.2f} ₺",
-            "Gram Platin": f"💍 GR PLATİN: {guncel_f.get('GRAM_PLATIN', 0):.2f} ₺",
-            "Ons Altın": f"🏆 ONS ALTIN: {guncel_f.get('ONS', 0):.2f} $",
-            "Bitcoin (BTC)": f"₿ BTC: {guncel_f.get('BTC', 0):,.0f} $"
-        }
-        
-        # Kullanıcı çoklu seçim (multiselect) yapsın
-        secilen_isimler = st.multiselect(
-            "Bantta hangi veriler kaysın?",
-            options=list(tum_secenekler.keys()),
-            default=["Dolar (USD)", "Euro (EUR)", "Gram Altın", "Bitcoin (BTC)"] # Sayfa ilk açıldığında bunlar seçili gelir
-        )
+    # Ekranı ikiye bölüyoruz: %92 Bant için, %8 İkon için
+    col_bant, col_ayar = st.columns([12, 1])
 
-    # --- BANTI OLUŞTURMA ---
-    # Eğer kullanıcı çarpıya basıp hepsini silerse bant çökmesin, uyarı versin:
-    if not secilen_isimler:
-        ticker_data = ["Lütfen bant ayarlarından veri seçin..."]
-    else:
-        # Sadece seçilenlerin formatlanmış halini listeye al
-        ticker_data = [tum_secenekler[isim] for isim in secilen_isimler]
+    # 1. Önce Ayar Menüsünü Oluştur (Sağdaki Buton)
+    with col_ayar:
+        # st.popover sayesinde ekranda sadece ikon görünür, tıklayınca menü fırlar
+        with st.popover("⚙️"):
+            secilen_isimler = st.multiselect(
+                "Gösterilecekler:",
+                options=list(tum_secenekler.keys()),
+                default=["Dolar (USD)", "Euro (EUR)", "Gram Altın", "Bitcoin (BTC)"]
+            )
 
-    # HTML ve CSS ile kayma efekti
-    ticker_html = f"""
-    <div style="background-color: #0e1117; padding: 10px; border-radius: 5px; border: 1px solid #30333d; overflow: hidden; white-space: nowrap;">
-        <div style="display: inline-block; padding-left: 100%; animation: marquee 30s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
-            {" &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_data)}
+    # 2. Seçime Göre Bandı Oluştur (Soldaki Kayan Yazı)
+    with col_bant:
+        if not secilen_isimler:
+            ticker_data = ["Lütfen dişli çarktan veri seçin..."]
+        else:
+            ticker_data = [tum_secenekler[isim] for isim in secilen_isimler]
+
+        # Kutu yüksekliğini ayarlayıp yazıyı tam ortaya hizaladık (height ve display:flex eklendi)
+        ticker_html = f"""
+        <div style="background-color: #0e1117; padding: 0px 10px; border-radius: 5px; border: 1px solid #30333d; overflow: hidden; white-space: nowrap; height: 42px; display: flex; align-items: center;">
+            <div style="display: inline-block; padding-left: 100%; animation: marquee 30s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
+                {" &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_data)}
+            </div>
         </div>
-    </div>
-    <style>
-    @keyframes marquee {{ 0% {{ transform: translate(0, 0); }} 100% {{ transform: translate(-100%, 0); }} }}
-    </style>
-    """
-    st.markdown(ticker_html, unsafe_allow_html=True)
+        <style>
+        @keyframes marquee {{ 0% {{ transform: translate(0, 0); }} 100% {{ transform: translate(-100%, 0); }} }}
+        </style>
+        """
+        st.markdown(ticker_html, unsafe_allow_html=True)
+    
     st.markdown("<br>", unsafe_allow_html=True)
     
     # --- 2. PORTFÖY DURUMU (Kullanıcıya Özel) ---
@@ -1037,6 +1038,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
