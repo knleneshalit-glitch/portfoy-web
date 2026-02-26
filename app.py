@@ -414,8 +414,112 @@ if menu == "📊 Genel Özet":
         </style>
         """
         st.markdown(ticker_html, unsafe_allow_html=True)
-    
-    st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+    # --- EKRANI İKİYE BÖLÜYORUZ (Sol Ana İçerik %75, Sağ Piyasa %25) ---
+    ana_kolon, sag_kolon = st.columns([3, 1])
+
+    with ana_kolon:
+        # --- 2. PORTFÖY DURUMU (Kullanıcıya Özel) ---
+        user_id = st.session_state.user.id
+        conn = get_db_connection()
+        
+        query = "SELECT sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id = %s"
+        df_varlik = pd.read_sql_query(query, conn, params=(user_id,))
+
+        if df_varlik.empty:
+            st.info("Portföyünüzde henüz varlık bulunmuyor. Yan menüden işlem ekleyerek başlayabilirsiniz!")
+        else:
+            df_varlik['Yatirim'] = df_varlik['miktar'] * df_varlik['ort_maliyet']
+            df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
+            df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
+            df_varlik['Degisim_%'] = (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100
+            
+            top_yatirim = df_varlik['Yatirim'].sum()
+            top_guncel = df_varlik['Guncel'].sum()
+            net_kz = top_guncel - top_yatirim
+            yuzde_kz = (net_kz / top_yatirim * 100) if top_yatirim > 0 else 0 
+              
+            cc1, cc2, cc3 = st.columns(3)
+            cc1.metric("💼 Yatırım", f"{top_yatirim:,.0f} ₺")
+            cc2.metric("💎 Güncel", f"{top_guncel:,.0f} ₺")
+            cc3.metric("🚀 Net K/Z", f"{net_kz:+,.0f} ₺", f"%{yuzde_kz:.2f}")
+            
+            st.write("---")
+            st.dataframe(df_varlik.style.format({
+                'miktar': '{:.2f}', 'ort_maliyet': '{:.2f} ₺', 
+                'guncel_fiyat': '{:.2f} ₺', 'Yatirim': '{:.2f} ₺', 
+                'Guncel': '{:.2f} ₺', 'Kar_Zarar': '{:+.2f} ₺', 'Degisim_%': '%{:.2f}'
+            }), use_container_width=True)
+
+            # --- 3. GRAFİK VE HEDEF (Ana kolonun içinde) ---
+            col_grafik, col_hedef = st.columns([2, 1])
+            
+            with col_grafik:
+                st.subheader("Varlık Dağılımı")
+                df_pie = df_varlik.sort_values(by="Guncel", ascending=False).head(10)
+                
+                # Import eksikse çökmemesi için import kontrolü
+                import plotly.express as px 
+                fig = px.pie(
+                    df_pie, values='Guncel', names='sembol', hole=0.4,
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                fig.update_traces(textposition='inside', textinfo='percent', insidetextorientation='radial')
+                fig.update_layout(
+                    margin=dict(t=10, b=10, l=10, r=10),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.0) 
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                
+            with col_hedef:
+                st.subheader("🎯 Hedef")
+                cursor = conn.cursor()
+                cursor.execute("SELECT ad, tutar FROM hedefler WHERE user_id=%s LIMIT 1", (user_id,))
+                hedef = cursor.fetchone()
+                
+                h_ad = hedef[0] if hedef else "Finansal Özgürlük"
+                h_tutar = hedef[1] if hedef else 1000000
+                
+                ilerleme = (top_guncel / h_tutar) * 100
+                if ilerleme > 100: ilerleme = 100 
+                
+                st.write(f"**{h_ad}** ({h_tutar:,.0f} ₺)")
+                st.progress(int(ilerleme))
+                st.write(f"%{ilerleme:.1f} Tamamlandı")
+                
+                with st.expander("✏️ Düzenle"):
+                    with st.form("hedef_form"):
+                        yeni_ad = st.text_input("Hedef Adı", value=h_ad)
+                        yeni_tutar = st.number_input("Hedef Tutar", value=float(h_tutar), step=1000.0)
+                        if st.form_submit_button("Kaydet"):
+                            cursor.execute("DELETE FROM hedefler WHERE user_id=%s", (user_id,))
+                            cursor.execute("INSERT INTO hedefler (ad, tutar, user_id) VALUES (%s, %s, %s)", (yeni_ad, yeni_tutar, user_id))
+                            conn.commit()
+                            st.rerun()
+                            
+        conn.close() 
+
+    # --- 4. SAĞ KOLON: CANLI PİYASA ---
+    with sag_kolon:
+        st.subheader("📡 Canlı Piyasa")
+        
+        # Daha önce Ticker için çektiğimiz guncel_f sözlüğünü tabloya dönüştürüyoruz
+        canli_df = pd.DataFrame({
+            "Sembol": ["USD/TL", "EUR/TL", "GR ALTIN", "GR GÜMÜŞ", "PLATİN", "ONS", "BTC"],
+            "Fiyat": [
+                f"{guncel_f.get('USD', 0):.2f} ₺",
+                f"{guncel_f.get('EUR', 0):.2f} ₺",
+                f"{guncel_f.get('GRAM_ALTIN', 0):.2f} ₺",
+                f"{guncel_f.get('GRAM_GUMUS', 0):.2f} ₺",
+                f"{guncel_f.get('GRAM_PLATIN', 0):.2f} ₺",
+                f"{guncel_f.get('ONS', 0):.2f} $",
+                f"{guncel_f.get('BTC', 0):,.0f} $"
+            ]
+        })
+        
+        # Tabloyu sağ kolona oturtma
+        st.dataframe(canli_df, hide_index=True, use_container_width=True)
     
     # --- 2. PORTFÖY DURUMU (Kullanıcıya Özel) ---
     user_id = st.session_state.user.id
@@ -1038,6 +1142,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
