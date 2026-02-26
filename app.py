@@ -141,7 +141,7 @@ def guncel_fiyat_bul(sembol, fiyatlar):
     else: return veri_getir(sembol)
 
 # =============================================================================
-# YAN MENÜ (SİDEBAR) VE AYARLAR
+# YAN MENÜ (SİDEBAR) VE AYARLAR (SOL PANEL)
 # =============================================================================
 if st.session_state.user is not None:
     if st.sidebar.button("🚪 Güvenli Çıkış"):
@@ -160,18 +160,111 @@ menu = st.sidebar.radio(
 st.sidebar.markdown("---")
 st.sidebar.subheader("⚙️ Fiyat Ayarları")
 serbest_altin = st.sidebar.text_input("Serbest Piyasa Gr Altın (₺):", placeholder="Örn: 3150")
-
 fiyatlar = fiyatlari_hesapla(serbest_altin)
 
-conn = get_db_connection()
-cursor = conn.cursor()
-cursor.execute("SELECT sembol FROM varliklar WHERE user_id=%s", (user_id,))
-for (s,) in cursor.fetchall():
-    yeni_f = guncel_fiyat_bul(s, fiyatlar)
-    if yeni_f > 0:
-        cursor.execute("UPDATE varliklar SET guncel_fiyat=%s WHERE sembol=%s", (float(yeni_f), s))
-conn.commit()
-conn.close()
+# ... (Haber bandı ve veritabanı fiyat güncelleme kodların burada kalabilir) ...
+
+# =============================================================================
+# 3 PANELLİ ANA EKRAN MİMARİSİ CSS (SAĞ TARAFI KİLİTLEME)
+# =============================================================================
+st.markdown("""
+<style>
+    /* Sağ kolonu ekrana kilitleyen (sticky) sihirli CSS */
+    [data-testid="column"]:nth-of-type(2) {
+        position: sticky !important;
+        top: 3rem; 
+        height: calc(100vh - 6rem); 
+        overflow-y: auto; 
+        background-color: #111111; /* Sağ panel için koyu arka plan */
+        border-left: 2px solid #333;
+        padding: 15px;
+        border-radius: 8px;
+    }
+    /* Sağ panelin kaydırma çubuğunu gizle ama kaydırılabilir yap */
+    [data-testid="column"]:nth-of-type(2)::-webkit-scrollbar { display: none; }
+</style>
+""", unsafe_allow_html=True)
+
+# ANA EKRANI BÖLÜYORUZ (Orta %75, Sağ %25)
+col_orta, col_sag = st.columns([3, 1.2], gap="large")
+
+# =============================================================================
+# ORTA PANEL (MENÜ İÇERİKLERİ)
+# =============================================================================
+with col_orta:
+    
+    if menu == "📊 Genel Özet":
+        st.title("Portföy Analizi")
+        # --- Buraya Genel Özet Kodların Gelecek ---
+        st.info("Genel özet içeriği burada gösterilecek.")
+        
+    elif menu == "🔥 Isı Haritası":
+        st.title("Portföy Isı Haritası")
+        # --- Buraya Isı Haritası Kodların Gelecek ---
+        st.info("Isı haritası içeriği burada gösterilecek.")
+
+    elif menu == "💵 Varlıklar & İşlemler":
+        st.title("Varlık & İşlem Yönetimi")
+        # --- Buraya Varlıklar ve İşlemler Kodların Gelecek ---
+        st.info("İşlem ekleme formları ve tablolar burada yer alacak.")
+
+    elif menu == "📈 Piyasa Analizi":
+        st.title("📈 Pro Piyasa Analizi")
+        # --- Buraya Piyasa Analizi Kodların Gelecek ---
+        st.info("Grafikler ve yapay zeka yorumları burada olacak.")
+
+    elif menu == "🧮 Hesap Araçları":
+        st.title("Hesap Araçları & Simülasyon")
+        # --- Buraya Hesap Araçları Kodların Gelecek ---
+        st.info("Kredi ve maliyet hesaplayıcı burada olacak.")
+
+    elif menu == "📅 Piyasa Takvimi":
+        st.title("Önemli Tarihler & Temettü Beklentileri")
+        # --- Buraya Takvim Kodların Gelecek ---
+        st.info("Ekonomik takvim burada olacak.")
+
+
+# =============================================================================
+# SAĞ PANEL (SABİT / KİLİTLİ CANLI PİYASA)
+# =============================================================================
+with col_sag:
+    st.markdown("### 🔴 Canlı Piyasa")
+    st.markdown("---")
+    
+    # 5 Dakikada bir güncellenen fiyatları alıyoruz (Yukarıdaki fonksiyonunu kullanıyoruz)
+    try:
+        usd = veri_getir("USDTRY=X")
+        eur = veri_getir("EURTRY=X")
+        ons = veri_getir("GC=F")
+        btc = veri_getir("BTC-USD")
+        
+        # Şık kartlar halinde ekrana basıyoruz
+        st.markdown(f"""
+        <div style='background-color: #1e1e1e; padding: 10px; border-radius: 5px; margin-bottom: 10px; text-align: center; border: 1px solid #333;'>
+            <div style='color: #888; font-size: 12px; font-weight: bold;'>💵 DOLAR (USD)</div>
+            <div style='color: #00ffcc; font-size: 20px; font-weight: bold;'>{usd:.2f} ₺</div>
+        </div>
+        
+        <div style='background-color: #1e1e1e; padding: 10px; border-radius: 5px; margin-bottom: 10px; text-align: center; border: 1px solid #333;'>
+            <div style='color: #888; font-size: 12px; font-weight: bold;'>💶 EURO (EUR)</div>
+            <div style='color: #00ffcc; font-size: 20px; font-weight: bold;'>{eur:.2f} ₺</div>
+        </div>
+        
+        <div style='background-color: #1e1e1e; padding: 10px; border-radius: 5px; margin-bottom: 10px; text-align: center; border: 1px solid #333;'>
+            <div style='color: #888; font-size: 12px; font-weight: bold;'>🏆 ONS ALTIN</div>
+            <div style='color: #ffcc00; font-size: 20px; font-weight: bold;'>{ons:.2f} $</div>
+        </div>
+        
+        <div style='background-color: #1e1e1e; padding: 10px; border-radius: 5px; margin-bottom: 10px; text-align: center; border: 1px solid #333;'>
+            <div style='color: #888; font-size: 12px; font-weight: bold;'>₿ BITCOIN</div>
+            <div style='color: #ffaa00; font-size: 20px; font-weight: bold;'>{btc:,.0f} $</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.caption("⏳ Veriler 1-5 dk gecikmeli olabilir.")
+        
+    except Exception as e:
+        st.warning("Veriler çekilemedi.")
 
 # =============================================================================
 # HABER BANDI (MARQUEE) VE CSS TASARIMLARI
@@ -877,4 +970,3 @@ elif menu == "📈 Piyasa Analizi":
                 st.markdown("---")
                 vol = ham_veri.pct_change().std() * 100
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")
-
