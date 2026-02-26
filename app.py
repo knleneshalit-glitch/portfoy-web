@@ -12,6 +12,8 @@ import numpy as np
 import requests
 import xml.etree.ElementTree as ET
 
+from streamlit_sortables import sort_items
+
 # --- KULLANICI DOĞRULAMA (AUTH) AYARLARI ---
 # Bu satır kodun en üstünde olmalı!
 st.set_page_config(page_title="Portföyüm Pro", layout="wide", initial_sidebar_state="expanded")
@@ -511,44 +513,37 @@ if menu == "📊 Genel Özet":
     @st.dialog("⚙️ Sağ Tablo Ayarları")
     def tablo_ayarlari_popup():
         
-        # --- YENİ NESİL SIRALAMA VE SİLME PANELİ ---
-        st.markdown("**1. Mevcut Varlıklar (Sırala & Sil)**")
+        # --- 1. SÜRÜKLE BIRAK SIRALAMA ---
+        st.markdown("**1. Sıralamayı Değiştir (Sürükle & Bırak)**")
+        st.caption("👆 *Farenizle kutuları tutarak istediğiniz sıraya taşıyın.*")
         
         mevcut_liste = list(st.session_state.sag_panel_listesi.keys())
         
-        if not mevcut_liste:
-            st.info("Listeniz şu an boş. Alttan ekleme yapabilirsiniz.")
+        if mevcut_liste:
+            # Sürükle-Bırak eklentisi burada devreye giriyor!
+            yeni_sira = sort_items(mevcut_liste, direction="vertical")
+            
+            # Eğer kutuyu taşıyıp sırayı değiştirdiysen, hafızayı anında günceller
+            if yeni_sira != mevcut_liste:
+                st.session_state.sag_panel_listesi = {k: st.session_state.sag_panel_listesi[k] for k in yeni_sira}
+                st.rerun()
+                
+            st.markdown("---")
+            
+            # --- 2. SİLME BÖLÜMÜ ---
+            st.markdown("**2. Listeden Çıkar**")
+            silinecek = st.selectbox("Kaldırmak istediğiniz varlığı seçin:", ["Seçiniz..."] + mevcut_liste, key="sil_secim", label_visibility="collapsed")
+            if silinecek != "Seçiniz...":
+                if st.button("❌ Varlığı Sil", key="sil_buton", use_container_width=True):
+                    del st.session_state.sag_panel_listesi[silinecek]
+                    st.rerun()
         else:
-            for i, varlik_adi in enumerate(mevcut_liste):
-                # Her varlık için yan yana: İsim | Yukarı | Aşağı | Sil kolonları
-                c_isim, c_yukari, c_asagi, c_sil = st.columns([5, 1.2, 1.2, 1.2])
-                
-                # İsim gösterimi
-                c_isim.markdown(f"<div style='padding-top: 5px; font-weight: 500;'>{varlik_adi}</div>", unsafe_allow_html=True)
-                
-                # Yukarı Taşı Butonu (En üstteyse deaktif olur)
-                if c_yukari.button("⬆️", key=f"up_{varlik_adi}", disabled=(i == 0), help="Yukarı Taşı"):
-                    # Bir üstteki ile yer değiştir
-                    mevcut_liste[i], mevcut_liste[i-1] = mevcut_liste[i-1], mevcut_liste[i]
-                    st.session_state.sag_panel_listesi = {k: st.session_state.sag_panel_listesi[k] for k in mevcut_liste}
-                    st.rerun()
-                    
-                # Aşağı Taşı Butonu (En alttaysa deaktif olur)
-                if c_asagi.button("⬇️", key=f"down_{varlik_adi}", disabled=(i == len(mevcut_liste)-1), help="Aşağı Taşı"):
-                    # Bir alttaki ile yer değiştir
-                    mevcut_liste[i], mevcut_liste[i+1] = mevcut_liste[i+1], mevcut_liste[i]
-                    st.session_state.sag_panel_listesi = {k: st.session_state.sag_panel_listesi[k] for k in mevcut_liste}
-                    st.rerun()
-                    
-                # Silme Butonu
-                if c_sil.button("❌", key=f"del_{varlik_adi}", help="Listeden Çıkar"):
-                    del st.session_state.sag_panel_listesi[varlik_adi]
-                    st.rerun()
+            st.info("Listeniz şu an boş.")
             
         st.markdown("---")
         
-        # --- HIZLI EKLEME MENÜLERİ (Aynen Kalıyor) ---
-        st.markdown("**2. Hızlı Ekle (Maden, Döviz, Kripto)**")
+        # --- 3. HIZLI EKLEME MENÜLERİ ---
+        st.markdown("**3. Hızlı Ekle (Maden, Döviz, Kripto)**")
         hazir_tablo_varliklar = {
             "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", "Gram Platin": "GRAM_PLATIN",
             "Ons Altın": "GC=F", "Ons Gümüş": "SI=F", "Ons Platin": "PL=F",
@@ -564,7 +559,7 @@ if menu == "📊 Genel Özet":
                 st.rerun()
 
         st.markdown("---")
-        st.markdown("**3. Hisse/Fon Ara**")
+        st.markdown("**4. Hisse/Fon Ara**")
         arama_tablo = st.text_input("Hisse/Fon Ara:", placeholder="Örn: AAPL, THYAO", key="tablo_ara_popup")
         if arama_tablo:
             bulunanlar_tablo = yahoo_arama(arama_tablo) 
