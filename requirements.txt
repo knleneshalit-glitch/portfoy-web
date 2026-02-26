@@ -4,3 +4,4 @@ yfinance
 plotly
 psycopg2-binary
 requests
+matplotlib
