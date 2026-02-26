@@ -187,42 +187,7 @@ for (s,) in cursor.fetchall():
         cursor.execute("UPDATE varliklar SET guncel_fiyat=%s WHERE sembol=%s", (float(yeni_f), s))
 conn.commit()
 conn.close()
-
-# --- CANLI PİYASA (ESKİ SAĞ PANEL MASTER VERİ) ---
-st.sidebar.markdown("---")
-st.sidebar.subheader("📡 Canlı Piyasa")
-
-conn_takip = get_db_connection()
-df_takip = pd.read_sql_query("SELECT kisa_kod, sembol FROM takip_listesi", conn_takip)
-conn_takip.close()
-
-if not df_takip.empty:
-    canli_veri = []
-    for _, row in df_takip.iterrows():
-        kisa = row['kisa_kod']
-        sembol = row['sembol']
-        try:
-            # Anlık veri ve yüzdelik değişim için son 2 günü çekiyoruz
-            hist = yf.Ticker(sembol).history(period="2d")
-            if len(hist) >= 2:
-                f_now = hist['Close'].iloc[-1]
-                f_prev = hist['Close'].iloc[-2]
-                degisim = ((f_now - f_prev) / f_prev) * 100
-            else:
-                f_now = hist['Close'].iloc[-1] if not hist.empty else 0
-                degisim = 0
-            
-            # Yüzdelere göre ok işaretleri
-            if degisim > 0: ok = "▲"
-            elif degisim < 0: ok = "▼"
-            else: ok = "●"
-            
-            canli_veri.append({"Sembol": kisa, "Fiyat": f"{f_now:,.2f}", "%": f"{ok} %{abs(degisim):.2f}"})
-        except:
-            pass
-            
-    if canli_veri:
-        st.sidebar.dataframe(pd.DataFrame(canli_veri), hide_index=True, use_container_width=True)   
+ 
 
 # =============================================================================
 # HARİKA ÖZELLİK: EKRANIN ALTINA SABİTLENMİŞ KAYAN HABER BANDI
@@ -502,63 +467,6 @@ if menu == "📊 Genel Özet":
                             st.rerun()
                             
         conn.close() 
-
-    # --- 4. SAĞ KOLON: CANLI PİYASA ---
-    with sag_kolon:
-        st.subheader("📡 Canlı Piyasa")
-        
-        # Daha önce Ticker için çektiğimiz guncel_f sözlüğünü tabloya dönüştürüyoruz
-        canli_df = pd.DataFrame({
-            "Sembol": ["USD/TL", "EUR/TL", "GR ALTIN", "GR GÜMÜŞ", "PLATİN", "ONS", "BTC"],
-            "Fiyat": [
-                f"{guncel_f.get('USD', 0):.2f} ₺",
-                f"{guncel_f.get('EUR', 0):.2f} ₺",
-                f"{guncel_f.get('GRAM_ALTIN', 0):.2f} ₺",
-                f"{guncel_f.get('GRAM_GUMUS', 0):.2f} ₺",
-                f"{guncel_f.get('GRAM_PLATIN', 0):.2f} ₺",
-                f"{guncel_f.get('ONS', 0):.2f} $",
-                f"{guncel_f.get('BTC', 0):,.0f} $"
-            ]
-        })
-        
-        # Tabloyu sağ kolona oturtma
-        st.dataframe(canli_df, hide_index=True, use_container_width=True)
-    
-    # --- 2. PORTFÖY DURUMU (Kullanıcıya Özel) ---
-    user_id = st.session_state.user.id
-    conn = get_db_connection()
-    
-    # Sadece giriş yapan kullanıcının verilerini çekiyoruz
-    query = "SELECT sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id = %s"
-    df_varlik = pd.read_sql_query(query, conn, params=(user_id,))
-
-    if df_varlik.empty:
-        st.info("Portföyünüzde henüz varlık bulunmuyor. Yan menüden işlem ekleyerek başlayabilirsiniz!")
-    else:
-        # Hesaplamalar
-        df_varlik['Yatirim'] = df_varlik['miktar'] * df_varlik['ort_maliyet']
-        df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
-        df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
-        df_varlik['Degisim_%'] = (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100
-        
-        # Üst Metrikler
-        top_yatirim = df_varlik['Yatirim'].sum()
-        top_guncel = df_varlik['Guncel'].sum()
-        net_kz = top_guncel - top_yatirim
-        yuzde_kz = (net_kz / top_yatirim * 100) if top_yatirim > 0 else 0 
-          
-        cc1, cc2, cc3 = st.columns(3)
-        cc1.metric("💼 Toplam Yatırım", f"{top_yatirim:,.2f} ₺")
-        cc2.metric("💎 Güncel Bakiye", f"{top_guncel:,.2f} ₺")
-        cc3.metric("🚀 Net Kar/Zarar", f"{net_kz:+,.2f} ₺", f"%{yuzde_kz:.2f}")
-        
-        # Tabloyu şık formatla gösterme
-        st.write("---")
-        st.dataframe(df_varlik.style.format({
-            'miktar': '{:.2f}', 'ort_maliyet': '{:.2f} ₺', 
-            'guncel_fiyat': '{:.2f} ₺', 'Yatirim': '{:.2f} ₺', 
-            'Guncel': '{:.2f} ₺', 'Kar_Zarar': '{:+.2f} ₺', 'Degisim_%': '%{:.2f}'
-        }), use_container_width=True)
 
         # --- 3. GRAFİK VE HEDEF ---
         col_grafik, col_hedef = st.columns([2, 1])
@@ -1145,6 +1053,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
