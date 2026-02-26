@@ -1,0 +1,6 @@
+streamlit
+pandas
+yfinance
+plotly
+psycopg2-binary
+requests
