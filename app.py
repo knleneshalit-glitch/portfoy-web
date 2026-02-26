@@ -330,6 +330,59 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- SABİT PİYASA İÇİN FİYAT VE YÜZDE MOTORU (BUNU YUKARIDA TANIMLIYORUZ) ---
+@st.cache_data(ttl=300)
+def canli_piyasa_verilerini_cek():
+    import yfinance as yf
+    
+    semboller = {
+        "USD/TL": "USDTRY=X", "EUR/TL": "EURTRY=X", 
+        "ONS ALTIN": "GC=F", "BITCOIN": "BTC-USD", 
+        "ONS GÜMÜŞ": "SI=F", "ONS PLATİN": "PL=F"
+    }
+    
+    veriler = {}
+    for isim, sembol in semboller.items():
+        try:
+            # Son 5 günü çekiyoruz ki hafta sonu tatil boşluklarına takılıp çökmesin
+            hist = yf.Ticker(sembol).history(period="5d")
+            guncel = hist['Close'].iloc[-1]
+            eski = hist['Close'].iloc[-2] # Dünkü kapanış fiyatı
+            yuzde = ((guncel - eski) / eski) * 100
+            veriler[isim] = {"fiyat": float(guncel), "yuzde": float(yuzde)}
+        except:
+            veriler[isim] = {"fiyat": 0.0, "yuzde": 0.0}
+
+    # Gram Altın, Gümüş ve Platin'in Yüzdeli Hesaplanması
+    try:
+        usd_g = veriler["USD/TL"]["fiyat"]
+        usd_e = usd_g / (1 + (veriler["USD/TL"]["yuzde"] / 100))
+        
+        # Altın
+        ons_g = veriler["ONS ALTIN"]["fiyat"]
+        ons_e = ons_g / (1 + (veriler["ONS ALTIN"]["yuzde"] / 100))
+        gr_g = (ons_g / 31.1035) * usd_g
+        gr_e = (ons_e / 31.1035) * usd_e
+        veriler["GR ALTIN"] = {"fiyat": gr_g, "yuzde": ((gr_g - gr_e) / gr_e) * 100}
+        
+        # Gümüş
+        g_ons_g = veriler["ONS GÜMÜŞ"]["fiyat"]
+        g_ons_e = g_ons_g / (1 + (veriler["ONS GÜMÜŞ"]["yuzde"] / 100))
+        gr_gum_g = (g_ons_g / 31.1035) * usd_g
+        gr_gum_e = (g_ons_e / 31.1035) * usd_e
+        veriler["GR GÜMÜŞ"] = {"fiyat": gr_gum_g, "yuzde": ((gr_gum_g - gr_gum_e) / gr_gum_e) * 100}
+        
+        # Platin
+        p_ons_g = veriler["ONS PLATİN"]["fiyat"]
+        p_ons_e = p_ons_g / (1 + (veriler["ONS PLATİN"]["yuzde"] / 100))
+        gr_p_g = (p_ons_g / 31.1035) * usd_g
+        gr_p_e = (p_ons_e / 31.1035) * usd_e
+        veriler["GR PLATİN"] = {"fiyat": gr_p_g, "yuzde": ((gr_p_g - gr_p_e) / gr_p_e) * 100}
+    except:
+        pass
+        
+    return veriler
+        
 # Ekranı Orta (%75) ve Sağ (%25) olarak bölüyoruz. (Sol zaten Sidebar'da)
 col_orta, col_sag = st.columns([3, 1])
 
@@ -1140,6 +1193,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
