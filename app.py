@@ -445,7 +445,7 @@ if menu == "📊 Genel Özet":
             cc2.metric("💎 Güncel", f"{top_guncel:,.0f} ₺")
             cc3.metric("🚀 Net K/Z", f"{net_kz:+,.0f} ₺", f"%{yuzde_kz:.2f}")
             
-            st.write("---")
+            # Tablo başlıklarını güzelleştirmek için sütun isimlerini değiştiriyoruz
             df_gosterim = df_varlik.rename(columns={
                 'sembol': 'Varlık',
                 'miktar': 'Adet',
@@ -455,11 +455,22 @@ if menu == "📊 Genel Özet":
                 'Degisim_%': 'Değişim (%)'
             })
 
-            st.dataframe(df_gosterim.style.format({
-                'Adet': '{:.2f}', 'Maliyet': '{:.2f} ₺', 
-                'Fiyat': '{:.2f} ₺', 'Yatirim': '{:,.2f} ₺', 
-                'Guncel': '{:,.2f} ₺', 'K/Z (₺)': '{:+,.2f} ₺', 'Değişim (%)': '%{:.2f}'
-            }), use_container_width=True, hide_index=True)
+            # Kâr/Zarar durumuna göre yeşil/kırmızı yapacak renk kuralı
+            def portfoy_renk_kurali(val):
+                renk = '#10b981' if val > 0 else '#ef4444' if val < 0 else '#888888'
+                return f'color: {renk}; font-weight: bold;'
+
+            st.dataframe(
+                df_gosterim.style
+                .format({
+                    'Adet': '{:.2f}', 'Maliyet': '{:,.2f} ₺', 
+                    'Fiyat': '{:,.2f} ₺', 'Yatirim': '{:,.2f} ₺', 
+                    'Guncel': '{:,.2f} ₺', 'K/Z (₺)': '{:+,.2f} ₺', 'Değişim (%)': '%{:.2f}'
+                })
+                .map(portfoy_renk_kurali, subset=['K/Z (₺)', 'Değişim (%)']),
+                use_container_width=True, 
+                hide_index=True
+            )
 
             col_grafik, col_hedef = st.columns([2, 1])
             
