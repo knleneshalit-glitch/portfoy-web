@@ -18,6 +18,9 @@ import psycopg2 # YENİ BULUT KÜTÜPHANEMİZ
 # --- KULLANICI DOĞRULAMA (AUTH) AYARLARI ---
 from supabase import create_client
 
+# Bu satır kodun en üstünde olmalı!
+st.set_page_config(page_title="Portföyüm Pro", layout="wide")
+
 # Secrets'tan bilgileri çekiyoruz
 url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
@@ -302,6 +305,90 @@ footer_css = f"""
 """
 # HTML kodunu tüm sayfalarda geçerli olacak şekilde ekrana bas
 st.markdown(footer_css, unsafe_allow_html=True)
+
+# =============================================================================
+# 3 PANELLİ ANA EKRAN DÜZENİ (SOL: MENÜ, ORTA: İÇERİK, SAĞ: SABİT PİYASA)
+# =============================================================================
+
+# CSS Sihri: Sağ kolonu en baştan aşağı kadar sabitle (Sticky)
+st.markdown("""
+<style>
+    /* Ana ekranı geniş tut ve sağ kolonu sabitle */
+    [data-testid="column"]:nth-of-type(2) {
+        position: sticky;
+        top: 3rem; /* Üstten bırakılacak boşluk */
+        height: calc(100vh - 4rem); /* Ekranın alt haber bandına kadar uzansın */
+        overflow-y: auto; /* İçeriği çoksa sadece kendi içinde kaysın */
+        border-left: 1px solid #30333d; /* Orta alanla arasına şık bir çizgi çekelim */
+        padding-left: 20px;
+    }
+    
+    /* Sağ kolonun scroll barını gizle ama kaydırılabilir olsun (Şık görünsün) */
+    [data-testid="column"]:nth-of-type(2)::-webkit-scrollbar {
+        display: none;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Ekranı Orta (%75) ve Sağ (%25) olarak bölüyoruz. (Sol zaten Sidebar'da)
+col_orta, col_sag = st.columns([3, 1])
+
+# --- SAĞ TARAF: CANLI PİYASA (SABİT PANEL) ---
+with col_sag:
+    st.subheader("📡 Canlı Piyasa")
+    
+    # Dün yazdığımız Canlı Piyasa motorunu buraya çağırıyoruz
+    piyasa_verisi = canli_piyasa_verilerini_cek()
+    
+    if "secili_piyasa" not in st.session_state:
+        st.session_state.secili_piyasa = ["USD/TL", "EUR/TL", "GR ALTIN", "BITCOIN", "ONS ALTIN"]
+        
+    secilenler = st.multiselect(
+        "Sıralamak için seçin:",
+        options=list(piyasa_verisi.keys()),
+        default=st.session_state.secili_piyasa
+    )
+    st.session_state.secili_piyasa = secilenler
+    
+    tablo_satirlari = []
+    for s in secilenler:
+        f = piyasa_verisi[s]["fiyat"]
+        y = piyasa_verisi[s]["yuzde"]
+        isaret = "₺" if "TL" in s or "GR" in s else "$"
+        tablo_satirlari.append({"Sembol": s, "Fiyat": f"{f:,.2f} {isaret}", "Değişim (%)": y})
+        
+    df_canli = pd.DataFrame(tablo_satirlari)
+    
+    def renklendir(val):
+        if val > 0: return 'color: #00ffcc; font-weight: bold;'
+        elif val < 0: return 'color: #ff4d4d; font-weight: bold;'
+        return 'color: #aaaaaa;'
+        
+    if not df_canli.empty:
+        try:
+            renkli_tablo = df_canli.style.map(renklendir, subset=['Değişim (%)'])
+        except AttributeError:
+            renkli_tablo = df_canli.style.applymap(renklendir, subset=['Değişim (%)'])
+            
+        st.dataframe(
+            renkli_tablo.format({"Değişim (%)": "{:+.2f}%"}),
+            hide_index=True, 
+            use_container_width=True
+        )
+
+# --- ORTA TARAF: MENÜDEN SEÇİLEN İÇERİKLER ---
+with col_orta:
+    # BÜTÜN SAYFALARIN BURANIN ALTINDA (BİR TAB İÇERİDE) OLMALI
+    
+    if menu == "📊 Genel Özet":
+        st.title("Portföy Analizi")
+        # ... (Genel Özet sayfasının tüm kodları)
+        
+    elif menu == "💼 Varlıklar":
+        st.title("Varlık Yönetimi")
+        # ... (Varlıklar sayfasının kodları)
+        
+    # Diğer elif menü... sayfaların da burada devam edecek
 
 # -----------------------------------------------------------------------------
 # SAYFA 1: GENEL ÖZET
@@ -1053,6 +1140,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
