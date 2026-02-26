@@ -274,7 +274,15 @@ if menu == "📊 Genel Özet":
                 else:
                     f = float(yf.Ticker(kod).history(period="1d")['Close'].iloc[-1])
                     birim = "₺" if (".IS" in kod or "TRY" in kod) else "$"
-                    ikon = "💵" if "USD" in kod else "🪙" if "BTC" in kod else "📈"
+                    
+                    # Dinamik İkon Belirleme
+                    if kod == "GC=F": ikon = "🏆"
+                    elif kod == "SI=F": ikon = "⚙️"
+                    elif kod == "PL=F": ikon = "💎"
+                    elif "TRY" in kod: ikon = "💵"
+                    elif "BTC" in kod or "ETH" in kod: ikon = "🪙"
+                    else: ikon = "📈"
+                    
                     kisa_ad = ad.split('-')[0].strip()[:15] # İsmi çok uzatmamak için kırpıyoruz
                     sonuclar.append(f"{ikon} {kisa_ad}: {f:,.2f} {birim}")
             except:
@@ -287,12 +295,13 @@ if menu == "📊 Genel Özet":
         with st.popover("⚙️"):
             st.markdown("### 🛠️ Bant Ayarları")
             
-            # --- MEVCUT LİSTEYİ DÜZENLEME ---
-            st.markdown("**1. Gösterilenleri Düzenle**")
+            # --- 1. MEVCUT LİSTEYİ DÜZENLEME ---
+            st.markdown("**1. Gösterilenleri Çıkar**")
             aktif_secimler = st.multiselect(
                 "Kaldırmak için çarpıya basın:",
                 options=list(st.session_state.takip_listesi_bant.keys()),
-                default=list(st.session_state.takip_listesi_bant.keys())
+                default=list(st.session_state.takip_listesi_bant.keys()),
+                label_visibility="collapsed"
             )
             
             if len(aktif_secimler) != len(st.session_state.takip_listesi_bant):
@@ -301,19 +310,36 @@ if menu == "📊 Genel Özet":
 
             st.markdown("---")
             
-            # --- YAHOO CANLI ARAMA ---
-            st.markdown("**2. Yeni Veri Ekle (Canlı Arama)**")
-            arama_kelimesi = st.text_input("Şirket, Fon veya Kripto Ara:", placeholder="Örn: Tesla, AKBNK")
+            # --- 2. HAZIR LİSTEDEN EKLEME (YENİ ÖZELLİK) ---
+            st.markdown("**2. Hızlı Ekle (Maden & Döviz)**")
+            hazir_varliklar = {
+                "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", "Gram Platin": "GRAM_PLATIN",
+                "Ons Altın": "GC=F", "Ons Gümüş": "SI=F", "Ons Platin": "PL=F",
+                "Dolar/TL": "USDTRY=X", "Euro/TL": "EURTRY=X", "Sterlin/TL": "GBPTRY=X", 
+                "İsviçre Frangı": "CHFTRY=X", "Japon Yeni": "JPYTRY=X", "Bitcoin": "BTC-USD"
+            }
+            secili_hazir = st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_varliklar.keys()), label_visibility="collapsed")
+            if secili_hazir != "Seçiniz...":
+                if st.button("➕ Band'a Ekle", key="hizli_ekle", use_container_width=True):
+                    st.session_state.takip_listesi_bant[secili_hazir] = hazir_varliklar[secili_hazir]
+                    st.rerun()
+
+            st.markdown("---")
             
-            # Kullanıcı bir şey yazıp Enter'a basarsa arama çalışır
+            # --- 3. YAHOO CANLI ARAMA ---
+            st.markdown("**3. Hisse & Fon Ara**")
+            arama_kelimesi = st.text_input("Şirket veya Fon Kodu:", placeholder="Örn: Tesla, AKBNK")
+            
             if arama_kelimesi:
                 bulunanlar = yahoo_arama(arama_kelimesi)
                 if bulunanlar:
                     secilen = st.selectbox("Arama Sonuçları:", ["Lütfen Seçin..."] + list(bulunanlar.keys()))
                     if secilen != "Lütfen Seçin...":
-                        if st.button("➕ Banda Ekle", use_container_width=True):
+                        if st.button("➕ Band'a Ekle", key="arama_ekle", use_container_width=True):
                             sembol = bulunanlar[secilen]
-                            st.session_state.takip_listesi_bant[secilen] = sembol
+                            # Banda çok uzun isim gitmesin diye kısaltıyoruz
+                            kisa_isim = secilen.split('-')[0].strip()
+                            st.session_state.takip_listesi_bant[kisa_isim] = sembol
                             st.rerun()
                 else:
                     st.warning("Yahoo Finance üzerinde sonuç bulunamadı.")
