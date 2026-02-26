@@ -376,15 +376,29 @@ ticker_html = f"""
 st.markdown(ticker_html, unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True) # Altına biraz boşluk
     
-    # 2. Portföy Durumu
-    conn = get_db_connection()
-    df_varlik = pd.read_sql_query("SELECT sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0", conn)
+    # 2. Portföy Durumu (Kullanıcıya Özel Filtrelenmiş)
+user_id = st.session_state.user.id # Giriş yapan kullanıcının ID'sini alıyoruz
+
+conn = get_db_connection()
+
+# Sorguya WHERE user_id = %s ekleyerek güvenliği sağlıyoruz
+query = "SELECT sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id = %s"
+df_varlik = pd.read_sql_query(query, conn, params=(user_id,))
+
+conn.close() # Bağlantıyı hemen kapatıyoruz
+
+if df_varlik.empty:
+    st.info("Portföyünüzde henüz varlık bulunmuyor.")
+else:
+    # Hesaplamaları yapıyoruz
+    df_varlik['Yatirim'] = df_varlik['miktar'] * df_varlik['ort_maliyet']
+    df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
     
-    if df_varlik.empty:
-        st.info("Portföyünüzde henüz varlık bulunmuyor.")
-    else:
-        df_varlik['Yatirim'] = df_varlik['miktar'] * df_varlik['ort_maliyet']
-        df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
+    # İstersen burada kâr/zarar oranını da ekleyebiliriz:
+    df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
+    df_varlik['Degisim_%'] = (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100
+    
+    st.dataframe(df_varlik) # Verileri ekranda göster
         
         top_yatirim = df_varlik['Yatirim'].sum()
         top_guncel = df_varlik['Guncel'].sum()
@@ -993,6 +1007,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
