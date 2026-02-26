@@ -489,12 +489,19 @@ elif menu == "💵 Varlıklar & İşlemler":
                 fiyat = c6.number_input("Birim Fiyat (₺)", min_value=0.00, format="%f", step=10.0)
                 
                 if st.form_submit_button("İşlemi Kaydet"):
-                    if elle_giris.strip(): sembol = elle_giris.strip().upper()
-                    else: sembol = hizli_varliklar[secilen_isim]
+                    # Sembol belirleme
+                    if elle_giris.strip(): 
+                        sembol = elle_giris.strip().upper()
+                    else: 
+                        sembol = hizli_varliklar[secilen_isim]
                         
-                    if not sembol: st.error("Lütfen listeden bir varlık seçin veya bir sembol yazın!")
-                    elif miktar <= 0: st.error("Miktar 0'dan büyük olmalıdır.")
+                    # Hata kontrolleri
+                    if not sembol: 
+                        st.error("Lütfen listeden bir varlık seçin veya bir sembol yazın!")
+                    elif miktar <= 0: 
+                        st.error("Miktar 0'dan büyük olmalıdır.")
                     else:
+                        # === BOŞLUKLARIN DÜZELTİLDİĞİ KISIM BURASI ===
                         maden_doviz_anahtarlar = ["USD", "EUR", "GBP", "CHF", "TRY", "JPY", "GRAM", "ALTIN", "CEYREK", "GUMUS", "PLATIN", "GC=F", "SI=F", "PL=F"]
                         tur = "Döviz/Emtia" if any(x in sembol for x in maden_doviz_anahtarlar) else "Hisse/Fon"
                         
@@ -522,8 +529,8 @@ elif menu == "💵 Varlıklar & İşlemler":
                             cursor.execute("INSERT INTO islemler (sembol, islem_tipi, miktar, fiyat, tarih, user_id) VALUES (%s,%s,%s,%s,%s,%s)", (sembol, tip, miktar, fiyat, date.today().strftime("%Y-%m-%d"), user_id))
                             conn.commit()
                             st.success(f"{sembol} işlemi başarıyla kaydedildi!")
+                        
                         conn.close()
-
         tab1, tab2 = st.tabs(["💼 Mevcut Varlıklarım", "📜 İşlem Geçmişi (Silme)"])
         
         with tab1:
@@ -863,3 +870,4 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")
+
