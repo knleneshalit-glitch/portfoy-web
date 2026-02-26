@@ -60,40 +60,7 @@ if st.session_state.user is None:
 # Buradan aşağısı senin mevcut kodların (Varlıklar, Grafikler vb.) devam edecek
 user_id = st.session_state.user.id # Artık her yerde bu ID'yi kullanacağız
 
-# =============================================================================
-# 1. SAYFA AYARLARI VE GÜVENLİK DUVARI (BINANCE MANTIĞI)
-# =============================================================================
-st.set_page_config(page_title="Portföyüm Web", page_icon="💎", layout="wide")
 
-# --- GİRİŞ (LOGIN) SİSTEMİ ---
-if 'giris_yapildi' not in st.session_state:
-    st.session_state['giris_yapildi'] = False
-
-if not st.session_state['giris_yapildi']:
-    st.markdown("<br><br><br><br>", unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 1.2, 1])
-    with col2:
-        st.markdown("<h1 style='text-align: center; color: #f59e0b;'>💎 PORTFÖYÜM</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: gray;'>Sisteme erişmek için lütfen giriş yapın.</p>", unsafe_allow_html=True)
-        
-        with st.container(border=True):
-            with st.form("login_form"):
-                kadi = st.text_input("Kullanıcı Adı")
-                sifre = st.text_input("Şifre", type="password")
-                submit = st.form_submit_button("GİRİŞ YAP", use_container_width=True)
-                
-                if submit:
-                    if kadi == "admin" and sifre == "1234":
-                        st.session_state['giris_yapildi'] = True
-                        st.rerun()
-                    else:
-                        st.error("Kullanıcı adı veya şifre hatalı!")
-    st.stop() 
-
-if st.sidebar.button("🚪 Güvenli Çıkış", use_container_width=True):
-    st.session_state['giris_yapildi'] = False
-    st.rerun()
 
 # =============================================================================
 # 2. BULUT VERİTABANI BAĞLANTISI (SUPABASE)
@@ -996,3 +963,4 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
