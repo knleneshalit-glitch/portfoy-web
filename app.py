@@ -330,91 +330,78 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- SABİT PİYASA İÇİN FİYAT VE YÜZDE MOTORU (BUNU YUKARIDA TANIMLIYORUZ) ---
-@st.cache_data(ttl=300)
-def canli_piyasa_verilerini_cek():
-    import yfinance as yf
-    
-    semboller = {
-        "USD/TL": "USDTRY=X", "EUR/TL": "EURTRY=X", 
-        "ONS ALTIN": "GC=F", "BITCOIN": "BTC-USD", 
-        "ONS GÜMÜŞ": "SI=F", "ONS PLATİN": "PL=F"
-    }
-    
-    veriler = {}
-    for isim, sembol in semboller.items():
-        try:
-            # Son 5 günü çekiyoruz ki hafta sonu tatil boşluklarına takılıp çökmesin
-            hist = yf.Ticker(sembol).history(period="5d")
-            guncel = hist['Close'].iloc[-1]
-            eski = hist['Close'].iloc[-2] # Dünkü kapanış fiyatı
-            yuzde = ((guncel - eski) / eski) * 100
-            veriler[isim] = {"fiyat": float(guncel), "yuzde": float(yuzde)}
-        except:
-            veriler[isim] = {"fiyat": 0.0, "yuzde": 0.0}
+        
+# =============================================================================
+# 3 PANELLİ ANA EKRAN DÜZENİ (DOĞAL YAPI)
+# =============================================================================
 
-    # Gram Altın, Gümüş ve Platin'in Yüzdeli Hesaplanması
-    try:
-        usd_g = veriler["USD/TL"]["fiyat"]
-        usd_e = usd_g / (1 + (veriler["USD/TL"]["yuzde"] / 100))
-        
-        # Altın
-        ons_g = veriler["ONS ALTIN"]["fiyat"]
-        ons_e = ons_g / (1 + (veriler["ONS ALTIN"]["yuzde"] / 100))
-        gr_g = (ons_g / 31.1035) * usd_g
-        gr_e = (ons_e / 31.1035) * usd_e
-        veriler["GR ALTIN"] = {"fiyat": gr_g, "yuzde": ((gr_g - gr_e) / gr_e) * 100}
-        
-        # Gümüş
-        g_ons_g = veriler["ONS GÜMÜŞ"]["fiyat"]
-        g_ons_e = g_ons_g / (1 + (veriler["ONS GÜMÜŞ"]["yuzde"] / 100))
-        gr_gum_g = (g_ons_g / 31.1035) * usd_g
-        gr_gum_e = (g_ons_e / 31.1035) * usd_e
-        veriler["GR GÜMÜŞ"] = {"fiyat": gr_gum_g, "yuzde": ((gr_gum_g - gr_gum_e) / gr_gum_e) * 100}
-        
-        # Platin
-        p_ons_g = veriler["ONS PLATİN"]["fiyat"]
-        p_ons_e = p_ons_g / (1 + (veriler["ONS PLATİN"]["yuzde"] / 100))
-        gr_p_g = (p_ons_g / 31.1035) * usd_g
-        gr_p_e = (p_ons_e / 31.1035) * usd_e
-        veriler["GR PLATİN"] = {"fiyat": gr_p_g, "yuzde": ((gr_p_g - gr_p_e) / gr_p_e) * 100}
-    except:
-        pass
-        
-    return veriler
-        
-# Ekranı Orta (%75) ve Sağ (%25) olarak bölüyoruz. (Sol zaten Sidebar'da)
+# Ekranı Orta (%75) ve Sağ (%25) olarak bölüyoruz. 
 col_orta, col_sag = st.columns([3, 1])
 
-# --- SAĞ TARAF: CANLI PİYASA (SABİT PANEL) ---
+# --- SAĞ TARAF: DİNAMİK CANLI PİYASA ---
 with col_sag:
     st.subheader("📡 Canlı Piyasa")
     
-    # Dün yazdığımız Canlı Piyasa motorunu buraya çağırıyoruz
-    piyasa_verisi = canli_piyasa_verilerini_cek()
-    
-    if "secili_piyasa" not in st.session_state:
-        st.session_state.secili_piyasa = ["USD/TL", "EUR/TL", "GR ALTIN", "BITCOIN", "ONS ALTIN"]
-        
-    secilenler = st.multiselect(
-        "Sıralamak için seçin:",
-        options=list(piyasa_verisi.keys()),
-        default=st.session_state.secili_piyasa
-    )
-    st.session_state.secili_piyasa = secilenler
-    
-    tablo_satirlari = []
-    for s in secilenler:
-        f = piyasa_verisi[s]["fiyat"]
-        y = piyasa_verisi[s]["yuzde"]
-        isaret = "₺" if "TL" in s or "GR" in s else "$"
-        tablo_satirlari.append({"Sembol": s, "Fiyat": f"{f:,.2f} {isaret}", "Değişim (%)": y})
-        
-    df_canli = pd.DataFrame(tablo_satirlari)
+    # 1. Hafızada Kullanıcının Takip Listesini Tutalım
+    if "takip_listesi" not in st.session_state:
+        st.session_state.takip_listesi = {
+            "USDTRY=X": "USD/TL",
+            "EURTRY=X": "EUR/TL",
+            "GC=F": "ONS ALTIN",
+            "BTC-USD": "BITCOIN",
+            "THYAO.IS": "THY" # Türk borsası örneği (.IS uzantısı ile)
+        }
+
+    # 2. Listeyi Düzenleme (Ekleme / Çıkarma) Menüsü
+    with st.expander("⚙️ Veri Ekle / Çıkar"):
+        # YENİ EKLE
+        st.markdown("**Yeni Ekle**")
+        yeni_kod = st.text_input("Yahoo Kodu (Örn: AAPL, SASA.IS)", key="yeni_kod")
+        yeni_ad = st.text_input("Görünecek Ad (Örn: Apple, Sasa)", key="yeni_ad")
+        if st.button("➕ Listeye Ekle"):
+            if yeni_kod:
+                # Kullanıcı ad girmezse direkt kodu isim yaparız
+                eklenecek_ad = yeni_ad.upper() if yeni_ad else yeni_kod.upper()
+                st.session_state.takip_listesi[yeni_kod.upper()] = eklenecek_ad
+                st.rerun()
+                
+        st.markdown("---")
+        # MEVCUTTAN SİL
+        silinecek_isim = st.selectbox("Listeden Çıkar:", ["Seçiniz..."] + list(st.session_state.takip_listesi.values()))
+        if st.button("🗑️ Sil") and silinecek_isim != "Seçiniz...":
+            for k, v in list(st.session_state.takip_listesi.items()):
+                if v == silinecek_isim:
+                    del st.session_state.takip_listesi[k]
+                    st.rerun()
+
+    # 3. Akıllı Fiyat Çekme Motoru (Sadece listedekileri çeker)
+    @st.cache_data(ttl=120) # 2 dakikada bir günceller
+    def dinamik_fiyat_cek(sembol_sozlugu):
+        import yfinance as yf
+        sonuclar = []
+        for sembol, isim in sembol_sozlugu.items():
+            try:
+                hist = yf.Ticker(sembol).history(period="5d")
+                if not hist.empty and len(hist) >= 2:
+                    guncel = float(hist['Close'].iloc[-1])
+                    eski = float(hist['Close'].iloc[-2])
+                    yuzde = ((guncel - eski) / eski) * 100
+                    # TL veya Türk hissesi ise ₺ koy, değilse $
+                    isaret = "₺" if "TL" in isim or ".IS" in sembol else "$"
+                    sonuclar.append({"Sembol": isim, "Fiyat": f"{guncel:,.2f} {isaret}", "Değişim (%)": yuzde})
+                else:
+                    sonuclar.append({"Sembol": isim, "Fiyat": "-", "Değişim (%)": 0.0})
+            except:
+                sonuclar.append({"Sembol": isim, "Fiyat": "Hata", "Değişim (%)": 0.0})
+        return sonuclar
+
+    # 4. Tabloyu Oluşturma ve Renklendirme
+    df_canli = pd.DataFrame(dinamik_fiyat_cek(st.session_state.takip_listesi))
     
     def renklendir(val):
-        if val > 0: return 'color: #00ffcc; font-weight: bold;'
-        elif val < 0: return 'color: #ff4d4d; font-weight: bold;'
+        if isinstance(val, float):
+            if val > 0: return 'color: #00ffcc; font-weight: bold;'
+            elif val < 0: return 'color: #ff4d4d; font-weight: bold;'
         return 'color: #aaaaaa;'
         
     if not df_canli.empty:
@@ -429,6 +416,17 @@ with col_sag:
             use_container_width=True
         )
 
+# --- ORTA TARAF: MENÜDEN SEÇİLEN İÇERİKLER ---
+with col_orta:
+    # Sayfaların hepsi bu bloğun altında (içeride) olacak!
+    
+    if menu == "📊 Genel Özet":
+        st.title("Portföy Analizi")
+        # ... senin eski kodların
+        
+    elif menu == "💼 Varlıklar & İşlemler":
+        st.title("Varlık & İşlem Yönetimi")
+        # ... senin eski kodların
 # --- ORTA TARAF: MENÜDEN SEÇİLEN İÇERİKLER ---
 with col_orta:
     # BÜTÜN SAYFALARIN BURANIN ALTINDA (BİR TAB İÇERİDE) OLMALI
@@ -1193,6 +1191,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
