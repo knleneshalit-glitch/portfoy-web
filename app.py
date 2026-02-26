@@ -345,13 +345,36 @@ st.markdown(footer_css, unsafe_allow_html=True)
 if menu == "📊 Genel Özet":
     st.title("Portföy Analizi")
     
-    # 1. Kurlar
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("💵 USD/TL", f"{fiyatlar[0]:.2f} ₺")
-    c2.metric("🪙 Banka Altın", f"{fiyatlar[1]:.0f} ₺")
-    c3.metric("🔥 Serbest Altın", f"{fiyatlar[2]:.0f} ₺")
-    
-    st.markdown("---")
+    # --- KAYAN PİYASA BANDI (TICKER) ---
+# Fiyatlar sözlüğünden verileri çekiyoruz (fiyatlar değişkeninin tanımlı olduğundan emin ol)
+ticker_data = [
+    f"🇺🇸 USD: {fiyatlar.get('USDTRY=X', 0):.2f} ₺",
+    f"🇪🇺 EUR: {fiyatlar.get('EURTRY=X', 0):.2f} ₺",
+    f"🟡 GR ALTIN: {fiyatlar.get('GRAM-ALTIN', 0):.2f} ₺",
+    f"🥈 GR GÜMÜŞ: {fiyatlar.get('GRAM-GUMUS', 0):.2f} ₺",
+    f"💍 GR PLATİN: {fiyatlar.get('GRAM-PLATIN', 0):.2f} ₺",
+    f"🏆 ONS ALTIN: {fiyatlar.get('GC=F', 0):.2f} $",
+    f"₿ BTC: {fiyatlar.get('BTC-USD', 0):,.0f} $"
+]
+
+# HTML ve CSS ile kayma efekti oluşturma
+ticker_html = f"""
+<div style="background-color: #0e1117; padding: 10px; border-radius: 5px; border: 1px solid #30333d; overflow: hidden; white-space: nowrap;">
+    <div style="display: inline-block; padding-left: 100%; animation: marquee 30s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
+        {" &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_data)}
+    </div>
+</div>
+
+<style>
+@keyframes marquee {{
+    0% {{ transform: translate(0, 0); }}
+    100% {{ transform: translate(-100%, 0); }}
+}}
+</style>
+"""
+
+st.markdown(ticker_html, unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True) # Altına biraz boşluk
     
     # 2. Portföy Durumu
     conn = get_db_connection()
@@ -970,6 +993,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
