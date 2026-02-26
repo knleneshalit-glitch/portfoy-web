@@ -155,6 +155,14 @@ def guncel_fiyat_bul(sembol, fiyatlar):
 # =============================================================================
 # 3. YAN MENÜ (SİDEBAR) VE AYARLAR
 # =============================================================================
+# --- ANA UYGULAMA MANTIĞI ---
+if st.session_state.user is not None:
+    # 1. ÇIKIŞ BUTONU (En üste ekliyoruz)
+    if st.sidebar.button("🚪 Güvenli Çıkış"):
+        st.session_state.user = None
+        st.rerun()
+st.sidebar.markdown("---") # Araya bir çizgi çekelim
+
 st.sidebar.title("💎 PORTFÖYÜM")
 st.sidebar.markdown("---")
 
@@ -963,5 +971,6 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
