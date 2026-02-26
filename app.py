@@ -122,8 +122,12 @@ def fiyatlari_hesapla(serbest_altin_girdisi):
     platin_tl = (ons_platin * usd) / 31.1035
 
     try:
-        has_altin_serbest = float(str(serbest_altin_girdisi).replace(".", "").replace(",", "."))
-        if has_altin_serbest <= 0: has_altin_serbest = has_altin_banka
+        # Kullanıcı kutuyu boş bırakırsa hata vermemesi için if kontrolü eklendi
+        if serbest_altin_girdisi:
+            has_altin_serbest = float(str(serbest_altin_girdisi).replace(".", "").replace(",", "."))
+            if has_altin_serbest <= 0: has_altin_serbest = has_altin_banka
+        else:
+            has_altin_serbest = has_altin_banka
     except:
         has_altin_serbest = has_altin_banka
 
@@ -135,6 +139,8 @@ def guncel_fiyat_bul(sembol, fiyatlar):
     if sembol == "GRAM-ALTIN": return has_altin_banka
     elif sembol == "GRAM-ALTIN-S": return has_altin_serbest
     elif sembol == "GRAM-ALTIN-22": return has_altin_serbest * 0.916
+    elif sembol == "GRAM-ALTIN-22-B": return has_altin_serbest * 0.910  # EKSİK OLAN 22 AYAR BİLEZİK EKLENDİ
+    elif sembol == "GRAM-ALTIN-14": return has_altin_serbest * 0.585    # İHTİMALE KARŞI 14 AYAR EKLENDİ
     elif sembol == "CEYREK-ALTIN": return has_altin_serbest * 1.6065
     elif sembol == "YARIM-ALTIN": return has_altin_serbest * 3.2130
     elif sembol == "TAM-ALTIN": return has_altin_serbest * 6.4260
