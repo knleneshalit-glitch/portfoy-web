@@ -243,7 +243,7 @@ def haberleri_getir_marquee():
             title = item.find('title').text
             link = item.find('link').text
             # Tıklanabilir, yan yana haberler
-            haberler_html += f"<a href='{link}' class='news-link' target='_blank'> ✦ {title}</a>"
+            haberler_html += f"<a href='{link}' class='news-link' target='_blank'> 🔴 {title}</a>"
         return haberler_html
     except:
         return "<span class='news-link'>Haberler alınamadı...</span>"
@@ -258,30 +258,33 @@ footer_css = f"""
         padding-bottom: 80px !important;
     }}
     
-    /* Haber Bandı Konteyneri */
+    /* Haber Bandı Konteyneri - BEYAZ ZEMİN VE KIRMIZI ÇİZGİ */
     .news-footer {{
         position: fixed;
         left: 0;
         bottom: 0;
         width: 100%;
-        background-color: #0f172a; /* Koyu Lacivert Zemin */
-        border-top: 3px solid #dc2626; /* Kırmızı Üst Çizgi */
+        background-color: #ffffff; /* Bembeyaz Zemin */
+        border-top: 4px solid #e60000; /* Kalın Kırmızı Üst Çizgi */
         display: flex;
         align-items: center;
         z-index: 99999;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1); /* Üste doğru hafif gölge */
     }}
     
     /* Kırmızı 'SON DAKİKA' Etiketi */
     .news-label {{
-        background-color: #dc2626;
+        background-color: #e60000;
         color: white;
-        padding: 10px 20px;
+        padding: 12px 20px;
         font-weight: bold;
-        font-size: 14px;
+        font-size: 15px;
         white-space: nowrap;
         z-index: 100000;
-        box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }}
     
     /* Kayan Yazı Alanı */
@@ -292,7 +295,7 @@ footer_css = f"""
         padding-left: 10px;
     }}
     
-    /* Animasyon (80 saniyede bir tur) */
+    /* Animasyon (80 saniyede bir tur - Yavaş ve asil) */
     .marquee-content {{
         display: inline-block;
         animation: marquee 80s linear infinite;
@@ -308,18 +311,18 @@ footer_css = f"""
         100% {{ transform: translateX(-100%); }}
     }}
     
-    /* Linklerin Tasarımı */
+    /* Linklerin Tasarımı - BEYAZ ZEMİNE UYGUN KOYU RENK */
     .news-link {{
-        color: #e2e8f0;
+        color: #1a1a1a; /* Koyu Antrasit / Siyah */
         text-decoration: none;
         margin-right: 50px;
-        font-size: 15px;
-        font-weight: 500;
+        font-size: 16px;
+        font-weight: 600;
         transition: color 0.3s;
     }}
     
     .news-link:hover {{
-        color: #38bdf8; /* Üzerine gelince açık mavi parlasın */
+        color: #e60000; /* Üzerine gelince haber kırmızı parlasın */
     }}
 </style>
 
@@ -1142,6 +1145,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
