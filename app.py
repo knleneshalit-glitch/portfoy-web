@@ -555,7 +555,7 @@ if menu == "📊 Genel Özet":
                         st.session_state.sag_panel_listesi[secilen_t.split('-')[0].strip()] = bulunanlar_tablo[secilen_t]
                         st.rerun()
 
-    # --- SAĞ KOLON (TAM KOYU TASARIM - DENGELİ FONT) ---
+    # --- SAĞ KOLON (TAM KOYU TASARIM - KÜÇÜLTÜLMÜŞ KOMPAKT FONT) ---
     with sag_kolon:
         # Başlık ve Çark
         baslik_alani, ayar_alani = st.columns([0.85, 0.15], gap="small", vertical_alignment="center")
@@ -599,31 +599,31 @@ if menu == "📊 Genel Özet":
                     renk = "#10b981" if degisim_yuzde > 0 else "#ef4444"
                     ok = "▲" if degisim_yuzde > 0 else "▼"
 
-                    # DİKKAT: Fontlar 15px olarak eşitlendi, dikeyde ortalandı
+                    # DİKKAT: Fontlar 13px yapıldı. Padding'ler daraltıldı. white-space: nowrap eklendi.
                     satirlar_html += f'<tr style="border-bottom: 1px solid #2d3748;">'
-                    satirlar_html += f'<td style="padding: 14px 10px; color: #e2e8f0; font-size: 15px; font-weight: 500; vertical-align: middle;">{ad}</td>'
-                    satirlar_html += f'<td style="padding: 14px 10px; color: #ffffff; font-weight: 600; text-align: right; font-size: 15px; vertical-align: middle;">{bugun:,.2f}</td>'
-                    satirlar_html += f'<td style="padding: 14px 10px; color: {renk}; font-weight: 600; text-align: right; font-size: 15px; vertical-align: middle;">{ok} {abs(degisim_yuzde):.2f}%</td>'
+                    satirlar_html += f'<td style="padding: 10px 5px; color: #e2e8f0; font-size: 13px; font-weight: 500; vertical-align: middle; white-space: nowrap;">{ad}</td>'
+                    satirlar_html += f'<td style="padding: 10px 5px; color: #ffffff; font-weight: 600; text-align: right; font-size: 13px; vertical-align: middle; white-space: nowrap;">{bugun:,.2f}</td>'
+                    satirlar_html += f'<td style="padding: 10px 5px; color: {renk}; font-weight: 600; text-align: right; font-size: 13px; vertical-align: middle; white-space: nowrap;">{ok} {abs(degisim_yuzde):.2f}%</td>'
                     satirlar_html += f'</tr>'
                 except Exception as e:
                     satirlar_html += f'<tr style="border-bottom: 1px solid #2d3748;">'
-                    satirlar_html += f'<td style="padding: 14px 10px; color: #e2e8f0; font-size: 15px; font-weight: 500; vertical-align: middle;">{ad[:15]}</td>'
-                    satirlar_html += f'<td style="padding: 14px 10px; color: #ffffff; font-weight: 600; text-align: right; font-size: 15px; vertical-align: middle;">0.00</td>'
-                    satirlar_html += f'<td style="padding: 14px 10px; color: #888888; font-weight: 600; text-align: right; font-size: 15px; vertical-align: middle;">0.00%</td>'
+                    satirlar_html += f'<td style="padding: 10px 5px; color: #e2e8f0; font-size: 13px; font-weight: 500; vertical-align: middle; white-space: nowrap;">{ad[:15]}</td>'
+                    satirlar_html += f'<td style="padding: 10px 5px; color: #ffffff; font-weight: 600; text-align: right; font-size: 13px; vertical-align: middle; white-space: nowrap;">0.00</td>'
+                    satirlar_html += f'<td style="padding: 10px 5px; color: #888888; font-weight: 600; text-align: right; font-size: 13px; vertical-align: middle; white-space: nowrap;">0.00%</td>'
                     satirlar_html += f'</tr>'
             return satirlar_html
 
         html_govde = tablo_verisi_hazirla_html(st.session_state.sag_panel_listesi)
         
         if html_govde:
-            # HTML Kodları Streamlit fontunu algılasın diye "font-family: inherit" yapıldı.
-            st.markdown(f"""<div style="background-color: #111827; padding: 20px; border-radius: 12px; border: 1px solid #1f2937; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); margin-top: 10px;">
+            # Container padding 20'den 12'ye, başlıklar 13px'ten 11px'e düşürüldü.
+            st.markdown(f"""<div style="background-color: #111827; padding: 12px; border-radius: 12px; border: 1px solid #1f2937; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); margin-top: 10px;">
 <table style="width: 100%; border-collapse: collapse; font-family: inherit;">
 <thead>
 <tr style="border-bottom: 2px solid #374151; text-align: left;">
-<th style="padding: 0px 10px 12px 10px; color: #a0aec0; font-size: 13px; font-weight: 600; text-transform: uppercase;">Varlık</th>
-<th style="padding: 0px 10px 12px 10px; color: #a0aec0; font-size: 13px; font-weight: 600; text-transform: uppercase; text-align: right;">Fiyat</th>
-<th style="padding: 0px 10px 12px 10px; color: #a0aec0; font-size: 13px; font-weight: 600; text-transform: uppercase; text-align: right;">Değişim</th>
+<th style="padding: 0px 5px 8px 5px; color: #a0aec0; font-size: 11px; font-weight: 600; text-transform: uppercase; white-space: nowrap;">Varlık</th>
+<th style="padding: 0px 5px 8px 5px; color: #a0aec0; font-size: 11px; font-weight: 600; text-transform: uppercase; text-align: right; white-space: nowrap;">Fiyat</th>
+<th style="padding: 0px 5px 8px 5px; color: #a0aec0; font-size: 11px; font-weight: 600; text-transform: uppercase; text-align: right; white-space: nowrap;">Değişim</th>
 </tr>
 </thead>
 <tbody>
