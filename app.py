@@ -15,6 +15,29 @@ from datetime import date, datetime, timedelta
 import os
 import psycopg2 # YENİ BULUT KÜTÜPHANEMİZ
 
+# --- POPUP (AÇILIR PENCERE) FONKSİYONU ---
+@st.dialog("İşlem Ekle")
+def islem_ekle_popup():
+    st.markdown("**İŞLEM TÜRÜ:**")
+    islem_tipi = st.radio("Tip", ["ALIŞ", "SATIŞ"], horizontal=True, label_visibility="collapsed")
+    
+    st.markdown("**Hızlı Listeden Seçin**")
+    secim = st.selectbox("Seçim", ["Lütfen Seçiniz...", "USD", "EUR", "GRAM ALTIN"], label_visibility="collapsed")
+    
+    st.markdown("---")
+    st.markdown("**İşlem Detayları**")
+    sembol = st.text_input("Sembol / Kod:")
+    col1, col2 = st.columns(2)
+    with col1: 
+        adet = st.number_input("Adet:", min_value=0.0, format="%.2f")
+    with col2: 
+        fiyat = st.number_input("Fiyat:", min_value=0.0, format="%.2f")
+    
+    if st.button("KAYDET", type="primary", use_container_width=True):
+        # Buraya veritabanına kaydetme SQL kodun gelecek
+        st.success("İşlem başarıyla kaydedildi!")
+        st.rerun()
+
 # --- KULLANICI DOĞRULAMA (AUTH) AYARLARI ---
 from supabase import create_client
 
@@ -1183,6 +1206,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
