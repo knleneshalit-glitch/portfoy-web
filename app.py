@@ -82,7 +82,7 @@ def init_db():
     cursor.execute("DELETE FROM takip_listesi WHERE sembol='X-GSR'")
     cursor.execute("DELETE FROM varliklar WHERE sembol='X-GSR'")
     
-    cursor.execute("SELECT count(*) FROM takip_listesi")
+    cursor.execute("SELECT count(*) FROM takip_listesi WHERE user_id=%s", (user_id,))
     if cursor.fetchone()[0] == 0:
         d = [
             ("USDTRY=X", "DOLAR/TL", "USD"), 
@@ -173,7 +173,7 @@ fiyatlar = fiyatlari_hesapla(serbest_altin)
 # Veritabanındaki fiyatları arka planda güncelle
 conn = get_db_connection()
 cursor = conn.cursor()
-cursor.execute("SELECT sembol FROM varliklar")
+cursor.execute("SELECT sembol FROM varliklar WHERE user_id=%s", (user_id,))
 for (s,) in cursor.fetchall():
     yeni_f = guncel_fiyat_bul(s, fiyatlar)
     if yeni_f > 0:
@@ -405,7 +405,7 @@ if menu == "📊 Genel Özet":
         with col_hedef:
             st.subheader("🎯 Hedef İlerlemesi")
             cursor = conn.cursor()
-            cursor.execute("SELECT ad, tutar FROM hedefler LIMIT 1")
+            cursor.execute("SELECT ad, tutar FROM hedefler WHERE user_id=%s LIMIT 1", (user_id,))
             hedef = cursor.fetchone()
             
             h_ad = hedef[0] if hedef else "Finansal Özgürlük"
@@ -568,7 +568,7 @@ elif menu == "💵 Varlıklar & İşlemler":
                     
                     conn = get_db_connection()
                     cursor = conn.cursor()
-                    cursor.execute("SELECT id, miktar, ort_maliyet FROM varliklar WHERE sembol=%s", (sembol,))
+                    cursor.execute("SELECT id, miktar, ort_maliyet FROM varliklar WHERE sembol=%s AND user_id=%s", (sembol, user_id))
                     mevcut = cursor.fetchone()
                     
                     # SATIŞ İŞLEMİ VE BAKİYE KONTROLÜ
@@ -620,12 +620,12 @@ elif menu == "💵 Varlıklar & İşlemler":
             sil_id = st.selectbox("Silmek istediğiniz işlemin ID numarasını seçin:", df_islem['id'].tolist())
             if st.button("Seçili İşlemi Sil (Geri Alınamaz)"):
                 cursor = conn.cursor()
-                cursor.execute("SELECT sembol FROM islemler WHERE id=%s", (sil_id,))
+                cursor.execute("SELECT sembol FROM islemler WHERE id=%s AND user_id=%s", (sil_id, user_id))
                 sembol_sil = cursor.fetchone()[0]
                 
                 cursor.execute("DELETE FROM islemler WHERE id=%s", (sil_id,))
                 
-                cursor.execute("SELECT islem_tipi, miktar, fiyat FROM islemler WHERE sembol=%s ORDER BY id ASC", (sembol_sil,))
+                cursor.execute("SELECT islem_tipi, miktar, fiyat FROM islemler WHERE sembol=%s AND user_id=%s ORDER BY id ASC", (sembol_sil, user_id))
                 kalan_islemler = cursor.fetchall()
                 
                 toplam_adet = 0.0
@@ -963,4 +963,5 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
