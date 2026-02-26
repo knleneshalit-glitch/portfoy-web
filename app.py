@@ -342,20 +342,38 @@ if menu == "📊 Genel Özet":
     st.title("Portföy Analizi")
     
     # --- 1. KAYAN PİYASA BANDI (TICKER) ---
-    # Güvenlik Yastığı: Eğer fiyatlar internetten çekilemediyse (None ise) sistemi çökertme, boş kabul et.
-    try:
-        guncel_f = fiyatlar if hasattr(fiyatlar, "get") else {}
-    except NameError:
-        guncel_f = {}
+    
+    # Kayan banda özel, siteyi yavaşlatmayan (5 dakikada bir güncellenen) fiyat motoru
+    @st.cache_data(ttl=300) 
+    def bant_fiyatlarini_cek():
+        fiyatlar_sozluk = {}
+        try:
+            import yfinance as yf
+            usd = yf.Ticker("USDTRY=X").history(period="1d")['Close'].iloc[-1]
+            eur = yf.Ticker("EURTRY=X").history(period="1d")['Close'].iloc[-1]
+            ons = yf.Ticker("GC=F").history(period="1d")['Close'].iloc[-1]
+            btc = yf.Ticker("BTC-USD").history(period="1d")['Close'].iloc[-1]
+            
+            fiyatlar_sozluk['USD'] = float(usd)
+            fiyatlar_sozluk['EUR'] = float(eur)
+            fiyatlar_sozluk['ONS'] = float(ons)
+            fiyatlar_sozluk['BTC'] = float(btc)
+            fiyatlar_sozluk['GRAM_ALTIN'] = float((ons / 31.1035) * usd) # Ons ve Dolar'dan Gram Altın hesabı
+        except Exception:
+            # İnternet koparsa geçici olarak 0 atar, çökmez
+            fiyatlar_sozluk = {'USD': 0, 'EUR': 0, 'ONS': 0, 'BTC': 0, 'GRAM_ALTIN': 0}
+        return fiyatlar_sozluk
 
+    # Motoru çalıştır ve fiyatları al
+    guncel_f = bant_fiyatlarini_cek()
+
+    # Bantta Gösterilecek Yazılar
     ticker_data = [
-        f"🇺🇸 USD: {guncel_f.get('USDTRY=X', 0):.2f} ₺",
-        f"🇪🇺 EUR: {guncel_f.get('EURTRY=X', 0):.2f} ₺",
-        f"🟡 GR ALTIN: {guncel_f.get('GRAM-ALTIN', 0):.2f} ₺",
-        f"🥈 GR GÜMÜŞ: {guncel_f.get('GRAM-GUMUS', 0):.2f} ₺",
-        f"💍 GR PLATİN: {guncel_f.get('GRAM-PLATIN', 0):.2f} ₺",
-        f"🏆 ONS ALTIN: {guncel_f.get('GC=F', 0):.2f} $",
-        f"₿ BTC: {guncel_f.get('BTC-USD', 0):,.0f} $"
+        f"🇺🇸 USD: {guncel_f.get('USD', 0):.2f} ₺",
+        f"🇪🇺 EUR: {guncel_f.get('EUR', 0):.2f} ₺",
+        f"🟡 GR ALTIN: {guncel_f.get('GRAM_ALTIN', 0):.2f} ₺",
+        f"🏆 ONS ALTIN: {guncel_f.get('ONS', 0):.2f} $",
+        f"₿ BTC: {guncel_f.get('BTC', 0):,.0f} $"
     ]
 
     # HTML ve CSS ile kayma efekti
@@ -993,6 +1011,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
