@@ -768,76 +768,61 @@ elif menu == "💵 Varlıklar & İşlemler":
             "ETHEREUM ($)": "ETH-USD"
         }
 
-        # -------------------------------------------------------------------------
-    # 1. AKILLI ARAMA MOTORU (Formun dışında olmalıdır ki anında çalışsın!)
-    # -------------------------------------------------------------------------
-    st.subheader("➕ Yeni İşlem Ekle")
-    
-    # Arama fonksiyonu (Eğer bu sayfada tanımlı değilse diye buraya ekliyoruz)
-    @st.cache_data(ttl=3600)
-    def yahoo_arama_islem(kelime):
-        import requests
-        url = f"https://query2.finance.yahoo.com/v1/finance/search?q={kelime}"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        try:
-            res = requests.get(url, headers=headers, timeout=5)
-            quotes = res.json().get('quotes', [])
-            sonuclar = {}
-            for q in quotes:
-                sembol = q.get('symbol')
-                isim = q.get('shortname', '')
-                borsa = q.get('exchDisp', '')
-                if sembol: sonuclar[f"{sembol} - {isim} ({borsa})"] = sembol
-            return sonuclar
-        except:
-            return {}
-
-    # Arama Kutusu
-    arama_terimi = st.text_input("🔍 Hisse, Fon veya Kripto Ara:", placeholder="Örn: THYAO, Apple, BTC...", help="Yazdığınız anda sonuçlar aşağıda listelenir.")
-    
-    secilen_sembol = ""
-    if arama_terimi:
-        sonuclar = yahoo_arama_islem(arama_terimi)
-        if sonuclar:
-            secim = st.selectbox("Bulunan Sonuçlar:", ["Seçiniz..."] + list(sonuclar.keys()))
-            if secim != "Seçiniz...":
-                secilen_sembol = sonuclar[secim] # Arka planda sembolü alır (Örn: AAPL)
-        else:
-            st.warning("Sonuç bulunamadı, kodu alt tarafa manuel girebilirsiniz.")
-
-    st.markdown("---")
-
-    # -------------------------------------------------------------------------
-    # 2. İŞLEM KAYIT FORMU
-    # -------------------------------------------------------------------------
-    with st.form("islem_ekle_form"):
-        # Arama yapıldıysa kutu otomatik dolar, yapılmadıysa kullanıcı manuel yazabilir!
-        islem_sembol = st.text_input("📌 Varlık Kodu (Sembol):", value=secilen_sembol)
-        
-        # Diğer giriş alanları
-        col1, col2 = st.columns(2)
-        islem_tipi = col1.selectbox("İşlem Tipi", ["Alım", "Satım"])
-        islem_miktar = col2.number_input("Miktar (Adet)", min_value=0.0, step=0.01)
-        
-        col3, col4 = st.columns(2)
-        islem_fiyat = col3.number_input("Birim Fiyat", min_value=0.0, step=0.01)
-        islem_tarih = col4.date_input("İşlem Tarihi")
-        
-        kaydet_buton = st.form_submit_button("💾 İşlemi Kaydet", use_container_width=True)
-        
-        if kaydet_buton:
-            if islem_sembol and islem_miktar > 0 and islem_fiyat > 0:
-                # !!! DİKKAT: BURAYA SENİN VERİTABANINA KAYIT KODLARIN GELECEK !!!
-                # Örnek:
-                # cursor = conn.cursor()
-                # cursor.execute("INSERT INTO islemler ...", (user_id, islem_sembol, ...))
-                # conn.commit()
+        with st.expander("➕ YENİ İŞLEM EKLE (Alış / Satış)", expanded=True):
+            with st.form("islem_formu", clear_on_submit=True):
+                c1, c2, c3 = st.columns([1, 2, 2])
+                tip = c1.selectbox("İşlem Tipi", ["ALIS", "SATIS"])
+                secilen_isim = c2.selectbox("Hızlı Seçim (Döviz/Maden)", list(hizli_varliklar.keys()))
+                elle_giris = c3.text_input("Veya Hisse Kodu (Örn: AAPL, THYAO.IS)")
                 
-                st.success(f"{islem_sembol} işlemi başarıyla kaydedildi!")
-                # İşlem bitince sayfayı yenilemek için:
-                # st.rerun() 
-            else:
-                st.error("Lütfen sembol, miktar ve fiyat bilgilerini eksiksiz girin.")
+                c4, c5, c6 = st.columns([1, 2, 2])
+                miktar = c5.number_input("Adet / Miktar", min_value=0.0000, format="%f", step=1.0)
+                fiyat = c6.number_input("Birim Fiyat (₺)", min_value=0.00, format="%f", step=10.0)
+                
+                if st.form_submit_button("İşlemi Kaydet"):
+                    # Sembol belirleme
+                    if elle_giris.strip(): 
+                        sembol = elle_giris.strip().upper()
+                    else: 
+                        sembol = hizli_varliklar[secilen_isim]
+                        
+                    # Hata kontrolleri
+                    if not sembol: 
+                        st.error("Lütfen listeden bir varlık seçin veya bir sembol yazın!")
+                    elif miktar <= 0: 
+                        st.error("Miktar 0'dan büyük olmalıdır.")
+                    else:
+                        # === BOŞLUKLARIN DÜZELTİLDİĞİ KISIM BURASI ===
+                        maden_doviz_anahtarlar = ["USD", "EUR", "GBP", "CHF", "TRY", "JPY", "GRAM", "ALTIN", "CEYREK", "GUMUS", "PLATIN", "GC=F", "SI=F", "PL=F"]
+                        tur = "Döviz/Emtia" if any(x in sembol for x in maden_doviz_anahtarlar) else "Hisse/Fon"
+                        
+                        conn = get_db_connection()
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT id, miktar, ort_maliyet FROM varliklar WHERE sembol=%s AND user_id=%s", (sembol, user_id))
+                        mevcut = cursor.fetchone()
+                        
+                        if tip == "SATIS" and (not mevcut or mevcut[1] < miktar):
+                            st.error("Hata: Yetersiz Bakiye! Portföyünüzde bu kadar varlık yok.")
+                        else:
+                            if tip == "ALIS":
+                                if mevcut:
+                                    v_id, esk_m, esk_mal = mevcut
+                                    yeni_m = esk_m + miktar
+                                    yeni_mal = ((esk_m * esk_mal) + (miktar * fiyat)) / yeni_m
+                                    cursor.execute("UPDATE varliklar SET miktar=%s, ort_maliyet=%s, guncel_fiyat=%s, tur=%s WHERE id=%s", (yeni_m, yeni_mal, fiyat, tur, v_id))
+                                else:
+                                    cursor.execute("INSERT INTO varliklar (tur, sembol, miktar, ort_maliyet, guncel_fiyat, user_id) VALUES (%s,%s,%s,%s,%s,%s)", (tur, sembol, miktar, fiyat, fiyat, user_id))
+                            else:
+                                v_id, esk_m, esk_mal = mevcut
+                                yeni_m = esk_m - miktar
+                                cursor.execute("UPDATE varliklar SET miktar=%s, guncel_fiyat=%s WHERE id=%s", (yeni_m, fiyat, v_id))
+                                
+                            cursor.execute("INSERT INTO islemler (sembol, islem_tipi, miktar, fiyat, tarih, user_id) VALUES (%s,%s,%s,%s,%s,%s)", (sembol, tip, miktar, fiyat, date.today().strftime("%Y-%m-%d"), user_id))
+                            conn.commit()
+                            st.success(f"{sembol} işlemi başarıyla kaydedildi!")
+                        
+                        conn.close()
+        tab1, tab2 = st.tabs(["💼 Mevcut Varlıklarım", "📜 İşlem Geçmişi (Silme)"])
         
         with tab1:
             conn = get_db_connection()
