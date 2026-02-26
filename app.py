@@ -555,68 +555,65 @@ if menu == "📊 Genel Özet":
                         st.session_state.sag_panel_listesi[secilen_t.split('-')[0].strip()] = bulunanlar_tablo[secilen_t]
                         st.rerun()
 
+    # --- SAĞ KOLON (TABLO GÖRÜNÜMÜ) ---
     with sag_kolon:
-        # 1. Çarkı Yazının Hemen Yanına Almak İçin Özel HTML/CSS
-        # Yazı ve butonun birbirine çok yakın durması için gap="small" kullandık
-        baslik_alani, ayar_alani = st.columns([0.85, 0.15], gap="small", vertical_alignment="center")
+        # vertical_alignment="center" ile çark ve yazı tam aynı hizada durur
+        # [5, 1] oranı ile yazıya daha fazla yer açtık, kayma yapmaz
+        baslik_kolonu, ayar_kolonu = st.columns([5, 1], vertical_alignment="center")
         
-        baslik_alani.markdown("<h3 style='margin:0; white-space:nowrap; font-size:20px;'>📊 Canlı Piyasa</h3>", unsafe_allow_html=True)
+        # 'white-space: nowrap' ekleyerek yazının asla alt satıra geçmemesini garanti ediyoruz
+        baslik_kolonu.markdown("<h3 style='margin:0; white-space:nowrap;'>📊 Canlı Piyasa</h3>", unsafe_allow_html=True)
         
-        # Çark butonu (Kutusu olmayan, yazının yanına iliştirilmiş görünüm)
-        if ayar_alani.button("⚙️", key="tablo_ayar_buton_yeni", help="Tabloyu Düzenle"):
+        # Çark butonu
+        if ayar_kolonu.button("⚙️", key="tablo_ayar_buton", use_container_width=True):
             tablo_ayarlari_popup()
 
-        # 2. Tablonun Zeminini Antrasit/Lacivert Yapacak CSS Sihri
-        st.markdown("""
-        <style>
-            /* Tablo konteynerini özelleştir */
-            [data-testid="stDataFrame"] {
-                background-color: #1a1c24 !important; /* Koyu Antrasit-Lacivert Zemin */
-                padding: 10px;
-                border-radius: 12px;
-                border: 1px solid #30333d;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            }
-            
-            /* Tablo içindeki hücrelerin okunabilirliğini artır */
-            div[data-testid="stTable"] td {
-                color: #e0e0e0 !important;
-            }
-            
-            /* Header (Başlık) kısmını biraz daha belirgin yap */
-            div[data-testid="stTable"] th {
-                background-color: #111217 !important;
-                color: #ffffff !important;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-
-        # Tablo Veri Hazırlama Motoru (Aynen Kalıyor)
         @st.cache_data(ttl=300)
         def tablo_verisi_hazirla(sozluk):
             tablo_verileri = []
+            
             for ad, kod in sozluk.items():
                 try:
+                    # ALTIN, GÜMÜŞ VE PLATİN İÇİN ÖZEL GÜVENLİ HESAPLAMA (Tarih Kaymasını Önler)
                     if kod in ["GRAM_ALTIN", "GRAM_GUMUS", "GRAM_PLATIN"]:
                         ons_kod = "GC=F" if kod == "GRAM_ALTIN" else ("SI=F" if kod == "GRAM_GUMUS" else "PL=F")
                         ons_data = yf.Ticker(ons_kod).history(period="5d")['Close']
                         usd_data = yf.Ticker("USDTRY=X").history(period="5d")['Close']
+                        
+                        # pd.concat ile günleri zorla eşleştiriyoruz, ffill ile boşlukları dolduruyoruz
                         df_ortak = pd.concat([ons_data, usd_data], axis=1, keys=['ONS', 'USD']).ffill().dropna()
+                        
                         if not df_ortak.empty:
-                            bugun = (float(df_ortak['ONS'].iloc[-1]) * float(df_ortak['USD'].iloc[-1])) / 31.1035
-                            dun = (float(df_ortak['ONS'].iloc[-2]) * float(df_ortak['USD'].iloc[-2])) / 31.1035 if len(df_ortak) > 1 else bugun
-                        else: bugun, dun = 0.0, 0.0
+                            bugun_ons = float(df_ortak['ONS'].iloc[-1])
+                            bugun_usd = float(df_ortak['USD'].iloc[-1])
+                            bugun = (bugun_ons * bugun_usd) / 31.1035
+                            
+                            # Dünkü veriyi al (Eğer sadece 1 günlük veri varsa dünü bugün kabul et)
+                            if len(df_ortak) > 1:
+                                dun_ons = float(df_ortak['ONS'].iloc[-2])
+                                dun_usd = float(df_ortak['USD'].iloc[-2])
+                                dun = (dun_ons * dun_usd) / 31.1035
+                            else:
+                                dun = bugun
+                        else:
+                            bugun, dun = 0.0, 0.0
+
+                    # DİĞER HİSSE VE DÖVİZLER İÇİN STANDART HESAPLAMA
                     else:
                         fiyatlar = yf.Ticker(kod).history(period="5d")['Close'].dropna()
                         if not fiyatlar.empty:
                             bugun = float(fiyatlar.iloc[-1])
                             dun = float(fiyatlar.iloc[-2]) if len(fiyatlar) > 1 else bugun
-                        else: bugun, dun = 0.0, 0.0
-                    
+                        else:
+                            bugun, dun = 0.0, 0.0
+                        
                     degisim_yuzde = ((bugun - dun) / dun) * 100 if dun > 0 else 0.0
                     tablo_verileri.append({"Varlık": ad, "Fiyat": bugun, "Değişim": degisim_yuzde})
-                except:
+                    
+                except Exception as e:
+                    # Herhangi bir hatada program çökmesin diye 0 basar
                     tablo_verileri.append({"Varlık": ad[:15], "Fiyat": 0.0, "Değişim": 0.0})
+                    
             return pd.DataFrame(tablo_verileri)
 
         df_sag_tablo = tablo_verisi_hazirla(st.session_state.sag_panel_listesi)
@@ -626,7 +623,6 @@ if menu == "📊 Genel Özet":
                 renk = '#10b981' if val > 0 else '#ef4444' if val < 0 else '#888888'
                 return f'color: {renk}; font-weight: bold;'
 
-            # Tabloyu yeni antrasit stiliyle ekrana basıyoruz
             st.dataframe(
                 df_sag_tablo.style
                 .format({"Fiyat": "{:,.2f}", "Değişim": "{:+.2f}%"})
