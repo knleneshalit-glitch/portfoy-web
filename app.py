@@ -142,44 +142,92 @@ def guncel_fiyat_bul(sembol, fiyatlar):
     else: return veri_getir(sembol)
 
 # =============================================================================
-# YAN MENÜ (SİDEBAR) VE AYARLAR
+# MODERNİZE EDİLMİŞ SOL MENÜ (SIDEBAR) TASARIMI
 # =============================================================================
-if st.session_state.user is not None:
-    if st.sidebar.button("🚪 Güvenli Çıkış"):
+
+# Menüye özel canlandırıcı CSS dokunuşları
+st.sidebar.markdown("""
+<style>
+    /* Menü Başlığı Tasarımı */
+    .sidebar-title {
+        font-size: 24px !important;
+        font-weight: 800 !important;
+        color: #ffffff !important;
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 10px;
+        background: linear-gradient(90deg, #1e3a8a, #3b82f6);
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    
+    /* Menü Seçenekleri Animasyonu */
+    div[data-testid="stSidebarNav"] li, div[class*="stRadio"] label {
+        transition: all 0.3s ease-in-out;
+        padding: 5px 10px !important;
+        border-radius: 8px !important;
+    }
+    
+    div[class*="stRadio"] label:hover {
+        transform: translateX(8px); /* Sağa kayma animasyonu */
+        background-color: rgba(59, 130, 246, 0.1) !important;
+        color: #3b82f6 !important;
+    }
+
+    /* Çıkış Butonu Tasarımı */
+    .stButton>button[kind="secondary"] {
+        width: 100%;
+        border-radius: 20px;
+        border: 1px solid #ef4444;
+        color: #ef4444;
+        transition: 0.3s;
+    }
+    .stButton>button[kind="secondary"]:hover {
+        background-color: #ef4444;
+        color: white;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+with st.sidebar:
+    # 1. En Tepe: Logo ve Başlık
+    st.markdown('<div class="sidebar-title">💎 PORTFÖYÜM PRO</div>', unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 2. Orta: Sayfa Gezinme Menüsü
+    menu = st.radio(
+        "📍 Hızlı Erişim",
+        ["📊 Genel Özet", "🔥 Isı Haritası", "💵 Varlıklar & İşlemler", "📈 Piyasa Analizi", "🧮 Hesap Araçları", "📅 Piyasa Takvimi"],
+        index=0
+    )
+    
+    st.markdown("---")
+    
+    # 3. Alt Kısım: Ayarlar ve Fiyat Girişi
+    st.subheader("⚙️ Sistem Ayarları")
+    serbest_altin = st.text_input("Serbest Piyasa Gr Altın (₺):", placeholder="Örn: 3150")
+    fiyatlar = fiyatlari_hesapla(serbest_altin)
+
+    # Önceki adımda eklediğimiz performans odaklı güncelleme butonu
+    if st.button("🔄 Fiyatları Güncelle", use_container_width=True):
+        with st.spinner("Güncelleniyor..."):
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT sembol FROM varliklar WHERE user_id=%s", (user_id,))
+            for (s,) in cursor.fetchall():
+                yeni_f = guncel_fiyat_bul(s, fiyatlar)
+                if yeni_f > 0:
+                    cursor.execute("UPDATE varliklar SET guncel_fiyat=%s WHERE sembol=%s AND user_id=%s", (float(yeni_f), s, user_id))
+            conn.commit()
+            conn.close()
+        st.success("Veriler yenilendi!")
+
+    # 4. En Alt: Güvenli Çıkış (Boşluklarla en aşağıya itiyoruz)
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    if st.button("🚪 Güvenli Çıkış", type="secondary", use_container_width=True):
         st.session_state.user = None
         st.rerun()
-
-st.sidebar.markdown("---")
-st.sidebar.title("💎 PORTFÖYÜM")
-st.sidebar.markdown("---")
-
-menu = st.sidebar.radio(
-    "Menü",
-    ["📊 Genel Özet", "🔥 Isı Haritası", "💵 Varlıklar & İşlemler", "📈 Piyasa Analizi", "🧮 Hesap Araçları", "📅 Piyasa Takvimi"]
-)
-
-st.sidebar.markdown("---")
-st.sidebar.subheader("⚙️ Fiyat Ayarları")
-serbest_altin = st.sidebar.text_input("Serbest Piyasa Gr Altın (₺):", placeholder="Örn: 3150")
-
-fiyatlar = fiyatlari_hesapla(serbest_altin)
-
-fiyatlar = fiyatlari_hesapla(serbest_altin)
-
-# SİLİNEN AĞIR KODUN YERİNE GELEN YENİ BUTON:
-# Artık fiyatlar her tıklamada değil, sadece sen bu butona basınca veritabanına kaydedilecek.
-if st.sidebar.button("🔄 Portföy Fiyatlarını Güncelle", use_container_width=True):
-    with st.spinner("Bulut veritabanı güncelleniyor..."):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT sembol FROM varliklar WHERE user_id=%s", (user_id,))
-        for (s,) in cursor.fetchall():
-            yeni_f = guncel_fiyat_bul(s, fiyatlar)
-            if yeni_f > 0:
-                cursor.execute("UPDATE varliklar SET guncel_fiyat=%s WHERE sembol=%s AND user_id=%s", (float(yeni_f), s, user_id))
-        conn.commit()
-        conn.close()
-    st.sidebar.success("Fiyatlar başarıyla güncellendi!")
 
 # =============================================================================
 # HABER BANDI (MARQUEE) VE CSS TASARIMLARI
