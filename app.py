@@ -295,7 +295,7 @@ footer_css = f"""
     /* Animasyon (35 saniyede bir tur) */
     .marquee-content {{
         display: inline-block;
-        animation: marquee 35s linear infinite;
+        animation: marquee 50s linear infinite;
     }}
     
     /* Fareyle üzerine gelince kaymayı durdur */
@@ -1142,6 +1142,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
