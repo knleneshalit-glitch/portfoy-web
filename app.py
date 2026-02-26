@@ -361,7 +361,7 @@ if menu == "📊 Genel Özet":
             fiyatlar_sozluk['GRAM_ALTIN'] = float((ons / 31.1035) * usd) # Ons ve Dolar'dan Gram Altın hesabı
         except Exception:
             # İnternet koparsa geçici olarak 0 atar, çökmez
-            fiyatlar_sozluk = {'USD': 0, 'EUR': 0, 'ONS': 0, 'BTC': 0, 'GRAM_ALTIN': 0}
+            fiyatlar_sozluk = {'USD': 0, 'EUR': 0, 'ONS': 0, 'BTC': 0, 'GRAM_ALTIN': 0, 'GRAM_GUMUS': 0, 'GRAM_PLATIN': 0}
         return fiyatlar_sozluk
 
     # Motoru çalıştır ve fiyatları al
@@ -1013,6 +1013,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
