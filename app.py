@@ -63,6 +63,7 @@ user_id = st.session_state.user.id # Artık her yerde bu ID'yi kullanacağız
 def get_db_connection():
     return psycopg2.connect(st.secrets["DB_URL"])
 
+@st.cache_resource # EKLENEN SİHİRLİ KOD: Bu işlem sadece 1 kere çalışır, hızı artırır!
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -163,15 +164,22 @@ serbest_altin = st.sidebar.text_input("Serbest Piyasa Gr Altın (₺):", placeho
 
 fiyatlar = fiyatlari_hesapla(serbest_altin)
 
-conn = get_db_connection()
-cursor = conn.cursor()
-cursor.execute("SELECT sembol FROM varliklar WHERE user_id=%s", (user_id,))
-for (s,) in cursor.fetchall():
-    yeni_f = guncel_fiyat_bul(s, fiyatlar)
-    if yeni_f > 0:
-        cursor.execute("UPDATE varliklar SET guncel_fiyat=%s WHERE sembol=%s", (float(yeni_f), s))
-conn.commit()
-conn.close()
+fiyatlar = fiyatlari_hesapla(serbest_altin)
+
+# SİLİNEN AĞIR KODUN YERİNE GELEN YENİ BUTON:
+# Artık fiyatlar her tıklamada değil, sadece sen bu butona basınca veritabanına kaydedilecek.
+if st.sidebar.button("🔄 Portföy Fiyatlarını Güncelle", use_container_width=True):
+    with st.spinner("Bulut veritabanı güncelleniyor..."):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT sembol FROM varliklar WHERE user_id=%s", (user_id,))
+        for (s,) in cursor.fetchall():
+            yeni_f = guncel_fiyat_bul(s, fiyatlar)
+            if yeni_f > 0:
+                cursor.execute("UPDATE varliklar SET guncel_fiyat=%s WHERE sembol=%s AND user_id=%s", (float(yeni_f), s, user_id))
+        conn.commit()
+        conn.close()
+    st.sidebar.success("Fiyatlar başarıyla güncellendi!")
 
 # =============================================================================
 # HABER BANDI (MARQUEE) VE CSS TASARIMLARI
