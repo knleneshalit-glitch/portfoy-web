@@ -15,6 +15,51 @@ from datetime import date, datetime, timedelta
 import os
 import psycopg2 # YENİ BULUT KÜTÜPHANEMİZ
 
+# --- KULLANICI DOĞRULAMA (AUTH) AYARLARI ---
+from supabase import create_client
+
+# Secrets'tan bilgileri çekiyoruz
+url = st.secrets["SUPABASE_URL"]
+key = st.secrets["SUPABASE_KEY"]
+supabase = create_client(url, key)
+
+# Kullanıcı oturumunu kontrol etme
+if "user" not in st.session_state:
+    st.session_state.user = None
+
+def login_page():
+    st.title("💎 Portföyüm Pro'ya Hoş Geldiniz")
+    tab1, tab2 = st.tabs(["Giriş Yap", "Hesap Oluştur"])
+    
+    with tab1:
+        email = st.text_input("E-posta", key="login_email")
+        password = st.text_input("Şifre", type="password", key="login_pass")
+        if st.button("Giriş"):
+            try:
+                res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+                st.session_state.user = res.user
+                st.rerun()
+            except Exception:
+                st.error("Giriş başarısız: E-posta veya şifre hatalı.")
+
+    with tab2:
+        new_email = st.text_input("Yeni E-posta", key="reg_email")
+        new_password = st.text_input("Şifre (En az 6 karakter)", type="password", key="reg_pass")
+        if st.button("Kayıt Ol"):
+            try:
+                supabase.auth.sign_up({"email": new_email, "password": new_password})
+                st.success("Hesap oluşturuldu! Şimdi 'Giriş Yap' sekmesinden girebilirsiniz.")
+            except Exception:
+                st.error("Kayıt hatası: Bu e-posta zaten kullanımda olabilir.")
+
+# --- ANA KONTROL MEKANİZMASI ---
+if st.session_state.user is None:
+    login_page()
+    st.stop() # Giriş yapılmadıysa kodun geri kalanını çalıştırma!
+
+# Buradan aşağısı senin mevcut kodların (Varlıklar, Grafikler vb.) devam edecek
+user_id = st.session_state.user.id # Artık her yerde bu ID'yi kullanacağız
+
 # =============================================================================
 # 1. SAYFA AYARLARI VE GÜVENLİK DUVARI (BINANCE MANTIĞI)
 # =============================================================================
@@ -949,4 +994,5 @@ elif menu == "📈 Piyasa Analizi":
                 
                 st.markdown("---")
                 vol = ham_veri.pct_change().std() * 100
+
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
