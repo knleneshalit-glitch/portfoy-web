@@ -378,50 +378,56 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Ekranı Böl
-col_orta, col_sag = st.columns([3, 1])
+# --- SAYFAYI EN TEPEDEN BAŞLATMA AYARI ---
+# Ekranın üstündeki gereksiz devasa boşluğu siler, her şeyi yukarı çeker
+st.markdown("<style> .block-container { padding-top: 2rem; padding-bottom: 80px; } </style>", unsafe_allow_html=True)
 
-# --- SAĞ PENCERE: MASTER VERİ PANELY ---
-with col_sag:
-    st.markdown("<h3 style='color: white; text-align: center; margin-top: 15px;'>MASTER VERİ</h3>", unsafe_allow_html=True)
-    
-    # Görselindeki gibi sekmeler (Piyasa, Takvim, Temettü)
-    tab_piyasa, tab_takvim, tab_temettu = st.tabs(["PİYASA", "TAKVİM", "TEMETTÜ"])
-    
-    with tab_piyasa:
-        # Senin canlı piyasa veri çekme kodların ve tablon buraya gelecek
-        # Şimdilik örnek veri basıyorum:
-        df_ornek = pd.DataFrame({
-            "Sembol": ["USD", "EUR", "GAU", "BTC"],
-            "Fiyat": ["43.88", "51.91", "7,316.05", "67,912.24"],
-            "%": ["+0.05", "+0.50", "-0.34", "+0.07"]
-        })
-        st.dataframe(df_ornek, hide_index=True, use_container_width=True)
-        
-        # En alttaki DÜZENLE butonu
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        if st.button("⚙️ DÜZENLE", use_container_width=True):
-            st.info("Düzenleme menüsü açılacak...")
+# --- EKRANI KUSURSUZ HİZAYLA İKİYE BÖL ---
+col_orta, col_sag = st.columns([3, 1.2], gap="large")
 
-    with tab_takvim:
-        st.write("Ekonomik takvim verileri buraya gelecek.")
-        
-    with tab_temettu:
-        st.write("Temettü tarihleri buraya gelecek.")
-
-
-# --- ORTA PENCERE: ANA SAYFA VE İŞLEM BUTONU ---
+# ==========================================
+# SOL / ORTA PANEL (ANA İÇERİK)
+# ==========================================
 with col_orta:
-    if menu == "📊 Genel Özet":
-        st.title("Döviz ve Kıymetli Madenler")
+    if secili_menu == "Varlıklar & İşlemler": # Kendi menü ismine göre değiştir
+        st.title("Varlık & İşlem Yönetimi")
         
-        # Görselindeki o İşlem Ekle popup'ını açan buton!
+        # POPUP BUTONU (Masaüstü değil, Web Dialogu açar)
         if st.button("➕ YENİ İŞLEM EKLE", type="primary"):
-            islem_ekle_popup()
+            islem_ekle_dialog() # Önceden tanımladığımız @st.dialog fonksiyonu
             
-        # Altına da senin geniş varlık tabloların gelecek
-        st.write("Tabloların burada olacak...")
+        st.write("---")
+        st.info("Tabloların ve grafiklerin burada olacak...")
 
+
+# ==========================================
+# SAĞ PANEL (SABİT MASTER VERİ)
+# ==========================================
+with col_sag:
+    # height=700 komutu bu alanı sabit bir kutuya çevirir. Asla aşağı kaymaz!
+    master_kutu = st.container(height=700, border=True)
+    
+    with master_kutu:
+        st.subheader("MASTER VERİ")
+        
+        # Sekmeler
+        t_piyasa, t_takvim, t_temettu = st.tabs(["PİYASA", "TAKVİM", "TEMETTÜ"])
+        
+        with t_piyasa:
+            # Örnek Veri (Kendi canlı verini buraya bağlayabilirsin)
+            import pandas as pd
+            df = pd.DataFrame({
+                "SEMBOL": ["USD", "EUR", "GAU", "BTC"],
+                "FİYAT": ["43.88", "51.91", "7,316.05", "67,912.24"],
+                "%": ["+0.05", "+0.50", "-0.34", "+0.07"]
+            })
+            st.dataframe(df, hide_index=True, use_container_width=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.button("⚙️ DÜZENLE", use_container_width=True)
+            
+        with t_takvim:
+            st.write("Takvim verileri...")
 # -----------------------------------------------------------------------------
 # SAYFA 1: GENEL ÖZET
 # -----------------------------------------------------------------------------
@@ -1172,6 +1178,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
