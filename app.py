@@ -557,12 +557,8 @@ if menu == "📊 Genel Özet":
 
     # --- SAĞ KOLON (TAM KOYU TASARIM - KÜÇÜLTÜLMÜŞ KOMPAKT FONT) ---
     with sag_kolon:
-        # Başlık ve Çark
-        baslik_alani, ayar_alani = st.columns([0.85, 0.15], gap="small", vertical_alignment="center")
-        baslik_alani.markdown("<h3 style='margin:0; white-space:nowrap; font-size:20px;'>📊 Canlı Piyasa</h3>", unsafe_allow_html=True)
-        
-        if ayar_alani.button("⚙️", key="tablo_ayar_buton", help="Düzenle"):
-            tablo_ayarlari_popup()
+        # Başlık (Çark yanından kaldırıldı, sadece temiz başlık)
+        st.markdown("<h3 style='margin:0; margin-bottom: 10px; white-space:nowrap; font-size:20px;'>📊 Canlı Piyasa</h3>", unsafe_allow_html=True)
 
         @st.cache_data(ttl=300)
         def tablo_verisi_hazirla_html(sozluk):
@@ -599,7 +595,6 @@ if menu == "📊 Genel Özet":
                     renk = "#10b981" if degisim_yuzde > 0 else "#ef4444"
                     ok = "▲" if degisim_yuzde > 0 else "▼"
 
-                    # DİKKAT: Fontlar 13px yapıldı. Padding'ler daraltıldı. white-space: nowrap eklendi.
                     satirlar_html += f'<tr style="border-bottom: 1px solid #2d3748;">'
                     satirlar_html += f'<td style="padding: 10px 5px; color: #e2e8f0; font-size: 13px; font-weight: 500; vertical-align: middle; white-space: nowrap;">{ad}</td>'
                     satirlar_html += f'<td style="padding: 10px 5px; color: #ffffff; font-weight: 600; text-align: right; font-size: 13px; vertical-align: middle; white-space: nowrap;">{bugun:,.2f}</td>'
@@ -616,8 +611,8 @@ if menu == "📊 Genel Özet":
         html_govde = tablo_verisi_hazirla_html(st.session_state.sag_panel_listesi)
         
         if html_govde:
-            # Container padding 20'den 12'ye, başlıklar 13px'ten 11px'e düşürüldü.
-            st.markdown(f"""<div style="background-color: #111827; padding: 12px; border-radius: 12px; border: 1px solid #1f2937; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); margin-top: 10px;">
+            # margin-bottom: 15px eklendi ki altındaki butonla yapışmasın
+            st.markdown(f"""<div style="background-color: #111827; padding: 12px; border-radius: 12px; border: 1px solid #1f2937; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); margin-bottom: 15px;">
 <table style="width: 100%; border-collapse: collapse; font-family: inherit;">
 <thead>
 <tr style="border-bottom: 2px solid #374151; text-align: left;">
@@ -632,7 +627,11 @@ if menu == "📊 Genel Özet":
 </table>
 </div>""", unsafe_allow_html=True)
         else:
-            st.info("Tablo boş. Dişli çarktan veri ekleyin.")
+            st.info("Tablo boş.")
+
+        # Tablonun Altına Estetik Düzenle Butonu Ekleme
+        if st.button("⚙️ Düzenle", key="tablo_ayar_buton_alt", use_container_width=True):
+            tablo_ayarlari_popup()
 
 # -----------------------------------------------------------------------------
 # SAYFA 2: ISI HARİTASI
