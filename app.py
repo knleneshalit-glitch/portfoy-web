@@ -109,25 +109,25 @@ def veri_getir(sembol):
     except:
         return 0.0
 
-def fiyatlari_hesapla(serbest_altin_girdisi):
-    usd = veri_getir("USDTRY=X")
-    if usd == 0: usd = 1.0 
-    
-    ons_altin = veri_getir("GC=F")
-    ons_gumus = veri_getir("SI=F")
-    ons_platin = veri_getir("PL=F")
-
-    has_altin_banka = (ons_altin * usd) / 31.1035
-    gumus_tl = (ons_gumus * usd) / 31.1035
-    platin_tl = (ons_platin * usd) / 31.1035
-
+# --- SERBEST PİYASA ALTIN HESAPLAMA MOTORU ---
+def fiyatlari_hesapla(serbest_altin_fiyati):
     try:
-        has_altin_serbest = float(str(serbest_altin_girdisi).replace(".", "").replace(",", "."))
-        if has_altin_serbest <= 0: has_altin_serbest = has_altin_banka
+        # Virgüllü girişleri noktaya çevirip sayıya dönüştürür
+        gr_fiyat = float(str(serbest_altin_fiyati).replace(",", "."))
     except:
-        has_altin_serbest = has_altin_banka
-
-    return usd, has_altin_banka, has_altin_serbest, gumus_tl, platin_tl
+        gr_fiyat = 0.0
+    
+    # Tüm fiziksel altın türlerinin gram saf altın karşılığı (Çarpanları)
+    return {
+        "GRAM-ALTIN-S": gr_fiyat,                           # 24 Ayar Saf Gram Altın
+        "CEYREK-ALTIN": gr_fiyat * 1.64,                    # 1 Çeyrek Altın = ~1.64 gram saf altın
+        "YARIM-ALTIN": gr_fiyat * 3.28,                     # 1 Yarım Altın = ~3.28 gram saf altın
+        "TAM-ALTIN": gr_fiyat * 6.56,                       # 1 Tam Altın = ~6.56 gram saf altın
+        "ATA-ALTIN": gr_fiyat * 6.78,                       # 1 Ata (Cumhuriyet) = ~6.78 gram saf altın
+        "GRAM-ALTIN-22": gr_fiyat * 0.916,                  # 22 Ayar Gram Altın (Saflık: 0.916)
+        "GRAM-ALTIN-22-B": gr_fiyat * 0.910,                # 22 Ayar Bilezik (Bozdurma makası/işçilik düşülmüş)
+        "GRAM-ALTIN-14": gr_fiyat * 0.585                   # 14 Ayar Altın (Saflık: 0.585)
+    }
 
 def guncel_fiyat_bul(sembol, fiyatlar):
     usd, has_altin_banka, has_altin_serbest, gumus_tl, platin_tl = fiyatlar
