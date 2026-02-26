@@ -594,123 +594,67 @@ elif menu == "💵 Varlıklar & İşlemler":
         st.write("Buraya canlı piyasa takip grafikleri eklenebilir...")
 
 # -----------------------------------------------------------------------------
-# SAYFA 4: HESAP ARAÇLARI, SAYFA 5: PİYASA TAKVİMİ, SAYFA 6: PİYASA ANALİZİ
+# SAYFA 4: HESAP ARAÇLARI (SİMÜLASYON)
 # -----------------------------------------------------------------------------
 elif menu == "🧮 Hesap Araçları":
-                        conn = get_db_connection()
     st.title("Hesap Araçları & Simülasyon")
-                        cursor = conn.cursor()
-
-                        cursor.execute("SELECT id, miktar, ort_maliyet FROM varliklar WHERE sembol=%s AND user_id=%s", (sembol, user_id))
+    
     tab_mal, tab_kredi, tab_cevir = st.tabs(["📉 Maliyet Düşürme", "🏦 Kredi Hesapla", "💱 Hızlı Çevirici"])
-                        mevcut = cursor.fetchone()
-
-
+    
     # MALİYET DÜŞÜRME
-                        if tip == "SATIS" and (not mevcut or mevcut[1] < miktar):
     with tab_mal:
-                            st.error("Hata: Yetersiz Bakiye! Portföyünüzde bu kadar varlık yok.")
         st.subheader("Ortalama Maliyet Hesaplayıcı")
-                        else:
         col1, col2 = st.columns(2)
-                            if tip == "ALIS":
         with col1:
-                                if mevcut:
             mevcut_adet = st.number_input("Mevcut Adet", min_value=0.0, format="%f")
-                                    v_id, esk_m, esk_mal = mevcut
             mevcut_maliyet = st.number_input("Mevcut Maliyet (₺)", min_value=0.0, format="%f")
-                                    yeni_m = esk_m + miktar
         with col2:
-                                    yeni_mal = ((esk_m * esk_mal) + (miktar * fiyat)) / yeni_m
             yeni_adet = st.number_input("Yeni Alınacak Adet", min_value=0.0, format="%f")
-                                    cursor.execute("UPDATE varliklar SET miktar=%s, ort_maliyet=%s, guncel_fiyat=%s, tur=%s WHERE id=%s", (yeni_m, yeni_mal, fiyat, tur, v_id))
             yeni_fiyat = st.number_input("Yeni Alış Fiyatı (₺)", min_value=0.0, format="%f")
-                                else:
-
-                                    cursor.execute("INSERT INTO varliklar (tur, sembol, miktar, ort_maliyet, guncel_fiyat, user_id) VALUES (%s,%s,%s,%s,%s,%s)", (tur, sembol, miktar, fiyat, fiyat, user_id))
+            
         if mevcut_adet + yeni_adet > 0:
-                            else:
             yeni_ortalama = ((mevcut_adet * mevcut_maliyet) + (yeni_adet * yeni_fiyat)) / (mevcut_adet + yeni_adet)
-                                v_id, esk_m, esk_mal = mevcut
             st.success(f"**Yeni Ortalama Maliyetiniz:** {yeni_ortalama:,.2f} ₺")
-                                yeni_m = esk_m - miktar
-                                cursor.execute("UPDATE varliklar SET miktar=%s, guncel_fiyat=%s WHERE id=%s", (yeni_m, fiyat, v_id))
 
-                            cursor.execute("INSERT INTO islemler (sembol, islem_tipi, miktar, fiyat, tarih, user_id) VALUES (%s,%s,%s,%s,%s,%s)", (sembol, tip, miktar, fiyat, date.today().strftime("%Y-%m-%d"), user_id))
-                            conn.commit()
-                            st.success(f"{sembol} işlemi başarıyla kaydedildi!")
-                        conn.close()
- 
- 
     # KREDİ HESAPLAYICI
-        tab1, tab2 = st.tabs(["💼 Mevcut Varlıklarım", "📜 İşlem Geçmişi (Silme)"])
     with tab_kredi:
         st.subheader("Gelişmiş Kredi Hesaplama Aracı")
-
-        # Masaüstü sürümündeki kredi türleri ve vergi çarpanları (BSMV + KKDF)
+        
         kredi_veriler = {
             "İhtiyaç Kredisi": {"oran": 4.29, "vergi_carpani": 1.30},
             "Taşıt Kredisi": {"oran": 3.49, "vergi_carpani": 1.30},
             "Konut Kredisi": {"oran": 3.05, "vergi_carpani": 1.00},
             "Ticari Kredi": {"oran": 3.59, "vergi_carpani": 1.05}
         }
-
+        
         c_tur, c_mod = st.columns(2)
         kredi_turu = c_tur.selectbox("Kredi Türü Seçin:", list(kredi_veriler.keys()))
         hesap_modu = c_mod.radio("Hesaplama Yöntemi:", ["Çekilecek Tutara Göre (Taksit Hesapla)", "Aylık Taksite Göre (Çekilebilir Tutar Hesapla)"])
-
+        
         varsayilan_oran = kredi_veriler[kredi_turu]["oran"]
         vergi_carpani = kredi_veriler[kredi_turu]["vergi_carpani"]
- 
- 
+        
         st.markdown("---")
-        with tab1:
-
-            conn = get_db_connection()
+        
         col1, col2 = st.columns([1, 1])
-            df_varlik = pd.read_sql_query("SELECT tur, sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id=%s", conn, params=(user_id,))
-
-            conn.close()
+        
         # 1. MOD: TUTARA GÖRE TAKSİT HESAPLAMA
-            if not df_varlik.empty:
         if hesap_modu == "Çekilecek Tutara Göre (Taksit Hesapla)":
-                df_varlik['Toplam_Tutar'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
             with col1:
-                df_varlik['Kar_Zarar'] = df_varlik['Toplam_Tutar'] - (df_varlik['miktar'] * df_varlik['ort_maliyet'])
                 k_tutar = st.number_input("Çekmek İstediğiniz Tutar (₺)", min_value=0.0, step=10000.0, value=100000.0)
-                st.dataframe(df_varlik, use_container_width=True, hide_index=True)
                 k_vade = st.selectbox("Vade (Ay)", [12, 24, 36, 48, 60, 120])
-            else:
                 k_faiz = st.number_input("Aylık Faiz Oranı (%)", min_value=0.0, format="%f", value=float(varsayilan_oran))
-                st.info("Kayıtlı varlık yok.")
- 
- 
+                
             with col2:
-        with tab2:
                 st.markdown("### Hesaplama Sonucu")
-            conn = get_db_connection()
                 if k_tutar > 0 and k_faiz > 0:
-            df_islem = pd.read_sql_query("SELECT id, tarih, sembol, islem_tipi, miktar, fiyat FROM islemler WHERE user_id=%s ORDER BY id DESC", conn, params=(user_id,))
-                    # Formül: P * (r * (1 + r)**n) / ((1 + r)**n - 1)
-
                     r = (k_faiz / 100.0) * vergi_carpani
-            if not df_islem.empty:
                     n = k_vade
-                st.dataframe(df_islem, use_container_width=True, hide_index=True)
                     taksit = k_tutar * (r * (1 + r)**n) / ((1 + r)**n - 1)
-                st.markdown("---")
                     toplam_odeme = taksit * n
-                st.subheader("🗑️ İşlem Sil")
                     toplam_faiz = toplam_odeme - k_tutar
-                sil_id = st.selectbox("Silmek istediğiniz işlemin ID numarasını seçin:", df_islem['id'].tolist())
-                if st.button("Seçili İşlemi Sil (Geri Alınamaz)"):
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT sembol FROM islemler WHERE id=%s AND user_id=%s", (sil_id, user_id))
-                    sembol_sil = cursor.fetchone()[0]
- 
- 
+                    
                     st.metric("Aylık Taksitiniz", f"{taksit:,.2f} ₺")
-                    cursor.execute("DELETE FROM islemler WHERE id=%s", (sil_id,))
                     st.metric("Toplam Geri Ödeme", f"{toplam_odeme:,.2f} ₺")
                     st.metric("Toplam Faiz ve Vergi Yükü", f"{toplam_faiz:,.2f} ₺")
                     st.caption(f"*Seçilen tür için hesaplamaya {vergi_carpani}x vergi çarpanı dahil edilmiştir.*")
@@ -721,42 +665,120 @@ elif menu == "🧮 Hesap Araçları":
                 k_taksit = st.number_input("Aylık Ödeyebileceğiniz Taksit (₺)", min_value=0.0, step=1000.0, value=5000.0)
                 k_vade = st.selectbox("Vade (Ay) ", [12, 24, 36, 48, 60, 120])
                 k_faiz = st.number_input("Aylık Faiz Oranı (%) ", min_value=0.0, format="%f", value=float(varsayilan_oran))
-
+                
             with col2:
                 st.markdown("### Hesaplama Sonucu")
                 if k_taksit > 0 and k_faiz > 0:
-                    # Formül: A * ((1 + r)**n - 1) / (r * (1 + r)**n)
                     r = (k_faiz / 100.0) * vergi_carpani
                     n = k_vade
                     P = k_taksit * ((1 + r)**n - 1) / (r * (1 + r)**n)
                     toplam_odeme = k_taksit * n
                     toplam_faiz = toplam_odeme - P
- 
- 
+                    
                     st.metric("Çekebileceğiniz Maksimum Kredi", f"{P:,.2f} ₺")
-                    cursor.execute("SELECT islem_tipi, miktar, fiyat FROM islemler WHERE sembol=%s AND user_id=%s ORDER BY id ASC", (sembol_sil, user_id))
                     st.metric("Toplam Geri Ödeme", f"{toplam_odeme:,.2f} ₺")
-                    kalan_islemler = cursor.fetchall()
                     st.metric("Toplam Faiz ve Vergi Yükü", f"{toplam_faiz:,.2f} ₺")
                     st.caption(f"*Seçilen tür için hesaplamaya {vergi_carpani}x vergi çarpanı dahil edilmiştir.*")
 
-    # -----------------------------------------------------------------------------
-# SAYFA 6: PRO PİYASA ANALİZİ (YENİ EKLENEN KISIM)
+# -----------------------------------------------------------------------------
+# SAYFA 5: TAKVİM VE TEMETTÜ 
+# -----------------------------------------------------------------------------
+elif menu == "📅 Piyasa Takvimi":
+    st.title("Önemli Tarihler & Temettü Beklentileri")
+    
+    tab_takvim, tab_temettu = st.tabs(["🗓️ Ekonomik Takvim", "💰 Temettü (Kâr Payı) Tarayıcı"])
+    
+    with tab_takvim:
+        st.subheader("Kritik Veri Takvimi (Otomatik Hesaplanan)")
+        
+        bugun = date.today()
+        if bugun.month == 12:
+            yil = bugun.year + 1
+            ay = 1
+        else:
+            yil = bugun.year
+            ay = bugun.month + 1
+            
+        ilk_gun = date(yil, ay, 1)
+        fark = (4 - ilk_gun.weekday() + 7) % 7
+        t_nfp = ilk_gun + timedelta(days=fark)
+        t_cpi = date(yil, ay, 13)
+        t_tcmb = date(yil, ay, 21) 
+        t_fed = date(yil, ay, 18) 
+
+        olaylar = [
+            {"Tarih": t_nfp.strftime("%d.%m.%Y"), "Olay": "ABD Tarım Dışı İstihdam (NFP)", "Önem": "🔴 Yüksek"},
+            {"Tarih": t_cpi.strftime("%d.%m.%Y"), "Olay": "ABD Enflasyon (TÜFE)", "Önem": "🔴 Yüksek"},
+            {"Tarih": t_tcmb.strftime("%d.%m.%Y"), "Olay": "TCMB Faiz Kararı", "Önem": "🟠 Orta"},
+            {"Tarih": t_fed.strftime("%d.%m.%Y"), "Olay": "FED Faiz Beklentisi", "Önem": "🔴 Yüksek"},
+            {"Tarih": date(yil, ay, 1).strftime("%d.%m.%Y"), "Olay": "TR İmalat PMI", "Önem": "🟢 Düşük"},
+            {"Tarih": date(yil, ay, 3).strftime("%d.%m.%Y"), "Olay": "TR Enflasyon (TÜFE)", "Önem": "🔴 Yüksek"}
+        ]
+        
+        df_olaylar = pd.DataFrame(olaylar).sort_values(by="Tarih")
+        st.dataframe(df_olaylar, hide_index=True, use_container_width=True)
+        
+    with tab_temettu:
+        st.subheader("Hisse Temettü Tarayıcı")
+        st.write("Portföyünüzdeki hisselerin temettü (kâr payı) verimleri Yahoo Finance üzerinden taranıyor...")
+        
+        conn = get_db_connection()
+        hisseler = pd.read_sql_query("SELECT sembol, miktar FROM varliklar WHERE miktar > 0 AND user_id=%s", conn, params=(user_id,))
+        conn.close()
+        
+        yoksay = ["TRY=X", "GRAM", "=F", "BTC", "ETH", "ALTIN", "GUMUS", "PLATIN", "USD", "EUR"]
+        temettu_listesi = []
+        
+        with st.spinner('Geçmiş ve gelecek temettü verileri hesaplanıyor... Lütfen bekleyin.'):
+            for _, row in hisseler.iterrows():
+                sembol = row['sembol']
+                miktar = row['miktar']
+                
+                if any(x in sembol for x in yoksay): 
+                    continue
+                    
+                try:
+                    info = yf.Ticker(sembol).info
+                    tarih = "-"
+                    tahmini_tutar_str = "-"
+                    
+                    ex_date = info.get('exDividendDate', None)
+                    if ex_date:
+                        dt_object = datetime.fromtimestamp(ex_date)
+                        if dt_object.date() >= date.today():
+                            tarih = dt_object.strftime("%d.%m.%Y")
+
+                    div_rate = info.get('dividendRate', 0)
+                    if div_rate and div_rate > 0:
+                        toplam_tahmini = div_rate * miktar
+                        tahmini_tutar_str = f"{toplam_tahmini:,.2f} ₺"
+                        if tarih == "-": tarih = "Tarih Bekleniyor" 
+                    
+                    if tarih != "-" or tahmini_tutar_str != "-":
+                        sade_sembol = sembol.replace(".IS", "")
+                        temettu_listesi.append({"Hisse": sade_sembol, "Beklenen Tarih": tarih, "Tahmini Tutar": tahmini_tutar_str})
+                except:
+                    continue
+                    
+        if temettu_listesi:
+            st.dataframe(pd.DataFrame(temettu_listesi), hide_index=True, use_container_width=True)
+        else:
+            st.info("Portföyünüzdeki hisselerde yakın zamanda bir temettü ödemesi bulunamadı.")
+
+# -----------------------------------------------------------------------------
+# SAYFA 6: PRO PİYASA ANALİZİ
 # -----------------------------------------------------------------------------
 elif menu == "📈 Piyasa Analizi":
     st.title("📈 Pro Piyasa Analizi")
     st.markdown("⚠️ **YASAL UYARI:** Veriler 10-15 dk gecikmeli gelebilir. Sadece takip amaçlıdır, yatırım tavsiyesi içermez.")
-
-    # 1. Üst Kısım: Sembol Seçimi ve Periyot
+    
     c1, c2, c3 = st.columns([2, 1, 1])
-
     hizli_semboller = ["USDTRY=X", "GRAM-ALTIN", "GRAM-GUMUS", "GRAM-PLATIN", "GC=F", "SI=F", "XU100.IS", "BTC-USD", "AAPL"]
     secilen_sembol = c1.selectbox("🔍 Analiz Edilecek Sembolü Seçin veya Yazın:", hizli_semboller, index=0)
-
+    
     periyotlar = {"1 AY": "1mo", "3 AY": "3mo", "6 AY": "6mo", "1 YIL": "1y", "3 YIL": "3y", "5 YIL": "5y"}
-    secilen_periyot = c2.selectbox("📅 Zaman Aralığı:", list(periyotlar.keys()), index=3) # Varsayılan 1 Yıl
-
-    # Veri Çekme Motoru
+    secilen_periyot = c2.selectbox("📅 Zaman Aralığı:", list(periyotlar.keys()), index=3)
+    
     @st.cache_data(ttl=300)
     def analiz_verisi_getir(sembol, periyot_kodu):
         try:
@@ -764,52 +786,44 @@ elif menu == "📈 Piyasa Analizi":
                 ons_kod = "GC=F"
                 if "GUMUS" in sembol: ons_kod = "SI=F"
                 elif "PLATIN" in sembol: ons_kod = "PL=F"
-
-                # Her ihtimale karşı 5 yıllık çekiyoruz ki 200 günlük ortalama (SMA) hesaplanabilsin
+                
                 ons = yf.Ticker(ons_kod).history(period="5y")['Close']
                 usd = yf.Ticker("USDTRY=X").history(period="5y")['Close']
-
+                
                 df = pd.concat([ons, usd], axis=1, keys=['O','U']).ffill().dropna()
                 fac = 1.6065 if sembol == "CEYREK-ALTIN" else 1
                 data = (df['O'] * df['U']) / 31.1035 * fac
             else:
                 t = "XU100.IS" if sembol == "BIST" else sembol
                 data = yf.Ticker(t).history(period="5y")['Close'].dropna()
-
+            
             return data
         except:
             return None
 
-    # Veriyi Çek
     p_kod = periyotlar[secilen_periyot]
     ham_veri = analiz_verisi_getir(secilen_sembol, p_kod)
-
+    
     if ham_veri is None or ham_veri.empty:
         st.error("Bu sembol için veri bulunamadı. Lütfen geçerli bir kod girin (Örn: AAPL, THYAO.IS)")
     else:
-        # Seçilen periyoda göre veriyi kırp (Grafik için)
         days_map = {"1mo":30, "3mo":90, "6mo":180, "1y":365, "3y":1095, "5y":1825}
         grafik_verisi = ham_veri.tail(days_map.get(p_kod, 365))
         son_fiyat = ham_veri.iloc[-1]
-
-        # Fiyat Gösterimi
+        
         c3.metric(label="Güncel Fiyat", value=f"{son_fiyat:,.2f} ₺/$")
-
         st.markdown("---")
-
-        # 2. Orta Kısım: Grafik ve Yapay Zeka Raporu
+        
         col_grafik, col_rapor = st.columns([7, 3])
-
+        
         with col_grafik:
             st.subheader(f"📊 {secilen_sembol} Fiyat Grafiği")
-            # Streamlit'in kendi interaktif grafiği (Zoom, Hover her şey otomatik)
             st.area_chart(grafik_verisi, use_container_width=True, color="#3b82f6")
-
-            # --- PERFORMANS BARI (ESKİ KODDAKİ ALT ŞERİT) ---
+            
             st.write("⏱️ **Geçmiş Performans**")
             p_cols = st.columns(6)
             araliklar = [("1 Ay", 30), ("3 Ay", 90), ("6 Ay", 180), ("1 Yıl", 365), ("3 Yıl", 1095), ("5 Yıl", 1825)]
-
+            
             for i, (ad, gun) in enumerate(araliklar):
                 try:
                     hedef_tarih = ham_veri.index[-1] - pd.Timedelta(days=gun)
@@ -823,30 +837,28 @@ elif menu == "📈 Piyasa Analizi":
         with col_rapor:
             st.subheader("🤖 Teknik AI Raporu")
             with st.container(border=True):
-                # Matematiksel Hesaplamalar
                 sma200 = ham_veri.rolling(200).mean().iloc[-1]
                 delta = ham_veri.diff()
                 gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
                 loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
                 rs = gain / loss
                 rsi = 100 - (100 / (1 + rs)).iloc[-1]
-
-                # Yorum Üretimi
+                
                 trend = "YÜKSELİŞ 🟢" if son_fiyat > sma200 else "DÜŞÜŞ 🔴"
                 rsi_durum = "Aşırı Pahalı 🔴" if rsi > 70 else ("Aşırı Ucuz 🟢" if rsi < 30 else "Dengeli 🟡")
-
+                
                 st.markdown(f"**Uzun Vadeli Trend:** {trend}")
                 st.write(f"Fiyat, 200 günlük hareketli ortalamanın ({sma200:,.2f}) {'üzerinde.' if son_fiyat > sma200 else 'altında.'}")
-
+                
                 st.markdown(f"**Momentum (RSI):** {rsi_durum}")
                 st.write(f"RSI değeri şu an **{rsi:.1f}** seviyesinde.")
-
+                
                 st.markdown("---")
                 st.markdown("**📐 Fibonacci Seviyeleri (1 Yıllık)**")
                 son1y = ham_veri.tail(252)
                 tepe, dip = son1y.max(), son1y.min()
                 fark = tepe - dip
-
+                
                 fibs = {
                     "Tepe": tepe,
                     "0.236": tepe - fark * 0.236,
@@ -855,16 +867,14 @@ elif menu == "📈 Piyasa Analizi":
                     "0.618 (Altın)": tepe - fark * 0.618,
                     "Dip": dip
                 }
-
+                
                 for k, v in fibs.items():
                     if abs(son_fiyat - v) / son_fiyat < 0.015:
                         st.markdown(f"📍 **{k}: {v:,.2f} (Şu an burada)**")
                     else:
                         st.write(f"• {k}: {v:,.2f}")
-
+                
                 st.markdown("---")
                 vol = ham_veri.pct_change().std() * 100
-
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")
-
 
