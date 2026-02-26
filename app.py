@@ -555,83 +555,67 @@ if menu == "📊 Genel Özet":
                         st.session_state.sag_panel_listesi[secilen_t.split('-')[0].strip()] = bulunanlar_tablo[secilen_t]
                         st.rerun()
 
-    # --- SAĞ KOLON (TABLO GÖRÜNÜMÜ) ---
+    # --- SAĞ KOLON (TAM KOYU TASARIM) ---
     with sag_kolon:
-        # vertical_alignment="center" ile çark ve yazı tam aynı hizada durur
-        # [5, 1] oranı ile yazıya daha fazla yer açtık, kayma yapmaz
-        baslik_kolonu, ayar_kolonu = st.columns([5, 1], vertical_alignment="center")
+        baslik_alani, ayar_alani = st.columns([0.85, 0.15], gap="small", vertical_alignment="center")
+        baslik_alani.markdown("<h3 style='margin:0; white-space:nowrap; font-size:20px;'>📊 Canlı Piyasa</h3>", unsafe_allow_html=True)
         
-        # 'white-space: nowrap' ekleyerek yazının asla alt satıra geçmemesini garanti ediyoruz
-        baslik_kolonu.markdown("<h3 style='margin:0; white-space:nowrap;'>📊 Canlı Piyasa</h3>", unsafe_allow_html=True)
-        
-        # Çark butonu
-        if ayar_kolonu.button("⚙️", key="tablo_ayar_buton", use_container_width=True):
+        if ayar_alani.button("⚙️", key="tablo_ayar_buton_final", help="Düzenle"):
             tablo_ayarlari_popup()
 
+        # Tablo Veri Hazırlama Motoru
         @st.cache_data(ttl=300)
-        def tablo_verisi_hazirla(sozluk):
-            tablo_verileri = []
+        def tablo_verisi_hazirla_html(sozluk):
+            satirlar_html = ""
+            usd_hist = yf.Ticker("USDTRY=X").history(period="5d")['Close']
             
             for ad, kod in sozluk.items():
                 try:
-                    # ALTIN, GÜMÜŞ VE PLATİN İÇİN ÖZEL GÜVENLİ HESAPLAMA (Tarih Kaymasını Önler)
                     if kod in ["GRAM_ALTIN", "GRAM_GUMUS", "GRAM_PLATIN"]:
                         ons_kod = "GC=F" if kod == "GRAM_ALTIN" else ("SI=F" if kod == "GRAM_GUMUS" else "PL=F")
                         ons_data = yf.Ticker(ons_kod).history(period="5d")['Close']
-                        usd_data = yf.Ticker("USDTRY=X").history(period="5d")['Close']
-                        
-                        # pd.concat ile günleri zorla eşleştiriyoruz, ffill ile boşlukları dolduruyoruz
-                        df_ortak = pd.concat([ons_data, usd_data], axis=1, keys=['ONS', 'USD']).ffill().dropna()
-                        
-                        if not df_ortak.empty:
-                            bugun_ons = float(df_ortak['ONS'].iloc[-1])
-                            bugun_usd = float(df_ortak['USD'].iloc[-1])
-                            bugun = (bugun_ons * bugun_usd) / 31.1035
-                            
-                            # Dünkü veriyi al (Eğer sadece 1 günlük veri varsa dünü bugün kabul et)
-                            if len(df_ortak) > 1:
-                                dun_ons = float(df_ortak['ONS'].iloc[-2])
-                                dun_usd = float(df_ortak['USD'].iloc[-2])
-                                dun = (dun_ons * dun_usd) / 31.1035
-                            else:
-                                dun = bugun
-                        else:
-                            bugun, dun = 0.0, 0.0
-
-                    # DİĞER HİSSE VE DÖVİZLER İÇİN STANDART HESAPLAMA
+                        df_ortak = pd.concat([ons_data, usd_hist], axis=1, keys=['ONS', 'USD']).ffill().dropna()
+                        bugun = (float(df_ortak['ONS'].iloc[-1]) * float(df_ortak['USD'].iloc[-1])) / 31.1035
+                        dun = (float(df_ortak['ONS'].iloc[-2]) * float(df_ortak['USD'].iloc[-2])) / 31.1035
                     else:
                         fiyatlar = yf.Ticker(kod).history(period="5d")['Close'].dropna()
-                        if not fiyatlar.empty:
-                            bugun = float(fiyatlar.iloc[-1])
-                            dun = float(fiyatlar.iloc[-2]) if len(fiyatlar) > 1 else bugun
-                        else:
-                            bugun, dun = 0.0, 0.0
-                        
-                    degisim_yuzde = ((bugun - dun) / dun) * 100 if dun > 0 else 0.0
-                    tablo_verileri.append({"Varlık": ad, "Fiyat": bugun, "Değişim": degisim_yuzde})
+                        bugun, dun = float(fiyatlar.iloc[-1]), float(fiyatlar.iloc[-2])
                     
-                except Exception as e:
-                    # Herhangi bir hatada program çökmesin diye 0 basar
-                    tablo_verileri.append({"Varlık": ad[:15], "Fiyat": 0.0, "Değişim": 0.0})
-                    
-            return pd.DataFrame(tablo_verileri)
+                    degisim = ((bugun - dun) / dun) * 100
+                    renk = "#10b981" if degisim > 0 else "#ef4444"
+                    ok = "▲" if degisim > 0 else "▼"
 
-        df_sag_tablo = tablo_verisi_hazirla(st.session_state.sag_panel_listesi)
+                    # HTML Satırı Oluşturma
+                    satirlar_html += f"""
+                    <tr style="border-bottom: 1px solid #333;">
+                        <td style="padding: 10px; color: #bbb; font-weight: 500;">{ad}</td>
+                        <td style="padding: 10px; color: #fff; font-weight: bold; text-align: right;">{bugun:,.2f}</td>
+                        <td style="padding: 10px; color: {renk}; font-weight: bold; text-align: right;">{ok} {abs(degisim):.2f}%</td>
+                    </tr>
+                    """
+                except:
+                    continue
+            return satirlar_html
+
+        # Özel Tasarlanmış Koyu HTML Tablosu
+        html_tablo = tablo_verisi_hazirla_html(st.session_state.sag_panel_listesi)
         
-        if not df_sag_tablo.empty:
-            def renk_kurali(val):
-                renk = '#10b981' if val > 0 else '#ef4444' if val < 0 else '#888888'
-                return f'color: {renk}; font-weight: bold;'
-
-            st.dataframe(
-                df_sag_tablo.style
-                .format({"Fiyat": "{:,.2f}", "Değişim": "{:+.2f}%"})
-                .map(renk_kurali, subset=['Değişim']),
-                hide_index=True,
-                use_container_width=True
-            )
-        else:
-            st.info("Tablo boş. Dişli çarktan veri ekleyin.")
+        st.markdown(f"""
+        <div style="background-color: #1a1c24; padding: 15px; border-radius: 12px; border: 1px solid #30333d; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+            <table style="width: 100%; border-collapse: collapse; font-family: sans-serif;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #444; text-align: left;">
+                        <th style="padding: 10px; color: #888; font-size: 12px; text-transform: uppercase;">Varlık</th>
+                        <th style="padding: 10px; color: #888; font-size: 12px; text-transform: uppercase; text-align: right;">Fiyat</th>
+                        <th style="padding: 10px; color: #888; font-size: 12px; text-transform: uppercase; text-align: right;">Değişim</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {html_tablo}
+                </tbody>
+            </table>
+        </div>
+        """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # SAYFA 2: ISI HARİTASI
