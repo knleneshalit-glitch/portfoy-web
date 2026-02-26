@@ -280,7 +280,7 @@ if menu == "📊 Genel Özet":
                     elif kod == "SI=F": ikon = "⚙️"
                     elif kod == "PL=F": ikon = "💎"
                     elif "TRY" in kod: ikon = "💵"
-                    elif "BTC" in kod or "ETH" in kod: ikon = "🪙"
+                    elif "-USD" in kod: ikon = "🪙" # Tüm kripto paralar için coin ikonu
                     else: ikon = "📈"
                     
                     kisa_ad = ad.split('-')[0].strip()[:15] # İsmi çok uzatmamak için kırpıyoruz
@@ -310,24 +310,40 @@ if menu == "📊 Genel Özet":
 
             st.markdown("---")
             
-            # --- 2. HAZIR LİSTEDEN EKLEME (YENİ ÖZELLİK) ---
+            # --- 2. HAZIR LİSTEDEN EKLEME (MADEN & DÖVİZ) ---
             st.markdown("**2. Hızlı Ekle (Maden & Döviz)**")
             hazir_varliklar = {
                 "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", "Gram Platin": "GRAM_PLATIN",
                 "Ons Altın": "GC=F", "Ons Gümüş": "SI=F", "Ons Platin": "PL=F",
                 "Dolar/TL": "USDTRY=X", "Euro/TL": "EURTRY=X", "Sterlin/TL": "GBPTRY=X", 
-                "İsviçre Frangı": "CHFTRY=X", "Japon Yeni": "JPYTRY=X", "Bitcoin": "BTC-USD"
+                "İsviçre Frangı": "CHFTRY=X", "Japon Yeni": "JPYTRY=X"
             }
-            secili_hazir = st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_varliklar.keys()), label_visibility="collapsed")
+            secili_hazir = st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_varliklar.keys()), key="sec_maden", label_visibility="collapsed")
             if secili_hazir != "Seçiniz...":
-                if st.button("➕ Band'a Ekle", key="hizli_ekle", use_container_width=True):
+                if st.button("➕ Band'a Ekle", key="hizli_ekle_maden", use_container_width=True):
                     st.session_state.takip_listesi_bant[secili_hazir] = hazir_varliklar[secili_hazir]
                     st.rerun()
 
             st.markdown("---")
             
-            # --- 3. YAHOO CANLI ARAMA ---
-            st.markdown("**3. Hisse & Fon Ara**")
+            # --- 3. HAZIR LİSTEDEN EKLEME (KRİPTO PARALAR) ---
+            st.markdown("**3. Hızlı Ekle (Kripto Para)**")
+            kripto_varliklar = {
+                "Bitcoin": "BTC-USD", "Ethereum": "ETH-USD", "Binance Coin": "BNB-USD",
+                "Solana": "SOL-USD", "Ripple (XRP)": "XRP-USD", "Cardano (ADA)": "ADA-USD",
+                "Dogecoin": "DOGE-USD", "Avalanche (AVAX)": "AVAX-USD", "Polkadot": "DOT-USD",
+                "Chainlink": "LINK-USD", "Polygon (MATIC)": "MATIC-USD", "Shiba Inu": "SHIB-USD"
+            }
+            secili_kripto = st.selectbox("Kripto Seçin:", ["Seçiniz..."] + list(kripto_varliklar.keys()), key="sec_kripto", label_visibility="collapsed")
+            if secili_kripto != "Seçiniz...":
+                if st.button("➕ Kripto Ekle", key="hizli_ekle_kripto", use_container_width=True):
+                    st.session_state.takip_listesi_bant[secili_kripto] = kripto_varliklar[secili_kripto]
+                    st.rerun()
+
+            st.markdown("---")
+            
+            # --- 4. YAHOO CANLI ARAMA ---
+            st.markdown("**4. Hisse & Fon Ara**")
             arama_kelimesi = st.text_input("Şirket veya Fon Kodu:", placeholder="Örn: Tesla, AKBNK")
             
             if arama_kelimesi:
@@ -337,7 +353,6 @@ if menu == "📊 Genel Özet":
                     if secilen != "Lütfen Seçin...":
                         if st.button("➕ Band'a Ekle", key="arama_ekle", use_container_width=True):
                             sembol = bulunanlar[secilen]
-                            # Banda çok uzun isim gitmesin diye kısaltıyoruz
                             kisa_isim = secilen.split('-')[0].strip()
                             st.session_state.takip_listesi_bant[kisa_isim] = sembol
                             st.rerun()
