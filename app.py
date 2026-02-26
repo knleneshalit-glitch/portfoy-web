@@ -461,11 +461,29 @@ if menu == "📊 Genel Özet":
                 'Degisim_%': 'Değişim (%)'
             })
 
-            st.dataframe(df_gosterim.style.format({
-                'Adet': '{:.2f}', 'Maliyet': '{:.2f} ₺', 
-                'Fiyat': '{:.2f} ₺', 'Yatirim': '{:,.2f} ₺', 
-                'Guncel': '{:,.2f} ₺', 'K/Z (₺)': '{:+,.2f} ₺', 'Değişim (%)': '%{:.2f}'
-            }), use_container_width=True, hide_index=True)
+            # Kâr ve Zarar durumuna göre yeşil/kırmızı renk kuralı (YENİ EKLENEN KISIM)
+            def portfoy_renk(val):
+                try:
+                    if float(val) > 0:
+                        return 'color: #10b981; font-weight: bold;'
+                    elif float(val) < 0:
+                        return 'color: #ef4444; font-weight: bold;'
+                    else:
+                        return 'color: #888888; font-weight: bold;'
+                except:
+                    return ''
+
+            st.dataframe(
+                df_gosterim.style
+                .format({
+                    'Adet': '{:.2f}', 'Maliyet': '{:,.2f} ₺', 
+                    'Fiyat': '{:,.2f} ₺', 'Yatirim': '{:,.2f} ₺', 
+                    'Guncel': '{:,.2f} ₺', 'K/Z (₺)': '{:+,.2f} ₺', 'Değişim (%)': '%{:.2f}'
+                })
+                .map(portfoy_renk, subset=['K/Z (₺)', 'Değişim (%)']),
+                use_container_width=True, 
+                hide_index=True
+            )
 
             col_grafik, col_hedef = st.columns([2, 1])
             
@@ -514,7 +532,6 @@ if menu == "📊 Genel Özet":
                             st.rerun()
                             
         conn.close()
-
     # =========================================================================
     # AÇILIR MENÜ (POPUP) FONKSİYONLARI VE AYARLARI
     # =========================================================================
