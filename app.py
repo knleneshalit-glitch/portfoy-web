@@ -555,20 +555,15 @@ if menu == "📊 Genel Özet":
                         st.session_state.sag_panel_listesi[secilen_t.split('-')[0].strip()] = bulunanlar_tablo[secilen_t]
                         st.rerun()
 
-    # --- SAĞ KOLON (TAM KOYU TASARIM) ---
+    # --- SAĞ KOLON (TAM KOYU TASARIM - DENGELİ FONT) ---
     with sag_kolon:
-        # vertical_alignment="center" ile çark ve yazı tam aynı hizada durur
-        # [0.85, 0.15] oranı ve gap="small" ile çarkı yazının tam yanına bitiştiriyoruz
+        # Başlık ve Çark
         baslik_alani, ayar_alani = st.columns([0.85, 0.15], gap="small", vertical_alignment="center")
-        
-        # 'white-space: nowrap' ekleyerek yazının asla alt satıra geçmemesini garanti ediyoruz
         baslik_alani.markdown("<h3 style='margin:0; white-space:nowrap; font-size:20px;'>📊 Canlı Piyasa</h3>", unsafe_allow_html=True)
         
-        # Çark butonu
         if ayar_alani.button("⚙️", key="tablo_ayar_buton", help="Düzenle"):
             tablo_ayarlari_popup()
 
-        # Tablo Veri Hazırlama Motoru (HTML Çıktısı Üretir)
         @st.cache_data(ttl=300)
         def tablo_verisi_hazirla_html(sozluk):
             satirlar_html = ""
@@ -579,7 +574,6 @@ if menu == "📊 Genel Özet":
             
             for ad, kod in sozluk.items():
                 try:
-                    # ALTIN, GÜMÜŞ VE PLATİN İÇİN ÖZEL GÜVENLİ HESAPLAMA
                     if kod in ["GRAM_ALTIN", "GRAM_GUMUS", "GRAM_PLATIN"]:
                         ons_kod = "GC=F" if kod == "GRAM_ALTIN" else ("SI=F" if kod == "GRAM_GUMUS" else "PL=F")
                         ons_data = yf.Ticker(ons_kod).history(period="5d")['Close']
@@ -605,32 +599,31 @@ if menu == "📊 Genel Özet":
                     renk = "#10b981" if degisim_yuzde > 0 else "#ef4444"
                     ok = "▲" if degisim_yuzde > 0 else "▼"
 
-                    # DİKKAT: Baştaki boşluklar bilerek silindi! (Raw Text olmaması için)
-                    satirlar_html += f'<tr style="border-bottom: 1px solid #333;">'
-                    satirlar_html += f'<td style="padding: 12px 8px; color: #ddd; font-size: 14px;">{ad}</td>'
-                    satirlar_html += f'<td style="padding: 12px 8px; color: #fff; font-weight: bold; text-align: right; font-size: 14px;">{bugun:,.2f}</td>'
-                    satirlar_html += f'<td style="padding: 12px 8px; color: {renk}; font-weight: bold; text-align: right; font-size: 14px;">{ok} {abs(degisim_yuzde):.2f}%</td>'
+                    # DİKKAT: Fontlar 15px olarak eşitlendi, dikeyde ortalandı
+                    satirlar_html += f'<tr style="border-bottom: 1px solid #2d3748;">'
+                    satirlar_html += f'<td style="padding: 14px 10px; color: #e2e8f0; font-size: 15px; font-weight: 500; vertical-align: middle;">{ad}</td>'
+                    satirlar_html += f'<td style="padding: 14px 10px; color: #ffffff; font-weight: 600; text-align: right; font-size: 15px; vertical-align: middle;">{bugun:,.2f}</td>'
+                    satirlar_html += f'<td style="padding: 14px 10px; color: {renk}; font-weight: 600; text-align: right; font-size: 15px; vertical-align: middle;">{ok} {abs(degisim_yuzde):.2f}%</td>'
                     satirlar_html += f'</tr>'
                 except Exception as e:
-                    satirlar_html += f'<tr style="border-bottom: 1px solid #333;">'
-                    satirlar_html += f'<td style="padding: 12px 8px; color: #ddd; font-size: 14px;">{ad[:15]}</td>'
-                    satirlar_html += f'<td style="padding: 12px 8px; color: #fff; font-weight: bold; text-align: right; font-size: 14px;">0.00</td>'
-                    satirlar_html += f'<td style="padding: 12px 8px; color: #888; font-weight: bold; text-align: right; font-size: 14px;">0.00%</td>'
+                    satirlar_html += f'<tr style="border-bottom: 1px solid #2d3748;">'
+                    satirlar_html += f'<td style="padding: 14px 10px; color: #e2e8f0; font-size: 15px; font-weight: 500; vertical-align: middle;">{ad[:15]}</td>'
+                    satirlar_html += f'<td style="padding: 14px 10px; color: #ffffff; font-weight: 600; text-align: right; font-size: 15px; vertical-align: middle;">0.00</td>'
+                    satirlar_html += f'<td style="padding: 14px 10px; color: #888888; font-weight: 600; text-align: right; font-size: 15px; vertical-align: middle;">0.00%</td>'
                     satirlar_html += f'</tr>'
             return satirlar_html
 
-        # HTML Tablosunu Ekrana Basma
         html_govde = tablo_verisi_hazirla_html(st.session_state.sag_panel_listesi)
         
         if html_govde:
-            # HTML Kodları bilerek en sola yaslandı (Streamlit kod bloğu sanmasın diye)
-            st.markdown(f"""<div style="background-color: #1a1c24; padding: 15px; border-radius: 12px; border: 1px solid #30333d; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-top: 10px;">
-<table style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+            # HTML Kodları Streamlit fontunu algılasın diye "font-family: inherit" yapıldı.
+            st.markdown(f"""<div style="background-color: #111827; padding: 20px; border-radius: 12px; border: 1px solid #1f2937; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); margin-top: 10px;">
+<table style="width: 100%; border-collapse: collapse; font-family: inherit;">
 <thead>
-<tr style="border-bottom: 2px solid #444; text-align: left;">
-<th style="padding: 8px; color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Varlık</th>
-<th style="padding: 8px; color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: right;">Fiyat</th>
-<th style="padding: 8px; color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: right;">Değişim</th>
+<tr style="border-bottom: 2px solid #374151; text-align: left;">
+<th style="padding: 0px 10px 12px 10px; color: #a0aec0; font-size: 13px; font-weight: 600; text-transform: uppercase;">Varlık</th>
+<th style="padding: 0px 10px 12px 10px; color: #a0aec0; font-size: 13px; font-weight: 600; text-transform: uppercase; text-align: right;">Fiyat</th>
+<th style="padding: 0px 10px 12px 10px; color: #a0aec0; font-size: 13px; font-weight: 600; text-transform: uppercase; text-align: right;">Değişim</th>
 </tr>
 </thead>
 <tbody>
