@@ -6,13 +6,14 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 from datetime import date, datetime, timedelta
 import os
-import psycopg2 
+import psycopg2 # YENİ BULUT KÜTÜPHANEMİZ
 from supabase import create_client
 import numpy as np
 import requests
 import xml.etree.ElementTree as ET
 
 # --- KULLANICI DOĞRULAMA (AUTH) AYARLARI ---
+# Bu satır kodun en üstünde olmalı!
 st.set_page_config(page_title="Portföyüm Pro", layout="wide", initial_sidebar_state="expanded")
 
 # Secrets'tan bilgileri çekiyoruz
@@ -52,9 +53,9 @@ def login_page():
 # --- ANA KONTROL MEKANİZMASI ---
 if st.session_state.user is None:
     login_page()
-    st.stop() 
+    st.stop() # Giriş yapılmadıysa kodun geri kalanını çalıştırma!
 
-user_id = st.session_state.user.id 
+user_id = st.session_state.user.id # Artık her yerde bu ID'yi kullanacağız
 
 # =============================================================================
 # BULUT VERİTABANI BAĞLANTISI (SUPABASE)
@@ -93,7 +94,7 @@ def init_db():
 init_db()
 
 # =============================================================================
-# VERİ ÇEKME VE HESAPLAMA MOTORU
+# VERİ ÇEKME VE HESAPLAMA MOTORU (FİZİKİ ALTIN DAHİL)
 # =============================================================================
 @st.cache_data(ttl=60)
 def veri_getir(sembol):
@@ -221,53 +222,95 @@ st.markdown(footer_css, unsafe_allow_html=True)
 if menu == "📊 Genel Özet":
     st.title("Portföy Analizi")
     
-    @st.cache_data(ttl=300) 
-    def bant_fiyatlarini_cek():
-        fiyatlar_sozluk = {}
-        try:
-            usd = yf.Ticker("USDTRY=X").history(period="1d")['Close'].iloc[-1]
-            eur = yf.Ticker("EURTRY=X").history(period="1d")['Close'].iloc[-1]
-            ons = yf.Ticker("GC=F").history(period="1d")['Close'].iloc[-1]
-            btc = yf.Ticker("BTC-USD").history(period="1d")['Close'].iloc[-1]
-            gumus_ons = yf.Ticker("SI=F").history(period="1d")['Close'].iloc[-1]
-            platin_ons = yf.Ticker("PL=F").history(period="1d")['Close'].iloc[-1]
-            
-            fiyatlar_sozluk['USD'] = float(usd)
-            fiyatlar_sozluk['EUR'] = float(eur)
-            fiyatlar_sozluk['ONS'] = float(ons)
-            fiyatlar_sozluk['BTC'] = float(btc)
-            fiyatlar_sozluk['GRAM_ALTIN'] = float((ons / 31.1035) * usd)
-            fiyatlar_sozluk['GRAM_GUMUS'] = float((gumus_ons / 31.1035) * usd)
-            fiyatlar_sozluk['GRAM_PLATIN'] = float((platin_ons / 31.1035) * usd)
-        except Exception:
-            fiyatlar_sozluk = {'USD': 0, 'EUR': 0, 'ONS': 0, 'BTC': 0, 'GRAM_ALTIN': 0, 'GRAM_GUMUS': 0, 'GRAM_PLATIN': 0}
-        return fiyatlar_sozluk
+    # 1. KULLANICI SEÇİMLERİNİ HAFIZADA TUTMA
+    if 'bant_sabitler' not in st.session_state:
+        st.session_state.bant_sabitler = ["Dolar (USD)", "Euro (EUR)", "Gram Altın", "Bitcoin (BTC)"]
+    if 'bant_ozeller' not in st.session_state:
+        st.session_state.bant_ozeller = "" # Örn: "THYAO.IS, AAPL"
 
-    guncel_f = bant_fiyatlarini_cek()
-    tum_secenekler = {
-        "Dolar (USD)": f"🇺🇸 USD: {guncel_f.get('USD', 0):.2f} ₺",
-        "Euro (EUR)": f"🇪🇺 EUR: {guncel_f.get('EUR', 0):.2f} ₺",
-        "Gram Altın": f"🟡 GR ALTIN: {guncel_f.get('GRAM_ALTIN', 0):.2f} ₺",
-        "Gram Gümüş": f"🥈 GR GÜMÜŞ: {guncel_f.get('GRAM_GUMUS', 0):.2f} ₺",
-        "Gram Platin": f"💍 GR PLATİN: {guncel_f.get('GRAM_PLATIN', 0):.2f} ₺",
-        "Ons Altın": f"🏆 ONS ALTIN: {guncel_f.get('ONS', 0):.2f} $",
-        "Bitcoin (BTC)": f"₿ BTC: {guncel_f.get('BTC', 0):,.0f} $"
+    # 2. ARAMA YAPILABİLECEK GENİŞ KAPSAMLI LİSTE
+    sabit_secenekler = {
+        "Dolar (USD)": "USDTRY=X", "Euro (EUR)": "EURTRY=X", "Sterlin (GBP)": "GBPTRY=X", 
+        "Japon Yeni (JPY)": "JPYTRY=X", "İsviçre Frangı (CHF)": "CHFTRY=X",
+        "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", "Gram Platin": "GRAM_PLATIN",
+        "Ons Altın": "GC=F", "Ons Gümüş": "SI=F", "Ons Platin": "PL=F",
+        "Bitcoin (BTC)": "BTC-USD", "Ethereum (ETH)": "ETH-USD",
+        "BIST 100": "XU100.IS", "Türk Hava Yolları": "THYAO.IS", "Tüpraş": "TUPRS.IS", 
+        "Aselsan": "ASELS.IS", "Koç Holding": "KCHOL.IS", "İş Bankası (C)": "ISCTR.IS",
+        "Apple": "AAPL", "Tesla": "TSLA", "Nvidia": "NVDA", "Microsoft": "MSFT"
     }
 
+    # 3. YENİ DİNAMİK VERİ ÇEKME MOTORU
+    @st.cache_data(ttl=300) 
+    def dinamik_bant_verisi_cek(secili_sabitler, ozel_semboller_str):
+        sonuclar = []
+        try:
+            usd_fiyat = float(yf.Ticker("USDTRY=X").history(period="1d")['Close'].iloc[-1])
+        except:
+            usd_fiyat = 1.0 # İnternet koparsa çökmesin
+
+        # Listeden seçilenleri işle
+        for isim in secili_sabitler:
+            kod = sabit_secenekler.get(isim)
+            if not kod: continue
+            
+            try:
+                if kod == "GRAM_ALTIN":
+                    fiyat = (float(yf.Ticker("GC=F").history(period="1d")['Close'].iloc[-1]) / 31.1035) * usd_fiyat
+                    sonuclar.append(f"🟡 GR ALTIN: {fiyat:.2f} ₺")
+                elif kod == "GRAM_GUMUS":
+                    fiyat = (float(yf.Ticker("SI=F").history(period="1d")['Close'].iloc[-1]) / 31.1035) * usd_fiyat
+                    sonuclar.append(f"🥈 GR GÜMÜŞ: {fiyat:.2f} ₺")
+                elif kod == "GRAM_PLATIN":
+                    fiyat = (float(yf.Ticker("PL=F").history(period="1d")['Close'].iloc[-1]) / 31.1035) * usd_fiyat
+                    sonuclar.append(f"💍 GR PLATİN: {fiyat:.2f} ₺")
+                else:
+                    fiyat = float(yf.Ticker(kod).history(period="1d")['Close'].iloc[-1])
+                    birim = "$" if ("USD" in kod and "TRY" not in kod) or "AAPL" in kod or "TSLA" in kod or "NVDA" in kod or "MSFT" in kod or "=F" in kod else "₺"
+                    ikon = "💵" if "USD" in kod else "💶" if "EUR" in kod else "🪙" if "BTC" in kod or "ETH" in kod else "📈"
+                    sonuclar.append(f"{ikon} {isim.split(' ')[0].upper()}: {fiyat:,.2f} {birim}")
+            except:
+                sonuclar.append(f"⚠️ {isim}: Hata")
+
+        # Elle yazılan özel kodları işle
+        if ozel_semboller_str.strip():
+            semboller = [s.strip().upper() for s in ozel_semboller_str.split(",") if s.strip()]
+            for s in semboller:
+                try:
+                    fiyat = float(yf.Ticker(s).history(period="1d")['Close'].iloc[-1])
+                    birim = "₺" if ".IS" in s else "$"
+                    sonuclar.append(f"🎯 {s.replace('.IS', '')}: {fiyat:,.2f} {birim}")
+                except:
+                    sonuclar.append(f"⚠️ {s}: Bulunamadı")
+
+        return sonuclar
+
+    # 4. ARAYÜZ VE AYARLAR (DİŞLİ ÇARK)
     col_bant, col_ayar = st.columns([12, 1])
     with col_ayar:
         with st.popover("⚙️"):
-            secilen_isimler = st.multiselect(
-                "Gösterilecekler:",
-                options=list(tum_secenekler.keys()),
-                default=["Dolar (USD)", "Euro (EUR)", "Gram Altın", "Bitcoin (BTC)"]
+            st.markdown("**Bant Ayarları**")
+            yeni_sabitler = st.multiselect(
+                "Arayıp Seçin (Döviz, Maden, Hisse):",
+                options=list(sabit_secenekler.keys()),
+                default=st.session_state.bant_sabitler
             )
+            yeni_ozeller = st.text_input(
+                "Listede Yoksa Kodunu Yazın (Virgülle ayırın):",
+                value=st.session_state.bant_ozeller,
+                placeholder="Örn: PGSUS.IS, GOOGL"
+            )
+            
+            if st.button("Kaydet ve Yenile", use_container_width=True):
+                st.session_state.bant_sabitler = yeni_sabitler
+                st.session_state.bant_ozeller = yeni_ozeller
+                st.rerun()
 
+    # 5. BANDI EKRANA BASMA
     with col_bant:
-        if not secilen_isimler:
-            ticker_data = ["Lütfen dişli çarktan veri seçin..."]
-        else:
-            ticker_data = [tum_secenekler[isim] for isim in secilen_isimler]
+        ticker_data = dinamik_bant_verisi_cek(st.session_state.bant_sabitler, st.session_state.bant_ozeller)
+        if not ticker_data:
+            ticker_data = ["Lütfen dişli çarktan gösterilecek verileri seçin veya yazın..."]
 
         ticker_html = f"""
         <div style="background-color: #0e1117; padding: 0px 10px; border-radius: 5px; border: 1px solid #30333d; overflow: hidden; white-space: nowrap; height: 42px; display: flex; align-items: center;">
@@ -279,83 +322,88 @@ if menu == "📊 Genel Özet":
         st.markdown(ticker_html, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         
-    conn = get_db_connection()
-    query = "SELECT sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id = %s"
-    df_varlik = pd.read_sql_query(query, conn, params=(user_id,))
+    ana_kolon, sag_kolon = st.columns([3, 1])
 
-    if df_varlik.empty:
-        st.info("Portföyünüzde henüz varlık bulunmuyor. Yan menüden işlem ekleyerek başlayabilirsiniz!")
-    else:
-        df_varlik['Yatirim'] = df_varlik['miktar'] * df_varlik['ort_maliyet']
-        df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
-        df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
-        df_varlik['Degisim_%'] = (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100
-        
-        top_yatirim = df_varlik['Yatirim'].sum()
-        top_guncel = df_varlik['Guncel'].sum()
-        net_kz = top_guncel - top_yatirim
-        yuzde_kz = (net_kz / top_yatirim * 100) if top_yatirim > 0 else 0 
-          
-        cc1, cc2, cc3 = st.columns(3)
-        cc1.metric("💼 Yatırım", f"{top_yatirim:,.0f} ₺")
-        cc2.metric("💎 Güncel", f"{top_guncel:,.0f} ₺")
-        cc3.metric("🚀 Net K/Z", f"{net_kz:+,.0f} ₺", f"%{yuzde_kz:.2f}")
-        
-        st.write("---")
-        st.dataframe(df_varlik.style.format({
-            'miktar': '{:.2f}', 'ort_maliyet': '{:.2f} ₺', 
-            'guncel_fiyat': '{:.2f} ₺', 'Yatirim': '{:.2f} ₺', 
-            'Guncel': '{:.2f} ₺', 'Kar_Zarar': '{:+.2f} ₺', 'Degisim_%': '%{:.2f}'
-        }), use_container_width=True)
+    with ana_kolon:
+        conn = get_db_connection()
+        query = "SELECT sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id = %s"
+        df_varlik = pd.read_sql_query(query, conn, params=(user_id,))
 
-        col_grafik, col_hedef = st.columns([2, 1])
-        
-        with col_grafik:
-            st.subheader("Varlık Dağılımı")
+        if df_varlik.empty:
+            st.info("Portföyünüzde henüz varlık bulunmuyor. Yan menüden işlem ekleyerek başlayabilirsiniz!")
+        else:
+            # GÜVENLİK KONTROLÜ: Sütunların başarıyla oluştuğundan emin oluyoruz.
+            df_varlik['Yatirim'] = df_varlik['miktar'] * df_varlik['ort_maliyet']
+            df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
+            df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
+            df_varlik['Degisim_%'] = (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100
             
-            if 'Guncel' in df_varlik.columns:
-                df_pie = df_varlik.sort_values(by="Guncel", ascending=False).head(10)
-                fig = px.pie(
-                    df_pie, values='Guncel', names='sembol', hole=0.4,
-                    color_discrete_sequence=px.colors.qualitative.Pastel
-                )
-                fig.update_traces(textposition='inside', textinfo='percent', insidetextorientation='radial')
-                fig.update_layout(
-                    margin=dict(t=10, b=10, l=10, r=10),
-                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                    legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.0) 
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.warning("Grafik için yeterli veri bulunamadı.")
+            top_yatirim = df_varlik['Yatirim'].sum()
+            top_guncel = df_varlik['Guncel'].sum()
+            net_kz = top_guncel - top_yatirim
+            yuzde_kz = (net_kz / top_yatirim * 100) if top_yatirim > 0 else 0 
+              
+            cc1, cc2, cc3 = st.columns(3)
+            cc1.metric("💼 Yatırım", f"{top_yatirim:,.0f} ₺")
+            cc2.metric("💎 Güncel", f"{top_guncel:,.0f} ₺")
+            cc3.metric("🚀 Net K/Z", f"{net_kz:+,.0f} ₺", f"%{yuzde_kz:.2f}")
             
-        with col_hedef:
-            st.subheader("🎯 Hedef")
-            cursor = conn.cursor()
-            cursor.execute("SELECT ad, tutar FROM hedefler WHERE user_id=%s LIMIT 1", (user_id,))
-            hedef = cursor.fetchone()
+            st.write("---")
+            st.dataframe(df_varlik.style.format({
+                'miktar': '{:.2f}', 'ort_maliyet': '{:.2f} ₺', 
+                'guncel_fiyat': '{:.2f} ₺', 'Yatirim': '{:.2f} ₺', 
+                'Guncel': '{:.2f} ₺', 'Kar_Zarar': '{:+.2f} ₺', 'Degisim_%': '%{:.2f}'
+            }), use_container_width=True)
+
+            col_grafik, col_hedef = st.columns([2, 1])
             
-            h_ad = hedef[0] if hedef else "Finansal Özgürlük"
-            h_tutar = hedef[1] if hedef else 1000000
-            
-            ilerleme = (top_guncel / h_tutar) * 100
-            if ilerleme > 100: ilerleme = 100 
-            
-            st.write(f"**{h_ad}** ({h_tutar:,.0f} ₺)")
-            st.progress(int(ilerleme))
-            st.write(f"%{ilerleme:.1f} Tamamlandı")
-            
-            with st.expander("✏️ Düzenle"):
-                with st.form("hedef_form"):
-                    yeni_ad = st.text_input("Hedef Adı", value=h_ad)
-                    yeni_tutar = st.number_input("Hedef Tutar", value=float(h_tutar), step=1000.0)
-                    if st.form_submit_button("Kaydet"):
-                        cursor.execute("DELETE FROM hedefler WHERE user_id=%s", (user_id,))
-                        cursor.execute("INSERT INTO hedefler (ad, tutar, user_id) VALUES (%s, %s, %s)", (yeni_ad, yeni_tutar, user_id))
-                        conn.commit()
-                        st.rerun()
-                        
-    conn.close() 
+            with col_grafik:
+                st.subheader("Varlık Dağılımı")
+                
+                # HATA ÇÖZÜMÜ BURADA: Guncel sütunu oluştuysa sıralamayı yap
+                if 'Guncel' in df_varlik.columns:
+                    df_pie = df_varlik.sort_values(by="Guncel", ascending=False).head(10)
+                    fig = px.pie(
+                        df_pie, values='Guncel', names='sembol', hole=0.4,
+                        color_discrete_sequence=px.colors.qualitative.Pastel
+                    )
+                    fig.update_traces(textposition='inside', textinfo='percent', insidetextorientation='radial')
+                    fig.update_layout(
+                        margin=dict(t=10, b=10, l=10, r=10),
+                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                        legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.0) 
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.warning("Grafik için yeterli veri bulunamadı.")
+                
+            with col_hedef:
+                st.subheader("🎯 Hedef")
+                cursor = conn.cursor()
+                cursor.execute("SELECT ad, tutar FROM hedefler WHERE user_id=%s LIMIT 1", (user_id,))
+                hedef = cursor.fetchone()
+                
+                h_ad = hedef[0] if hedef else "Finansal Özgürlük"
+                h_tutar = hedef[1] if hedef else 1000000
+                
+                ilerleme = (top_guncel / h_tutar) * 100
+                if ilerleme > 100: ilerleme = 100 
+                
+                st.write(f"**{h_ad}** ({h_tutar:,.0f} ₺)")
+                st.progress(int(ilerleme))
+                st.write(f"%{ilerleme:.1f} Tamamlandı")
+                
+                with st.expander("✏️ Düzenle"):
+                    with st.form("hedef_form"):
+                        yeni_ad = st.text_input("Hedef Adı", value=h_ad)
+                        yeni_tutar = st.number_input("Hedef Tutar", value=float(h_tutar), step=1000.0)
+                        if st.form_submit_button("Kaydet"):
+                            cursor.execute("DELETE FROM hedefler WHERE user_id=%s", (user_id,))
+                            cursor.execute("INSERT INTO hedefler (ad, tutar, user_id) VALUES (%s, %s, %s)", (yeni_ad, yeni_tutar, user_id))
+                            conn.commit()
+                            st.rerun()
+                            
+        conn.close() 
 
 # -----------------------------------------------------------------------------
 # SAYFA 2: ISI HARİTASI
@@ -423,142 +471,169 @@ elif menu == "🔥 Isı Haritası":
 # SAYFA 3: VARLIKLAR & İŞLEMLER
 # -----------------------------------------------------------------------------
 elif menu == "💵 Varlıklar & İşlemler":
-    st.title("Varlık & İşlem Yönetimi")
+    # 3 PANELLİ ANA EKRAN DÜZENİ İÇİN CSS
+    st.markdown("""
+    <style>
+        [data-testid="column"]:nth-of-type(2) {
+            background-color: #1a1a1a;
+            border-left: 2px solid #333;
+            padding: 0px 15px 15px 15px;
+            border-radius: 5px;
+            height: 85vh;
+            overflow-y: auto;
+            position: sticky;
+            top: 3rem;
+        }
+        [data-testid="column"]:nth-of-type(2)::-webkit-scrollbar { display: none; }
+        [data-baseweb="tab-list"] { background-color: #1a1a1a; gap: 5px; }
+        [data-baseweb="tab"] { color: #aaaaaa !important; font-weight: bold; }
+        [aria-selected="true"] { background-color: #dc2626 !important; color: white !important; border-radius: 3px; }
+    </style>
+    """, unsafe_allow_html=True)
     
-    hizli_varliklar = {
-        "Manuel Giriş (Aşağıya Yazın)": "",
-        "GRAM ALTIN (Serbest/Kuyumcu)": "GRAM-ALTIN-S",
-        "ÇEYREK ALTIN": "CEYREK-ALTIN",
-        "YARIM ALTIN": "YARIM-ALTIN",
-        "TAM ALTIN": "TAM-ALTIN",
-        "ATA (CUMHURİYET) ALTIN": "ATA-ALTIN",
-        "22 AYAR BİLEZİK (Gr)": "GRAM-ALTIN-22-B",
-        "14 AYAR BİLEZİK (Gr)": "GRAM-ALTIN-14",
-        "22 AYAR GRAM (Gr)": "GRAM-ALTIN-22",
-        "GRAM ALTIN (Banka/Ekran)": "GRAM-ALTIN",
-        "GRAM GÜMÜŞ": "GRAM-GUMUS",
-        "GRAM PLATİN": "GRAM-PLATIN",
-        "ONS ALTIN ($)": "GC=F",
-        "ONS GÜMÜŞ ($)": "SI=F",
-        "ONS PLATİN ($)": "PL=F",
-        "DOLAR (USD/TRY)": "USDTRY=X", 
-        "EURO (EUR/TRY)": "EURTRY=X",
-        "STERLİN (GBP/TRY)": "GBPTRY=X",
-        "BITCOIN ($)": "BTC-USD",
-        "ETHEREUM ($)": "ETH-USD"
-    }
-
-    with st.expander("➕ YENİ İŞLEM EKLE (Alış / Satış)", expanded=True):
-        with st.form("islem_formu", clear_on_submit=True):
-            c1, c2, c3 = st.columns([1, 2, 2])
-            tip = c1.selectbox("İşlem Tipi", ["ALIS", "SATIS"])
-            secilen_isim = c2.selectbox("Hızlı Seçim (Döviz/Maden)", list(hizli_varliklar.keys()))
-            elle_giris = c3.text_input("Veya Hisse Kodu (Örn: AAPL, THYAO.IS)")
-            
-            c4, c5, c6 = st.columns([1, 2, 2])
-            miktar = c5.number_input("Adet / Miktar", min_value=0.0000, format="%f", step=1.0)
-            fiyat = c6.number_input("Birim Fiyat (₺)", min_value=0.00, format="%f", step=10.0)
-            
-            if st.form_submit_button("İşlemi Kaydet"):
-                # Sembol belirleme
-                if elle_giris.strip(): 
-                    sembol = elle_giris.strip().upper()
-                else: 
-                    sembol = hizli_varliklar[secilen_isim]
-                    
-                # Hata kontrolleri
-                if not sembol: 
-                    st.error("Lütfen listeden bir varlık seçin veya bir sembol yazın!")
-                elif miktar <= 0: 
-                    st.error("Miktar 0'dan büyük olmalıdır.")
-                else:
-                    maden_doviz_anahtarlar = ["USD", "EUR", "GBP", "CHF", "TRY", "JPY", "GRAM", "ALTIN", "CEYREK", "GUMUS", "PLATIN", "GC=F", "SI=F", "PL=F"]
-                    tur = "Döviz/Emtia" if any(x in sembol for x in maden_doviz_anahtarlar) else "Hisse/Fon"
-                    
-                    conn = get_db_connection()
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT id, miktar, ort_maliyet FROM varliklar WHERE sembol=%s AND user_id=%s", (sembol, user_id))
-                    mevcut = cursor.fetchone()
-                    
-                    if tip == "SATIS" and (not mevcut or mevcut[1] < miktar):
-                        st.error("Hata: Yetersiz Bakiye! Portföyünüzde bu kadar varlık yok.")
-                    else:
-                        if tip == "ALIS":
-                            if mevcut:
-                                v_id, esk_m, esk_mal = mevcut
-                                yeni_m = esk_m + miktar
-                                yeni_mal = ((esk_m * esk_mal) + (miktar * fiyat)) / yeni_m
-                                cursor.execute("UPDATE varliklar SET miktar=%s, ort_maliyet=%s, guncel_fiyat=%s, tur=%s WHERE id=%s", (yeni_m, yeni_mal, fiyat, tur, v_id))
-                            else:
-                                cursor.execute("INSERT INTO varliklar (tur, sembol, miktar, ort_maliyet, guncel_fiyat, user_id) VALUES (%s,%s,%s,%s,%s,%s)", (tur, sembol, miktar, fiyat, fiyat, user_id))
-                        else:
-                            v_id, esk_m, esk_mal = mevcut
-                            yeni_m = esk_m - miktar
-                            cursor.execute("UPDATE varliklar SET miktar=%s, guncel_fiyat=%s WHERE id=%s", (yeni_m, fiyat, v_id))
-                            
-                        cursor.execute("INSERT INTO islemler (sembol, islem_tipi, miktar, fiyat, tarih, user_id) VALUES (%s,%s,%s,%s,%s,%s)", (sembol, tip, miktar, fiyat, date.today().strftime("%Y-%m-%d"), user_id))
-                        conn.commit()
-                        st.success(f"{sembol} işlemi başarıyla kaydedildi!")
-                    
-                    conn.close()
+    col_orta, col_sag = st.columns([3, 1.2], gap="large")
     
-    tab1, tab2 = st.tabs(["💼 Mevcut Varlıklarım", "📜 İşlem Geçmişi (Silme)"])
-    
-    with tab1:
-        conn = get_db_connection()
-        df_varlik = pd.read_sql_query("SELECT tur, sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id=%s", conn, params=(user_id,))
-        conn.close()
-        if not df_varlik.empty:
-            df_varlik['Toplam_Tutar'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
-            df_varlik['Kar_Zarar'] = df_varlik['Toplam_Tutar'] - (df_varlik['miktar'] * df_varlik['ort_maliyet'])
-            st.dataframe(df_varlik, use_container_width=True, hide_index=True)
-        else:
-            st.info("Kayıtlı varlık yok.")
-            
-    with tab2:
-        conn = get_db_connection()
-        df_islem = pd.read_sql_query("SELECT id, tarih, sembol, islem_tipi, miktar, fiyat FROM islemler WHERE user_id=%s ORDER BY id DESC", conn, params=(user_id,))
+    with col_orta:
+        st.title("Varlık & İşlem Yönetimi")
         
-        if not df_islem.empty:
-            st.dataframe(df_islem, use_container_width=True, hide_index=True)
-            st.markdown("---")
-            st.subheader("🗑️ İşlem Sil")
-            sil_id = st.selectbox("Silmek istediğiniz işlemin ID numarasını seçin:", df_islem['id'].tolist())
-            if st.button("Seçili İşlemi Sil (Geri Alınamaz)"):
-                cursor = conn.cursor()
-                cursor.execute("SELECT sembol FROM islemler WHERE id=%s AND user_id=%s", (sil_id, user_id))
-                sembol_sil = cursor.fetchone()[0]
+        hizli_varliklar = {
+            "Manuel Giriş (Aşağıya Yazın)": "",
+            "GRAM ALTIN (Serbest/Kuyumcu)": "GRAM-ALTIN-S",
+            "ÇEYREK ALTIN": "CEYREK-ALTIN",
+            "YARIM ALTIN": "YARIM-ALTIN",
+            "TAM ALTIN": "TAM-ALTIN",
+            "ATA (CUMHURİYET) ALTIN": "ATA-ALTIN",
+            "22 AYAR BİLEZİK (Gr)": "GRAM-ALTIN-22-B",
+            "14 AYAR BİLEZİK (Gr)": "GRAM-ALTIN-14",
+            "22 AYAR GRAM (Gr)": "GRAM-ALTIN-22",
+            "GRAM ALTIN (Banka/Ekran)": "GRAM-ALTIN",
+            "GRAM GÜMÜŞ": "GRAM-GUMUS",
+            "GRAM PLATİN": "GRAM-PLATIN",
+            "ONS ALTIN ($)": "GC=F",
+            "ONS GÜMÜŞ ($)": "SI=F",
+            "ONS PLATİN ($)": "PL=F",
+            "DOLAR (USD/TRY)": "USDTRY=X", 
+            "EURO (EUR/TRY)": "EURTRY=X",
+            "STERLİN (GBP/TRY)": "GBPTRY=X",
+            "BITCOIN ($)": "BTC-USD",
+            "ETHEREUM ($)": "ETH-USD"
+        }
+
+        with st.expander("➕ YENİ İŞLEM EKLE (Alış / Satış)", expanded=True):
+            with st.form("islem_formu", clear_on_submit=True):
+                c1, c2, c3 = st.columns([1, 2, 2])
+                tip = c1.selectbox("İşlem Tipi", ["ALIS", "SATIS"])
+                secilen_isim = c2.selectbox("Hızlı Seçim (Döviz/Maden)", list(hizli_varliklar.keys()))
+                elle_giris = c3.text_input("Veya Hisse Kodu (Örn: AAPL, THYAO.IS)")
                 
-                cursor.execute("DELETE FROM islemler WHERE id=%s", (sil_id,))
+                c4, c5, c6 = st.columns([1, 2, 2])
+                miktar = c5.number_input("Adet / Miktar", min_value=0.0000, format="%f", step=1.0)
+                fiyat = c6.number_input("Birim Fiyat (₺)", min_value=0.00, format="%f", step=10.0)
                 
-                cursor.execute("SELECT islem_tipi, miktar, fiyat FROM islemler WHERE sembol=%s AND user_id=%s ORDER BY id ASC", (sembol_sil, user_id))
-                kalan_islemler = cursor.fetchall()
+                if st.form_submit_button("İşlemi Kaydet"):
+                    # Sembol belirleme
+                    if elle_giris.strip(): 
+                        sembol = elle_giris.strip().upper()
+                    else: 
+                        sembol = hizli_varliklar[secilen_isim]
+                        
+                    # Hata kontrolleri
+                    if not sembol: 
+                        st.error("Lütfen listeden bir varlık seçin veya bir sembol yazın!")
+                    elif miktar <= 0: 
+                        st.error("Miktar 0'dan büyük olmalıdır.")
+                    else:
+                        # === BOŞLUKLARIN DÜZELTİLDİĞİ KISIM BURASI ===
+                        maden_doviz_anahtarlar = ["USD", "EUR", "GBP", "CHF", "TRY", "JPY", "GRAM", "ALTIN", "CEYREK", "GUMUS", "PLATIN", "GC=F", "SI=F", "PL=F"]
+                        tur = "Döviz/Emtia" if any(x in sembol for x in maden_doviz_anahtarlar) else "Hisse/Fon"
+                        
+                        conn = get_db_connection()
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT id, miktar, ort_maliyet FROM varliklar WHERE sembol=%s AND user_id=%s", (sembol, user_id))
+                        mevcut = cursor.fetchone()
+                        
+                        if tip == "SATIS" and (not mevcut or mevcut[1] < miktar):
+                            st.error("Hata: Yetersiz Bakiye! Portföyünüzde bu kadar varlık yok.")
+                        else:
+                            if tip == "ALIS":
+                                if mevcut:
+                                    v_id, esk_m, esk_mal = mevcut
+                                    yeni_m = esk_m + miktar
+                                    yeni_mal = ((esk_m * esk_mal) + (miktar * fiyat)) / yeni_m
+                                    cursor.execute("UPDATE varliklar SET miktar=%s, ort_maliyet=%s, guncel_fiyat=%s, tur=%s WHERE id=%s", (yeni_m, yeni_mal, fiyat, tur, v_id))
+                                else:
+                                    cursor.execute("INSERT INTO varliklar (tur, sembol, miktar, ort_maliyet, guncel_fiyat, user_id) VALUES (%s,%s,%s,%s,%s,%s)", (tur, sembol, miktar, fiyat, fiyat, user_id))
+                            else:
+                                v_id, esk_m, esk_mal = mevcut
+                                yeni_m = esk_m - miktar
+                                cursor.execute("UPDATE varliklar SET miktar=%s, guncel_fiyat=%s WHERE id=%s", (yeni_m, fiyat, v_id))
+                                
+                            cursor.execute("INSERT INTO islemler (sembol, islem_tipi, miktar, fiyat, tarih, user_id) VALUES (%s,%s,%s,%s,%s,%s)", (sembol, tip, miktar, fiyat, date.today().strftime("%Y-%m-%d"), user_id))
+                            conn.commit()
+                            st.success(f"{sembol} işlemi başarıyla kaydedildi!")
+                        
+                        conn.close()
+        tab1, tab2 = st.tabs(["💼 Mevcut Varlıklarım", "📜 İşlem Geçmişi (Silme)"])
+        
+        with tab1:
+            conn = get_db_connection()
+            df_varlik = pd.read_sql_query("SELECT tur, sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id=%s", conn, params=(user_id,))
+            conn.close()
+            if not df_varlik.empty:
+                df_varlik['Toplam_Tutar'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
+                df_varlik['Kar_Zarar'] = df_varlik['Toplam_Tutar'] - (df_varlik['miktar'] * df_varlik['ort_maliyet'])
+                st.dataframe(df_varlik, use_container_width=True, hide_index=True)
+            else:
+                st.info("Kayıtlı varlık yok.")
                 
-                toplam_adet = 0.0
-                toplam_maliyet_tutari = 0.0
-                
-                for t, m, f in kalan_islemler:
-                    if t == "ALIS":
-                        toplam_maliyet_tutari += (m * f)
-                        toplam_adet += m
-                    elif t == "SATIS" and toplam_adet > 0:
-                        ort_birim = toplam_maliyet_tutari / toplam_adet
-                        toplam_adet -= m
-                        toplam_maliyet_tutari -= (m * ort_birim)
-                
-                yeni_ort = (toplam_maliyet_tutari / toplam_adet) if toplam_adet > 0 else 0
-                
-                if toplam_adet <= 0:
-                    cursor.execute("UPDATE varliklar SET miktar=0, ort_maliyet=0 WHERE sembol=%s AND user_id=%s", (sembol_sil, user_id))
-                else:
-                    cursor.execute("UPDATE varliklar SET miktar=%s, ort_maliyet=%s WHERE sembol=%s AND user_id=%s", (toplam_adet, yeni_ort, sembol_sil, user_id))
-                
-                conn.commit()
-                st.success("İşlem silindi ve maliyetler yeniden hesaplandı!")
-                st.rerun()
-        else:
-            st.info("İşlem geçmişi boş.")
-        conn.close()
+        with tab2:
+            conn = get_db_connection()
+            df_islem = pd.read_sql_query("SELECT id, tarih, sembol, islem_tipi, miktar, fiyat FROM islemler WHERE user_id=%s ORDER BY id DESC", conn, params=(user_id,))
+            
+            if not df_islem.empty:
+                st.dataframe(df_islem, use_container_width=True, hide_index=True)
+                st.markdown("---")
+                st.subheader("🗑️ İşlem Sil")
+                sil_id = st.selectbox("Silmek istediğiniz işlemin ID numarasını seçin:", df_islem['id'].tolist())
+                if st.button("Seçili İşlemi Sil (Geri Alınamaz)"):
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT sembol FROM islemler WHERE id=%s AND user_id=%s", (sil_id, user_id))
+                    sembol_sil = cursor.fetchone()[0]
+                    
+                    cursor.execute("DELETE FROM islemler WHERE id=%s", (sil_id,))
+                    
+                    cursor.execute("SELECT islem_tipi, miktar, fiyat FROM islemler WHERE sembol=%s AND user_id=%s ORDER BY id ASC", (sembol_sil, user_id))
+                    kalan_islemler = cursor.fetchall()
+                    
+                    toplam_adet = 0.0
+                    toplam_maliyet_tutari = 0.0
+                    
+                    for t, m, f in kalan_islemler:
+                        if t == "ALIS":
+                            toplam_maliyet_tutari += (m * f)
+                            toplam_adet += m
+                        elif t == "SATIS" and toplam_adet > 0:
+                            ort_birim = toplam_maliyet_tutari / toplam_adet
+                            toplam_adet -= m
+                            toplam_maliyet_tutari -= (m * ort_birim)
+                    
+                    yeni_ort = (toplam_maliyet_tutari / toplam_adet) if toplam_adet > 0 else 0
+                    
+                    if toplam_adet <= 0:
+                        cursor.execute("UPDATE varliklar SET miktar=0, ort_maliyet=0 WHERE sembol=%s AND user_id=%s", (sembol_sil, user_id))
+                    else:
+                        cursor.execute("UPDATE varliklar SET miktar=%s, ort_maliyet=%s WHERE sembol=%s AND user_id=%s", (toplam_adet, yeni_ort, sembol_sil, user_id))
+                    
+                    conn.commit()
+                    st.success("İşlem silindi ve maliyetler yeniden hesaplandı!")
+                    st.rerun()
+            else:
+                st.info("İşlem geçmişi boş.")
+            conn.close()
+
+    with col_sag:
+        st.write("### Sabit Piyasa Verileri")
+        st.write("Buraya canlı piyasa takip grafikleri eklenebilir...")
 
 # -----------------------------------------------------------------------------
 # SAYFA 4: HESAP ARAÇLARI (SİMÜLASYON)
