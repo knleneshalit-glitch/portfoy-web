@@ -596,10 +596,6 @@ elif menu == "💵 Varlıklar & İşlemler":
 # -----------------------------------------------------------------------------
 # SAYFA 4: HESAP ARAÇLARI, SAYFA 5: PİYASA TAKVİMİ, SAYFA 6: PİYASA ANALİZİ
 # -----------------------------------------------------------------------------
-# SAYFA 4: HESAP ARAÇLARI (SİMÜLASYON)
-                        tur = "Döviz/Emtia" if any(x in sembol for x in maden_doviz_anahtarlar) else "Hisse/Fon"
-# -----------------------------------------------------------------------------
-
 elif menu == "🧮 Hesap Araçları":
                         conn = get_db_connection()
     st.title("Hesap Araçları & Simülasyon")
@@ -870,4 +866,5 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")
+
 
