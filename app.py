@@ -371,16 +371,36 @@ if menu == "📊 Genel Özet":
     # Motoru çalıştır ve fiyatları al
     guncel_f = bant_fiyatlarini_cek()
 
-    # Bantta Gösterilecek Yazılar
-    ticker_data = [
-        f"🇺🇸 USD: {guncel_f.get('USD', 0):.2f} ₺",
-        f"🇪🇺 EUR: {guncel_f.get('EUR', 0):.2f} ₺",
-        f"🟡 GR ALTIN: {guncel_f.get('GRAM_ALTIN', 0):.2f} ₺",
-        f"🥈 GR GÜMÜŞ: {guncel_f.get('GRAM_GUMUS', 0):.2f} ₺",
-        f"💍 GR PLATİN: {guncel_f.get('GRAM_PLATIN', 0):.2f} ₺",
-        f"🏆 ONS ALTIN: {guncel_f.get('ONS', 0):.2f} $",
-        f"₿ BTC: {guncel_f.get('BTC', 0):,.0f} $"
-    ]
+    # Motoru çalıştır ve fiyatları al (Bu kısım sende zaten var, dokunma)
+    guncel_f = bant_fiyatlarini_cek()
+
+    # --- KULLANICI SEÇİMİ İÇİN AYAR MENÜSÜ ---
+    with st.expander("⚙️ Kayan Bant Ayarları"):
+        # Tüm olası seçenekler ve formatları sözlük (dictionary) içinde tutuyoruz
+        tum_secenekler = {
+            "Dolar (USD)": f"🇺🇸 USD: {guncel_f.get('USD', 0):.2f} ₺",
+            "Euro (EUR)": f"🇪🇺 EUR: {guncel_f.get('EUR', 0):.2f} ₺",
+            "Gram Altın": f"🟡 GR ALTIN: {guncel_f.get('GRAM_ALTIN', 0):.2f} ₺",
+            "Gram Gümüş": f"🥈 GR GÜMÜŞ: {guncel_f.get('GRAM_GUMUS', 0):.2f} ₺",
+            "Gram Platin": f"💍 GR PLATİN: {guncel_f.get('GRAM_PLATIN', 0):.2f} ₺",
+            "Ons Altın": f"🏆 ONS ALTIN: {guncel_f.get('ONS', 0):.2f} $",
+            "Bitcoin (BTC)": f"₿ BTC: {guncel_f.get('BTC', 0):,.0f} $"
+        }
+        
+        # Kullanıcı çoklu seçim (multiselect) yapsın
+        secilen_isimler = st.multiselect(
+            "Bantta hangi veriler kaysın?",
+            options=list(tum_secenekler.keys()),
+            default=["Dolar (USD)", "Euro (EUR)", "Gram Altın", "Bitcoin (BTC)"] # Sayfa ilk açıldığında bunlar seçili gelir
+        )
+
+    # --- BANTI OLUŞTURMA ---
+    # Eğer kullanıcı çarpıya basıp hepsini silerse bant çökmesin, uyarı versin:
+    if not secilen_isimler:
+        ticker_data = ["Lütfen bant ayarlarından veri seçin..."]
+    else:
+        # Sadece seçilenlerin formatlanmış halini listeye al
+        ticker_data = [tum_secenekler[isim] for isim in secilen_isimler]
 
     # HTML ve CSS ile kayma efekti
     ticker_html = f"""
@@ -1017,6 +1037,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
