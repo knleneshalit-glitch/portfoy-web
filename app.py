@@ -332,114 +332,106 @@ st.markdown("""
 
         
 # =============================================================================
-# 3 PANELLİ ANA EKRAN DÜZENİ (DOĞAL YAPI)
+# KUSURSUZ 3 PANELLİ UYGULAMA MİMARİSİ
+# (Sol: Sidebar, Orta: İçerik, Sağ: Piyasa - Sayfa Asla Kaymaz!)
 # =============================================================================
 
-# Ekranı Orta (%75) ve Sağ (%25) olarak bölüyoruz. 
+# Ana ekranı 3'e 1 oranında iki sabit kolona bölüyoruz
 col_orta, col_sag = st.columns([3, 1])
 
-# --- SAĞ TARAF: DİNAMİK CANLI PİYASA ---
-with col_sag:
-    st.subheader("📡 Canlı Piyasa")
+# --- ORTA PENCERE (MENÜ İÇERİKLERİ) ---
+with col_orta:
+    # height=800 sayesinde bu alan dışarı taşmaz, sadece kendi içinde kayar!
+    orta_pencere = st.container(height=800, border=False)
     
-    # 1. Hafızada Kullanıcının Takip Listesini Tutalım
-    if "takip_listesi" not in st.session_state:
-        st.session_state.takip_listesi = {
-            "USDTRY=X": "USD/TL",
-            "EURTRY=X": "EUR/TL",
-            "GC=F": "ONS ALTIN",
-            "BTC-USD": "BITCOIN",
-            "THYAO.IS": "THY" # Türk borsası örneği (.IS uzantısı ile)
-        }
+    with orta_pencere:
+        # BÜTÜN SAYFALARIN BURANIN ALTINDA OLACAK
+        if menu == "📊 Genel Özet":
+            st.title("Portföy Analizi")
+            # ... (Genel Özet kodların)
+            
+        elif menu == "💼 Varlıklar & İşlemler":
+            st.title("Varlık & İşlem Yönetimi")
+            # ... (Varlıklar formların ve tabloların)
+            
+        elif menu == "🔥 Isı Haritası":
+            st.title("Piyasa Isı Haritası")
+            # ... (Diğer sayfaların)
 
-    # 2. Listeyi Düzenleme (Ekleme / Çıkarma) Menüsü
-    with st.expander("⚙️ Veri Ekle / Çıkar"):
-        # YENİ EKLE
-        st.markdown("**Yeni Ekle**")
-        yeni_kod = st.text_input("Yahoo Kodu (Örn: AAPL, SASA.IS)", key="yeni_kod")
-        yeni_ad = st.text_input("Görünecek Ad (Örn: Apple, Sasa)", key="yeni_ad")
-        if st.button("➕ Listeye Ekle"):
-            if yeni_kod:
-                # Kullanıcı ad girmezse direkt kodu isim yaparız
+
+# --- SAĞ PENCERE (CANLI PİYASA) ---
+with col_sag:
+    # Bu da sağdaki penceren. Ana sayfadan bağımsız kendi içinde kayar.
+    sag_pencere = st.container(height=800, border=True)
+    
+    with sag_pencere:
+        st.subheader("📡 Canlı Piyasa")
+        
+        # 1. Kullanıcının Takip Listesi Hafızası
+        if "takip_listesi" not in st.session_state:
+            st.session_state.takip_listesi = {
+                "USDTRY=X": "USD/TL",
+                "EURTRY=X": "EUR/TL",
+                "GC=F": "ONS ALTIN",
+                "BTC-USD": "BITCOIN",
+                "THYAO.IS": "THY" # İstediğin hisseyi böyle ekleyebilirsin
+            }
+
+        # 2. Veri Ekle / Çıkar Menüsü
+        with st.expander("⚙️ Veri Ekle / Çıkar"):
+            yeni_kod = st.text_input("Kod (Örn: AAPL, SASA.IS)")
+            yeni_ad = st.text_input("Görünecek Ad")
+            if st.button("➕ Ekle") and yeni_kod:
                 eklenecek_ad = yeni_ad.upper() if yeni_ad else yeni_kod.upper()
                 st.session_state.takip_listesi[yeni_kod.upper()] = eklenecek_ad
                 st.rerun()
                 
-        st.markdown("---")
-        # MEVCUTTAN SİL
-        silinecek_isim = st.selectbox("Listeden Çıkar:", ["Seçiniz..."] + list(st.session_state.takip_listesi.values()))
-        if st.button("🗑️ Sil") and silinecek_isim != "Seçiniz...":
-            for k, v in list(st.session_state.takip_listesi.items()):
-                if v == silinecek_isim:
-                    del st.session_state.takip_listesi[k]
-                    st.rerun()
+            st.markdown("---")
+            silinecek = st.selectbox("Çıkar:", ["Seçiniz..."] + list(st.session_state.takip_listesi.values()))
+            if st.button("🗑️ Sil") and silinecek != "Seçiniz...":
+                for k, v in list(st.session_state.takip_listesi.items()):
+                    if v == silinecek:
+                        del st.session_state.takip_listesi[k]
+                        st.rerun()
 
-    # 3. Akıllı Fiyat Çekme Motoru (Sadece listedekileri çeker)
-    @st.cache_data(ttl=120) # 2 dakikada bir günceller
-    def dinamik_fiyat_cek(sembol_sozlugu):
-        import yfinance as yf
-        sonuclar = []
-        for sembol, isim in sembol_sozlugu.items():
-            try:
-                hist = yf.Ticker(sembol).history(period="5d")
-                if not hist.empty and len(hist) >= 2:
-                    guncel = float(hist['Close'].iloc[-1])
-                    eski = float(hist['Close'].iloc[-2])
-                    yuzde = ((guncel - eski) / eski) * 100
-                    # TL veya Türk hissesi ise ₺ koy, değilse $
-                    isaret = "₺" if "TL" in isim or ".IS" in sembol else "$"
-                    sonuclar.append({"Sembol": isim, "Fiyat": f"{guncel:,.2f} {isaret}", "Değişim (%)": yuzde})
-                else:
-                    sonuclar.append({"Sembol": isim, "Fiyat": "-", "Değişim (%)": 0.0})
-            except:
-                sonuclar.append({"Sembol": isim, "Fiyat": "Hata", "Değişim (%)": 0.0})
-        return sonuclar
+        # 3. Fiyat Çekme Motoru (Sadece listedekileri çeker)
+        @st.cache_data(ttl=120)
+        def dinamik_fiyat_cek(sembol_sozlugu):
+            import yfinance as yf
+            sonuclar = []
+            for sembol, isim in sembol_sozlugu.items():
+                try:
+                    hist = yf.Ticker(sembol).history(period="5d")
+                    if not hist.empty and len(hist) >= 2:
+                        guncel = float(hist['Close'].iloc[-1])
+                        eski = float(hist['Close'].iloc[-2])
+                        yuzde = ((guncel - eski) / eski) * 100
+                        isaret = "₺" if "TL" in isim or ".IS" in sembol else "$"
+                        sonuclar.append({"Sembol": isim, "Fiyat": f"{guncel:,.2f} {isaret}", "Değişim (%)": yuzde})
+                except:
+                    pass # Hata verenleri yoksay
+            return sonuclar
 
-    # 4. Tabloyu Oluşturma ve Renklendirme
-    df_canli = pd.DataFrame(dinamik_fiyat_cek(st.session_state.takip_listesi))
-    
-    def renklendir(val):
-        if isinstance(val, float):
-            if val > 0: return 'color: #00ffcc; font-weight: bold;'
-            elif val < 0: return 'color: #ff4d4d; font-weight: bold;'
-        return 'color: #aaaaaa;'
+        # 4. Tablo ve Renklendirme
+        df_canli = pd.DataFrame(dinamik_fiyat_cek(st.session_state.takip_listesi))
         
-    if not df_canli.empty:
-        try:
-            renkli_tablo = df_canli.style.map(renklendir, subset=['Değişim (%)'])
-        except AttributeError:
-            renkli_tablo = df_canli.style.applymap(renklendir, subset=['Değişim (%)'])
+        def renklendir(val):
+            if isinstance(val, float):
+                if val > 0: return 'color: #00ffcc; font-weight: bold;'
+                elif val < 0: return 'color: #ff4d4d; font-weight: bold;'
+            return 'color: #aaaaaa;'
             
-        st.dataframe(
-            renkli_tablo.format({"Değişim (%)": "{:+.2f}%"}),
-            hide_index=True, 
-            use_container_width=True
-        )
-
-# --- ORTA TARAF: MENÜDEN SEÇİLEN İÇERİKLER ---
-with col_orta:
-    # Sayfaların hepsi bu bloğun altında (içeride) olacak!
-    
-    if menu == "📊 Genel Özet":
-        st.title("Portföy Analizi")
-        # ... senin eski kodların
-        
-    elif menu == "💼 Varlıklar & İşlemler":
-        st.title("Varlık & İşlem Yönetimi")
-        # ... senin eski kodların
-# --- ORTA TARAF: MENÜDEN SEÇİLEN İÇERİKLER ---
-with col_orta:
-    # BÜTÜN SAYFALARIN BURANIN ALTINDA (BİR TAB İÇERİDE) OLMALI
-    
-    if menu == "📊 Genel Özet":
-        st.title("Portföy Analizi")
-        # ... (Genel Özet sayfasının tüm kodları)
-        
-    elif menu == "💼 Varlıklar":
-        st.title("Varlık Yönetimi")
-        # ... (Varlıklar sayfasının kodları)
-        
-    # Diğer elif menü... sayfaların da burada devam edecek
+        if not df_canli.empty:
+            try:
+                renkli_tablo = df_canli.style.map(renklendir, subset=['Değişim (%)'])
+            except AttributeError:
+                renkli_tablo = df_canli.style.applymap(renklendir, subset=['Değişim (%)'])
+                
+            st.dataframe(
+                renkli_tablo.format({"Değişim (%)": "{:+.2f}%"}),
+                hide_index=True, 
+                use_container_width=True
+            )
 
 # -----------------------------------------------------------------------------
 # SAYFA 1: GENEL ÖZET
@@ -1191,6 +1183,7 @@ elif menu == "📈 Piyasa Analizi":
                 vol = ham_veri.pct_change().std() * 100
 
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")                
+
 
 
 
