@@ -222,6 +222,18 @@ st.markdown(footer_css, unsafe_allow_html=True)
 if menu == "📊 Genel Özet":
     st.title("Portföy Analizi")
 
+    # --- HAFIZA KORUMASI (Hata Almamak İçin) ---
+    if 'takip_listesi_bant' not in st.session_state:
+        st.session_state.takip_listesi_bant = {
+            "Dolar/TL": "USDTRY=X", "Euro/TL": "EURTRY=X", 
+            "Gram Altın": "GRAM_ALTIN", "Bitcoin": "BTC-USD"
+        }
+    if 'sag_panel_listesi' not in st.session_state:
+        st.session_state.sag_panel_listesi = {
+            "BIST 100": "XU100.IS", "S&P 500": "^GSPC",
+            "Gram Altın": "GRAM_ALTIN", "Dolar/TL": "USDTRY=X", "Bitcoin": "BTC-USD"
+        }
+
     # 1. YAHOO FİNANS CANLI ARAMA MOTORU
     @st.cache_data(ttl=3600)
     def yahoo_arama(kelime):
@@ -235,39 +247,17 @@ if menu == "📊 Genel Özet":
                 sembol = q.get('symbol')
                 isim = q.get('shortname', '')
                 borsa = q.get('exchDisp', '')
-                if sembol:
-                    sonuclar[f"{sembol} - {isim} ({borsa})"] = sembol
+                if sembol: sonuclar[f"{sembol} - {isim} ({borsa})"] = sembol
             return sonuclar
         except:
             return {}
 
-    # --- GLOBAL HAFIZA (SESSION STATE) AYARLARI ---
-if 'takip_listesi_bant' not in st.session_state:
-    st.session_state.takip_listesi_bant = {
-        "Dolar/TL": "USDTRY=X",
-        "Euro/TL": "EURTRY=X",
-        "Gram Altın": "GRAM_ALTIN",
-        "Bitcoin": "BTC-USD"
-    }
-
-# ŞİMDİ EKLENEN KISIM: Sağ tablonun hafızası
-if 'sag_panel_listesi' not in st.session_state:
-    st.session_state.sag_panel_listesi = {
-        "BIST 100": "XU100.IS",
-        "S&P 500": "^GSPC",
-        "Gram Altın": "GRAM_ALTIN",
-        "Dolar/TL": "USDTRY=X",
-        "Bitcoin": "BTC-USD"
-    }
-
-    # 3. VERİ ÇEKME MOTORU
+    # 2. VERİ ÇEKME MOTORU (KAYAN BANT İÇİN)
     @st.cache_data(ttl=300) 
     def dinamik_bant_verisi_cek(takip_sozlugu):
         sonuclar = []
-        try:
-            usd_fiyat = float(yf.Ticker("USDTRY=X").history(period="1d")['Close'].iloc[-1])
-        except:
-            usd_fiyat = 1.0 
+        try: usd_fiyat = float(yf.Ticker("USDTRY=X").history(period="1d")['Close'].iloc[-1])
+        except: usd_fiyat = 1.0 
 
         for ad, kod in takip_sozlugu.items():
             try:
@@ -283,28 +273,24 @@ if 'sag_panel_listesi' not in st.session_state:
                 else:
                     f = float(yf.Ticker(kod).history(period="1d")['Close'].iloc[-1])
                     birim = "₺" if (".IS" in kod or "TRY" in kod) else "$"
-                    
-                    # Dinamik İkon Belirleme
                     if kod == "GC=F": ikon = "🏆"
                     elif kod == "SI=F": ikon = "⚙️"
                     elif kod == "PL=F": ikon = "💎"
                     elif "TRY" in kod: ikon = "💵"
-                    elif "-USD" in kod: ikon = "🪙" # Tüm kripto paralar için coin ikonu
+                    elif "-USD" in kod: ikon = "🪙"
                     else: ikon = "📈"
-                    
-                    kisa_ad = ad.split('-')[0].strip()[:15] # İsmi çok uzatmamak için kırpıyoruz
+                    kisa_ad = ad.split('-')[0].strip()[:15]
                     sonuclar.append(f"{ikon} {kisa_ad}: {f:,.2f} {birim}")
             except:
                 sonuclar.append(f"⚠️ {ad[:10]}: Hata")
         return sonuclar
 
-    # 4. ARAYÜZ VE AYARLAR (DİŞLİ ÇARK)
+    # 3. KAYAN BANT ARAYÜZÜ (DİŞLİ ÇARK)
     col_bant, col_ayar = st.columns([12, 1])
     with col_ayar:
         with st.popover("⚙️"):
             st.markdown("### 🛠️ Bant Ayarları")
             
-            # --- 1. MEVCUT LİSTEYİ DÜZENLEME ---
             st.markdown("**1. Gösterilenleri Çıkar**")
             aktif_secimler = st.multiselect(
                 "Kaldırmak için çarpıya basın:",
@@ -312,20 +298,16 @@ if 'sag_panel_listesi' not in st.session_state:
                 default=list(st.session_state.takip_listesi_bant.keys()),
                 label_visibility="collapsed"
             )
-            
             if len(aktif_secimler) != len(st.session_state.takip_listesi_bant):
                 st.session_state.takip_listesi_bant = {k: st.session_state.takip_listesi_bant[k] for k in aktif_secimler}
                 st.rerun()
 
             st.markdown("---")
-            
-            # --- 2. HAZIR LİSTEDEN EKLEME (MADEN & DÖVİZ) ---
             st.markdown("**2. Hızlı Ekle (Maden & Döviz)**")
             hazir_varliklar = {
                 "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", "Gram Platin": "GRAM_PLATIN",
                 "Ons Altın": "GC=F", "Ons Gümüş": "SI=F", "Ons Platin": "PL=F",
-                "Dolar/TL": "USDTRY=X", "Euro/TL": "EURTRY=X", "Sterlin/TL": "GBPTRY=X", 
-                "İsviçre Frangı": "CHFTRY=X", "Japon Yeni": "JPYTRY=X"
+                "Dolar/TL": "USDTRY=X", "Euro/TL": "EURTRY=X", "Sterlin/TL": "GBPTRY=X"
             }
             secili_hazir = st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_varliklar.keys()), key="sec_maden", label_visibility="collapsed")
             if secili_hazir != "Seçiniz...":
@@ -334,14 +316,9 @@ if 'sag_panel_listesi' not in st.session_state:
                     st.rerun()
 
             st.markdown("---")
-            
-            # --- 3. HAZIR LİSTEDEN EKLEME (KRİPTO PARALAR) ---
             st.markdown("**3. Hızlı Ekle (Kripto Para)**")
             kripto_varliklar = {
-                "Bitcoin": "BTC-USD", "Ethereum": "ETH-USD", "Binance Coin": "BNB-USD",
-                "Solana": "SOL-USD", "Ripple (XRP)": "XRP-USD", "Cardano (ADA)": "ADA-USD",
-                "Dogecoin": "DOGE-USD", "Avalanche (AVAX)": "AVAX-USD", "Polkadot": "DOT-USD",
-                "Chainlink": "LINK-USD", "Polygon (MATIC)": "MATIC-USD", "Shiba Inu": "SHIB-USD"
+                "Bitcoin": "BTC-USD", "Ethereum": "ETH-USD", "Solana": "SOL-USD", "Avalanche": "AVAX-USD"
             }
             secili_kripto = st.selectbox("Kripto Seçin:", ["Seçiniz..."] + list(kripto_varliklar.keys()), key="sec_kripto", label_visibility="collapsed")
             if secili_kripto != "Seçiniz...":
@@ -350,33 +327,24 @@ if 'sag_panel_listesi' not in st.session_state:
                     st.rerun()
 
             st.markdown("---")
-            
-            # --- 4. YAHOO CANLI ARAMA ---
-            st.markdown("**4. Hisse & Fon Ara**")
+            st.markdown("**4. Hisse/Fon Ara**")
             arama_kelimesi = st.text_input("Şirket veya Fon Kodu:", placeholder="Örn: Tesla, AKBNK")
-            
             if arama_kelimesi:
                 bulunanlar = yahoo_arama(arama_kelimesi)
                 if bulunanlar:
-                    secilen = st.selectbox("Arama Sonuçları:", ["Lütfen Seçin..."] + list(bulunanlar.keys()))
+                    secilen = st.selectbox("Sonuçlar:", ["Lütfen Seçin..."] + list(bulunanlar.keys()))
                     if secilen != "Lütfen Seçin...":
                         if st.button("➕ Band'a Ekle", key="arama_ekle", use_container_width=True):
-                            sembol = bulunanlar[secilen]
-                            kisa_isim = secilen.split('-')[0].strip()
-                            st.session_state.takip_listesi_bant[kisa_isim] = sembol
+                            st.session_state.takip_listesi_bant[secilen.split('-')[0].strip()] = bulunanlar[secilen]
                             st.rerun()
-                else:
-                    st.warning("Yahoo Finance üzerinde sonuç bulunamadı.")
 
-    # 5. BANDI EKRANA BASMA
     with col_bant:
         ticker_data = dinamik_bant_verisi_cek(st.session_state.takip_listesi_bant)
-        if not ticker_data:
-            ticker_data = ["Gösterilecek veri yok. Dişli çarktan ekleme yapın."]
+        if not ticker_data: ticker_data = ["Gösterilecek veri yok."]
 
         ticker_html = f"""
         <div style="background-color: #0e1117; padding: 0px 10px; border-radius: 5px; border: 1px solid #30333d; overflow: hidden; white-space: nowrap; height: 42px; display: flex; align-items: center;">
-            <div style="display: inline-block; padding-left: 100%; animation: marquee 50s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
+            <div style="display: inline-block; padding-left: 100%; animation: marquee 100s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
                 {" &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_data)}
             </div>
         </div>
@@ -384,7 +352,10 @@ if 'sag_panel_listesi' not in st.session_state:
         st.markdown(ticker_html, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         
-    ana_kolon, sag_kolon = st.columns([3, 1])
+    # =========================================================================
+    # ANA EKRAN: SOL KOLON (PORTFÖY) VE SAĞ KOLON (CANLI TABLO)
+    # =========================================================================
+    ana_kolon, sag_kolon = st.columns([3, 1], gap="large")
 
     with ana_kolon:
         conn = get_db_connection()
@@ -394,7 +365,6 @@ if 'sag_panel_listesi' not in st.session_state:
         if df_varlik.empty:
             st.info("Portföyünüzde henüz varlık bulunmuyor. Yan menüden işlem ekleyerek başlayabilirsiniz!")
         else:
-            # GÜVENLİK KONTROLÜ: Sütunların başarıyla oluştuğundan emin oluyoruz.
             df_varlik['Yatirim'] = df_varlik['miktar'] * df_varlik['ort_maliyet']
             df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
             df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
@@ -421,8 +391,6 @@ if 'sag_panel_listesi' not in st.session_state:
             
             with col_grafik:
                 st.subheader("Varlık Dağılımı")
-                
-                # HATA ÇÖZÜMÜ BURADA: Guncel sütunu oluştuysa sıralamayı yap
                 if 'Guncel' in df_varlik.columns:
                     df_pie = df_varlik.sort_values(by="Guncel", ascending=False).head(10)
                     fig = px.pie(
@@ -437,7 +405,7 @@ if 'sag_panel_listesi' not in st.session_state:
                     )
                     st.plotly_chart(fig, use_container_width=True)
                 else:
-                    st.warning("Grafik için yeterli veri bulunamadı.")
+                    st.warning("Grafik için veri yok.")
                 
             with col_hedef:
                 st.subheader("🎯 Hedef")
@@ -465,42 +433,37 @@ if 'sag_panel_listesi' not in st.session_state:
                             conn.commit()
                             st.rerun()
                             
-        conn.close() 
+        conn.close()
 
-    # =========================================================================
-    # SAĞ KOLON: CANLI PİYASA TABLOSU VE AYARLARI
-    # =========================================================================
-    
-    # 1. POPUP (AÇILIR PENCERE) FONKSİYONU: Kapanma sorununu çözer!
-    @st.dialog("⚙️ Canlı Piyasa Tablo Ayarları")
+    # --- SAĞ PANEL KAPANMA SORUNUNU ÇÖZEN POPUP ---
+    @st.dialog("⚙️ Sağ Tablo Ayarları")
     def tablo_ayarlari_popup():
         st.markdown("**1. Gösterilenleri Çıkar**")
         aktif_tablo_secimleri = st.multiselect(
             "Kaldırmak için çarpıya basın:",
             options=list(st.session_state.sag_panel_listesi.keys()),
             default=list(st.session_state.sag_panel_listesi.keys()),
-            key="tablo_sil_popup"
+            key="tablo_sil_popup",
+            label_visibility="collapsed"
         )
         if len(aktif_tablo_secimleri) != len(st.session_state.sag_panel_listesi):
             st.session_state.sag_panel_listesi = {k: st.session_state.sag_panel_listesi[k] for k in aktif_tablo_secimleri}
             st.rerun()
             
         st.markdown("---")
-        
         st.markdown("**2. Hızlı Ekle**")
         hazir_tablo_varliklar = {
             "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", 
             "Ons Altın": "GC=F", "Dolar/TL": "USDTRY=X", "Euro/TL": "EURTRY=X",
             "Bitcoin": "BTC-USD", "Ethereum": "ETH-USD"
         }
-        secili_hazir_tablo = st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_tablo_varliklar.keys()), key="tablo_hizli_popup")
-        if secili_hazir_tablo != "Seçiniz...":
+        secili_hazir_t = st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_tablo_varliklar.keys()), key="tablo_hizli_popup", label_visibility="collapsed")
+        if secili_hazir_t != "Seçiniz...":
             if st.button("➕ Tabloya Ekle", key="btn_tablo_hizli_popup", use_container_width=True):
-                st.session_state.sag_panel_listesi[secili_hazir_tablo] = hazir_tablo_varliklar[secili_hazir_tablo]
+                st.session_state.sag_panel_listesi[secili_hazir_t] = hazir_tablo_varliklar[secili_hazir_t]
                 st.rerun()
 
         st.markdown("---")
-        
         st.markdown("**3. Hisse/Fon Ara**")
         arama_tablo = st.text_input("Hisse/Fon Ara:", placeholder="Örn: AAPL, THYAO", key="tablo_ara_popup")
         if arama_tablo:
@@ -512,45 +475,40 @@ if 'sag_panel_listesi' not in st.session_state:
                         st.session_state.sag_panel_listesi[secilen_t.split('-')[0].strip()] = bulunanlar_tablo[secilen_t]
                         st.rerun()
 
-    # 2. SAĞ PANELİN KENDİSİ
+    # --- SAĞ KOLON (TABLO GÖRÜNÜMÜ) ---
     with sag_kolon:
         baslik_kolonu, ayar_kolonu = st.columns([4, 1])
         baslik_kolonu.subheader("📊 Canlı Piyasa")
         
-        # Popover sildik, yerine Buton ekledik. Butona basılınca yukardaki Popup açılacak.
+        # Popover yerine Popup'ı tetikleyen Buton
         if ayar_kolonu.button("⚙️", key="tablo_ayar_buton"):
             tablo_ayarlari_popup()
 
-        # --- VERİ ÇEKME VE YÜZDE HESAPLAMA MOTORU ---
         @st.cache_data(ttl=300)
         def tablo_verisi_hazirla(sozluk):
             tablo_verileri = []
-            try:
-                usd_hist = yf.Ticker("USDTRY=X").history(period="5d")['Close']
-            except:
-                usd_hist = pd.Series([1.0, 1.0])
+            try: usd_hist = yf.Ticker("USDTRY=X").history(period="5d")['Close']
+            except: usd_hist = pd.Series([1.0, 1.0])
 
             for ad, kod in sozluk.items():
                 try:
-                    if kod == "GRAM_ALTIN":
-                        fiyatlar = (yf.Ticker("GC=F").history(period="5d")['Close'] * usd_hist) / 31.1035
-                    elif kod == "GRAM_GUMUS":
-                        fiyatlar = (yf.Ticker("SI=F").history(period="5d")['Close'] * usd_hist) / 31.1035
-                    else:
-                        fiyatlar = yf.Ticker(kod).history(period="5d")['Close']
+                    if kod == "GRAM_ALTIN": fiyatlar = (yf.Ticker("GC=F").history(period="5d")['Close'] * usd_hist) / 31.1035
+                    elif kod == "GRAM_GUMUS": fiyatlar = (yf.Ticker("SI=F").history(period="5d")['Close'] * usd_hist) / 31.1035
+                    else: fiyatlar = yf.Ticker(kod).history(period="5d")['Close']
                     
                     fiyatlar = fiyatlar.dropna()
-                    bugun = float(fiyatlar.iloc[-1])
-                    dun = float(fiyatlar.iloc[-2]) if len(fiyatlar) > 1 else bugun
-                    degisim_yuzde = ((bugun - dun) / dun) * 100 if dun > 0 else 0.0
-                    
+                    if not fiyatlar.empty:
+                        bugun = float(fiyatlar.iloc[-1])
+                        dun = float(fiyatlar.iloc[-2]) if len(fiyatlar) > 1 else bugun
+                        degisim_yuzde = ((bugun - dun) / dun) * 100 if dun > 0 else 0.0
+                    else:
+                        bugun, degisim_yuzde = 0.0, 0.0
+                        
                     tablo_verileri.append({"Varlık": ad, "Fiyat": bugun, "Değişim": degisim_yuzde})
                 except:
                     tablo_verileri.append({"Varlık": ad[:10], "Fiyat": 0.0, "Değişim": 0.0})
-                    
             return pd.DataFrame(tablo_verileri)
 
-        # Tabloyu ekrana yazdırma
         df_sag_tablo = tablo_verisi_hazirla(st.session_state.sag_panel_listesi)
         
         if not df_sag_tablo.empty:
