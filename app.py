@@ -467,54 +467,59 @@ if 'sag_panel_listesi' not in st.session_state:
                             
         conn.close() 
 
-# =========================================================================
+    # =========================================================================
     # SAĞ KOLON: CANLI PİYASA TABLOSU VE AYARLARI
     # =========================================================================
+    
+    # 1. POPUP (AÇILIR PENCERE) FONKSİYONU: Kapanma sorununu çözer!
+    @st.dialog("⚙️ Canlı Piyasa Tablo Ayarları")
+    def tablo_ayarlari_popup():
+        st.markdown("**1. Gösterilenleri Çıkar**")
+        aktif_tablo_secimleri = st.multiselect(
+            "Kaldırmak için çarpıya basın:",
+            options=list(st.session_state.sag_panel_listesi.keys()),
+            default=list(st.session_state.sag_panel_listesi.keys()),
+            key="tablo_sil_popup"
+        )
+        if len(aktif_tablo_secimleri) != len(st.session_state.sag_panel_listesi):
+            st.session_state.sag_panel_listesi = {k: st.session_state.sag_panel_listesi[k] for k in aktif_tablo_secimleri}
+            st.rerun()
+            
+        st.markdown("---")
+        
+        st.markdown("**2. Hızlı Ekle**")
+        hazir_tablo_varliklar = {
+            "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", 
+            "Ons Altın": "GC=F", "Dolar/TL": "USDTRY=X", "Euro/TL": "EURTRY=X",
+            "Bitcoin": "BTC-USD", "Ethereum": "ETH-USD"
+        }
+        secili_hazir_tablo = st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_tablo_varliklar.keys()), key="tablo_hizli_popup")
+        if secili_hazir_tablo != "Seçiniz...":
+            if st.button("➕ Tabloya Ekle", key="btn_tablo_hizli_popup", use_container_width=True):
+                st.session_state.sag_panel_listesi[secili_hazir_tablo] = hazir_tablo_varliklar[secili_hazir_tablo]
+                st.rerun()
+
+        st.markdown("---")
+        
+        st.markdown("**3. Hisse/Fon Ara**")
+        arama_tablo = st.text_input("Hisse/Fon Ara:", placeholder="Örn: AAPL, THYAO", key="tablo_ara_popup")
+        if arama_tablo:
+            bulunanlar_tablo = yahoo_arama(arama_tablo) 
+            if bulunanlar_tablo:
+                secilen_t = st.selectbox("Sonuçlar:", ["Lütfen Seçin..."] + list(bulunanlar_tablo.keys()), key="tablo_sonuc_popup")
+                if secilen_t != "Lütfen Seçin...":
+                    if st.button("➕ Tabloya Ekle", key="btn_tablo_ara_popup", use_container_width=True):
+                        st.session_state.sag_panel_listesi[secilen_t.split('-')[0].strip()] = bulunanlar_tablo[secilen_t]
+                        st.rerun()
+
+    # 2. SAĞ PANELİN KENDİSİ
     with sag_kolon:
         baslik_kolonu, ayar_kolonu = st.columns([4, 1])
         baslik_kolonu.subheader("📊 Canlı Piyasa")
         
-        # --- TABLO AYARLARI (DİŞLİ ÇARK) ---
-        with ayar_kolonu.popover("⚙️"):
-            st.markdown("**Tablo Ayarları**")
-            
-            # 1. Silme İşlemi
-            aktif_tablo_secimleri = st.multiselect(
-                "Kaldırmak için çarpıya basın:",
-                options=list(st.session_state.sag_panel_listesi.keys()),
-                default=list(st.session_state.sag_panel_listesi.keys()),
-                key="tablo_sil"
-            )
-            if len(aktif_tablo_secimleri) != len(st.session_state.sag_panel_listesi):
-                st.session_state.sag_panel_listesi = {k: st.session_state.sag_panel_listesi[k] for k in aktif_tablo_secimleri}
-                st.rerun()
-                
-            st.markdown("---")
-            
-            # 2. Hızlı Ekleme (Hazır Liste)
-            hazir_tablo_varliklar = {
-                "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", 
-                "Ons Altın": "GC=F", "Dolar/TL": "USDTRY=X", "Euro/TL": "EURTRY=X",
-                "Bitcoin": "BTC-USD", "Ethereum": "ETH-USD"
-            }
-            secili_hazir_tablo = st.selectbox("Hızlı Ekle:", ["Seçiniz..."] + list(hazir_tablo_varliklar.keys()), key="tablo_hizli")
-            if secili_hazir_tablo != "Seçiniz...":
-                if st.button("➕ Tabloya Ekle", key="btn_tablo_hizli", use_container_width=True):
-                    st.session_state.sag_panel_listesi[secili_hazir_tablo] = hazir_tablo_varliklar[secili_hazir_tablo]
-                    st.rerun()
-
-            st.markdown("---")
-            
-            # 3. Yahoo Canlı Arama (Hisse/Fon)
-            arama_tablo = st.text_input("Hisse/Fon Ara:", placeholder="Örn: AAPL, THYAO", key="tablo_ara")
-            if arama_tablo:
-                bulunanlar_tablo = yahoo_arama(arama_tablo) # Banttaki aynı arama motorunu kullanıyoruz
-                if bulunanlar_tablo:
-                    secilen_t = st.selectbox("Sonuçlar:", ["Lütfen Seçin..."] + list(bulunanlar_tablo.keys()), key="tablo_sonuc")
-                    if secilen_t != "Lütfen Seçin...":
-                        if st.button("➕ Tabloya Ekle", key="btn_tablo_ara", use_container_width=True):
-                            st.session_state.sag_panel_listesi[secilen_t.split('-')[0].strip()] = bulunanlar_tablo[secilen_t]
-                            st.rerun()
+        # Popover sildik, yerine Buton ekledik. Butona basılınca yukardaki Popup açılacak.
+        if ayar_kolonu.button("⚙️", key="tablo_ayar_buton"):
+            tablo_ayarlari_popup()
 
         # --- VERİ ÇEKME VE YÜZDE HESAPLAMA MOTORU ---
         @st.cache_data(ttl=300)
@@ -545,11 +550,10 @@ if 'sag_panel_listesi' not in st.session_state:
                     
             return pd.DataFrame(tablo_verileri)
 
-        # Tabloyu oluştur
+        # Tabloyu ekrana yazdırma
         df_sag_tablo = tablo_verisi_hazirla(st.session_state.sag_panel_listesi)
         
         if not df_sag_tablo.empty:
-            # Yüzdeleri yeşil ve kırmızıya boyama kuralı
             def renk_kurali(val):
                 renk = '#10b981' if val > 0 else '#ef4444' if val < 0 else '#888888'
                 return f'color: {renk}; font-weight: bold;'
