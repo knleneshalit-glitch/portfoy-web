@@ -606,8 +606,9 @@ if menu == "📊 Genel Özet":
                             st.rerun()
                             
         conn.close()
+
     # =========================================================================
-    # AÇILIR MENÜ (POPUP) FONKSİYONLARI VE AYARLARI
+    # AÇILIR MENÜ (POPUP) FONKSİYONLARI VE AYARLARI (GÜNCELLENMİŞ)
     # =========================================================================
     
     hazir_tablo_varliklar = {
@@ -619,7 +620,7 @@ if menu == "📊 Genel Özet":
         "Avalanche": "AVAX-USD", "Binance Coin": "BNB-USD", "Ripple (XRP)": "XRP-USD"
     }
 
-    # 1. ARKA PLAN İŞLEMLERİ (Artık Sadece Geçici Listeyi Günceller)
+    # 1. ARKA PLAN İŞLEMLERİ (Geçici Hafıza)
     def sil_aksiyonu_temp():
         item = st.session_state.sil_secim_popup
         if item != "Seçiniz..." and item in st.session_state.temp_liste:
@@ -642,13 +643,19 @@ if menu == "📊 Genel Özet":
         st.markdown("**1. Sıralamayı Değiştir (Sürükle & Bırak)**")
         st.caption("👆 *Kutuları sürükleyerek sırayı belirleyin. Menü asla kapanmaz.*")
         
-        # Artık ana listeyi değil, geçici hafızayı okuyoruz
         mevcut_liste = list(st.session_state.temp_liste.keys())
         
         if mevcut_liste:
-            yeni_sira = sort_items(mevcut_liste, direction="vertical", key="sort_popup")
-            if yeni_sira != mevcut_liste:
+            # ÇÖZÜM BURADA: Liste uzunluğunu 'key' içine ekleyerek, 
+            # yeni eleman eklendiğinde sürükle-bırak eklentisinin eski hafızasını silmesini sağlıyoruz.
+            dinamik_key = f"sort_popup_{len(mevcut_liste)}"
+            yeni_sira = sort_items(mevcut_liste, direction="vertical", key=dinamik_key)
+            
+            # SADECE sıralama değiştiyse ve eleman sayısı aynıysa üzerine yaz. 
+            # Böylece yeni eleman eklerken silinmesinin önüne geçtik.
+            if yeni_sira != mevcut_liste and len(yeni_sira) == len(mevcut_liste):
                 st.session_state.temp_liste = {k: st.session_state.temp_liste[k] for k in yeni_sira}
+                st.rerun() # Sıralamayı oturtmak için menüyü kendi içinde tazele
                 
             st.markdown("---")
             st.markdown("**2. Listeden Çıkar**")
@@ -672,7 +679,7 @@ if menu == "📊 Genel Özet":
                 st.button("➕ Arama Sonucunu Ekle", on_click=arama_ekle_aksiyonu_temp, kwargs={"bulunanlar": bulunanlar_tablo}, use_container_width=True, key="btn_ara")
 
         st.markdown("---")
-        # Final işlemi: SADECE bu butona basılınca ana tabloyu günceller ve ekranı yeniler
+        # Final işlemi: SADECE bu butona basılınca ana tabloyu günceller ve ekranı (arkayı) yeniler
         if st.button("✅ Kaydet ve Değişiklikleri Yansıt", type="primary", use_container_width=True):
             st.session_state.sag_panel_listesi = st.session_state.temp_liste.copy()
             st.rerun()
