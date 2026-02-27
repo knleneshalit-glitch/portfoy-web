@@ -19,7 +19,7 @@ from streamlit_autorefresh import st_autorefresh  # <-- YENİ EKLENEN KÜTÜPHAN
 
 # --- KULLANICI DOĞRULAMA (AUTH) AYARLARI ---
 # Bu satır kodun en üstünde olmalı!
-st.set_page_config(page_title="Portföyüm Pro", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Portföyüm", layout="wide", initial_sidebar_state="expanded")
 
 # --- MOBİL UYUM (RESPONSIVE) CSS KODU ---
 # Tüm sayfalara etki eden genel mobil optimizasyon
@@ -88,7 +88,7 @@ if "user" not in st.session_state:
     st.session_state.user = None
 
 def login_page():
-    st.title("💎 Portföyüm Pro'ya Hoş Geldiniz")
+    st.title("💎 Portföyüm'e Hoş Geldiniz")
     tab1, tab2 = st.tabs(["Giriş Yap", "Hesap Oluştur"])
     
     with tab1:
