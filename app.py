@@ -18,6 +18,63 @@ from streamlit_sortables import sort_items
 # Bu satır kodun en üstünde olmalı!
 st.set_page_config(page_title="Portföyüm Pro", layout="wide", initial_sidebar_state="expanded")
 
+# --- MOBİL UYUM (RESPONSIVE) CSS KODU ---
+# Tüm sayfalara etki eden genel mobil optimizasyon
+st.markdown("""
+<style>
+    /* Sadece telefon ve küçük tablet ekranları (768px altı) için geçerli kurallar */
+    @media (max-width: 768px) {
+        /* 1. Sayfa kenar boşluklarını daralt (Telefonda ekranı ziyan etmemek için) */
+        .block-container {
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+            padding-top: 1rem !important;
+        }
+        
+        /* 2. Dev rakamları (Kâr/Zarar metriklerini) ekrana sığacak kadar küçült */
+        [data-testid="stMetricValue"] {
+            font-size: 1.4rem !important;
+        }
+        
+        /* 3. Özel Canlı Piyasa tablosunun taşmasını engelle (Yatay kaydırma ekle) */
+        table {
+            display: block !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important; /* Telefonda yumuşak kaydırma sağlar */
+        }
+        
+        /* 4. "Varlıklar & İşlemler" sayfasındaki yapışkan (sticky) sağ paneli iptal et */
+        /* Mobilde ekranı kilitliyordu, artık alt alta özgürce kayacak */
+        [data-testid="column"]:nth-of-type(2) {
+            position: relative !important;
+            top: 0 !important;
+            height: auto !important;
+            border-left: none !important;
+            background-color: transparent !important;
+            padding: 0 !important;
+        }
+
+        /* 5. Alt taraftaki haber bandının yüksekliğini ve yazılarını mobilde küçült */
+        .news-label {
+            font-size: 11px !important;
+            padding: 8px 10px !important;
+        }
+        .news-link {
+            font-size: 13px !important;
+            margin-right: 30px !important;
+        }
+        .news-footer {
+            border-top: 2px solid #e60000 !important;
+        }
+        
+        /* 6. Arama kutuları ve butonların mobilde tam genişlik olması */
+        .stTextInput input, .stSelectbox > div {
+            font-size: 16px !important; /* iOS'un otomatik zoom yapmasını engeller */
+        }
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Secrets'tan bilgileri çekiyoruz
 url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
