@@ -478,9 +478,12 @@ if menu == "📊 Genel Özet":
         ticker_data = dinamik_bant_verisi_cek(st.session_state.takip_listesi_bant)
         if not ticker_data: ticker_data = ["Gösterilecek veri yok."]
 
+        # ÇÖZÜM BURADA: 
+        # 1. 'padding-left: 100%;' komutu silindi. Artık yazılar uzaydan değil, tam kenardan yola çıkacak.
+        # 2. Hız '100s' yerine '45s' yapıldı ki ekrana daha akıcı ve hızlı gelsin.
         ticker_html = f"""
         <div style="background-color: #0e1117; padding: 0px 10px; border-radius: 5px; border: 1px solid #30333d; overflow: hidden; white-space: nowrap; height: 42px; display: flex; align-items: center;">
-            <div style="display: inline-block; padding-left: 100%; animation: marquee 100s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
+            <div style="display: inline-block; animation: marquee 45s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
                 {" &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_data)}
             </div>
         </div>
