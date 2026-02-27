@@ -1209,48 +1209,57 @@ elif menu == "🧮 Hesap Araçları":
                             st.session_state.cev_hedef_kod = kod
                         st.rerun()
 
-    # --- HIZLI ÇEVİRİCİ ANA EKRANI ---
+    # --- HIZLI ÇEVİRİCİ ANA EKRANI (YENİLENMİŞ ŞIK TASARIM) ---
     with tab_cevir:
-        st.subheader("💱 Canlı Sınırsız Çevirici")
-        st.write("İstediğiniz hisseyi, fonu, kriptoyu veya dövizi birbirine dönüştürün.")
+        st.markdown("<h3 style='margin-bottom: 5px;'>💱 Canlı Sınırsız Çevirici</h3>", unsafe_allow_html=True)
+        st.markdown("<span style='color: #a3a3a3; font-size: 14px;'>İstediğiniz hisseyi, fonu, kriptoyu veya dövizi anlık piyasa verileriyle birbirine dönüştürün.</span>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        col_tutar, col_kaynak, col_hedef = st.columns([1.5, 2, 2])
+        # 1. BÖLÜM: MİKTAR GİRİŞİ (Üstte ferah bir alan)
+        c_tutar, c_bos = st.columns([1, 2])
+        with c_tutar:
+            cevrilecek_tutar = st.number_input("💰 Çevrilecek Miktar / Adet:", min_value=0.0000, value=1.0, step=1.0, format="%f")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # 2. BÖLÜM: VARLIK KARTLARI (Düzenli Container Yapısı)
+        c_kaynak, c_ok, c_hedef = st.columns([4, 1, 4], gap="medium")
         
-        with col_tutar:
-            cevrilecek_tutar = st.number_input("Miktar / Adet:", min_value=0.0000, value=1.0, step=1.0, format="%f")
-            
-        with col_kaynak:
-            st.write("**Elinizdeki Varlık:**")
-            st.info(f"🪙 {st.session_state.cev_kaynak_isim}")
-            if st.button("⚙️ Kaynak Değiştir", use_container_width=True):
-                cevirici_varlik_sec_popup("kaynak")
-                
-        with col_hedef:
-            st.write("**Dönüşecek Varlık:**")
-            st.success(f"🎯 {st.session_state.cev_hedef_isim}")
-            if st.button("⚙️ Hedef Değiştir", use_container_width=True):
-                cevirici_varlik_sec_popup("hedef")
+        with c_kaynak:
+            with st.container(border=True):
+                st.caption("📤 ELİNİZDEKİ VARLIK")
+                st.markdown(f"<h3 style='margin-top: 0px;'>🪙 {st.session_state.cev_kaynak_isim}</h3>", unsafe_allow_html=True)
+                if st.button("⚙️ Kaynak Değiştir", key="btn_kaynak", use_container_width=True):
+                    cevirici_varlik_sec_popup("kaynak")
 
-        if st.button("🔄 Anlık Kurlarla Hesapla", use_container_width=True, type="primary"):
+        with c_ok:
+            # Araya şık bir ok işareti ekliyoruz
+            st.markdown("<div style='text-align: center; font-size: 40px; margin-top: 30px; color: #4b5563;'>➡️</div>", unsafe_allow_html=True)
+                    
+        with c_hedef:
+            with st.container(border=True):
+                st.caption("📥 DÖNÜŞECEK VARLIK")
+                st.markdown(f"<h3 style='margin-top: 0px;'>🎯 {st.session_state.cev_hedef_isim}</h3>", unsafe_allow_html=True)
+                if st.button("⚙️ Hedef Değiştir", key="btn_hedef", use_container_width=True):
+                    cevirici_varlik_sec_popup("hedef")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # 3. BÖLÜM: HESAPLAMA VE ŞIK SONUÇ PANOSU
+        if st.button("🔄 ANLIK KURLARLA HESAPLA", use_container_width=True, type="primary"):
             with st.spinner("Piyasa verileri çekiliyor..."):
                 
-                # Akıllı TL Çevirme Motoru
+                # Akıllı TL Çevirme Motoru (Mantık aynı kaldı)
                 def tl_degeri_hesapla(kod):
                     if kod == "TRY": return 1.0
-                    
                     usd_kuru = veri_getir("USDTRY=X")
                     if usd_kuru == 0: usd_kuru = 1.0
                     
-                    # 1. Özel Maden Durumları
                     if kod == "GRAM-ALTIN": return (veri_getir("GC=F") * usd_kuru) / 31.1035
                     if kod == "GRAM-GUMUS": return (veri_getir("SI=F") * usd_kuru) / 31.1035
                     if kod == "GRAM-PLATIN": return (veri_getir("PL=F") * usd_kuru) / 31.1035
                     
-                    # 2. Standart Piyasa Verisi (Hisse, Döviz, Kripto)
                     fiyat = veri_getir(kod)
-                    
-                    # 3. Akıllı Kur Çevirici: Eğer hisse BİST hissesi (.IS) veya TL paritesi ise fiyat zaten TL'dir.
-                    # Değilse (Örn: Apple veya Bitcoin) Dolar fiyatını TL'ye çevir.
                     if ".IS" in kod or "TRY" in kod:
                         return fiyat
                     else:
@@ -1267,9 +1276,14 @@ elif menu == "🧮 Hesap Araçları":
                         sonuc = (cevrilecek_tutar * kaynak_tl) / hedef_tl
                         capraz_kur = kaynak_tl / hedef_tl
                         
-                        st.markdown("---")
-                        st.markdown(f"<h3 style='text-align: center; color: #10b981;'>{cevrilecek_tutar:,.2f} {st.session_state.cev_kaynak_isim} = {sonuc:,.4f} {st.session_state.cev_hedef_isim}</h3>", unsafe_allow_html=True)
-                        st.markdown(f"<p style='text-align: center; color: #888;'>💡 <b>Anlık Parite:</b> 1 {st.session_state.cev_kaynak_isim} = {capraz_kur:,.4f} {st.session_state.cev_hedef_isim}</p>", unsafe_allow_html=True)
+                        # --- YENİ PROFESYONEL SONUÇ HTML'İ ---
+                        st.markdown(f"""
+                        <div style="background: linear-gradient(90deg, #1e3a8a, #3b82f6); padding: 25px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-top: 15px;">
+                            <h4 style="margin: 0; opacity: 0.8; font-weight: 500; font-size: 16px;">ÇEVİRİ SONUCU</h4>
+                            <h1 style="margin: 15px 0; font-size: 36px; font-weight: 800;">{cevrilecek_tutar:,.2f} {st.session_state.cev_kaynak_isim} = {sonuc:,.4f} {st.session_state.cev_hedef_isim}</h1>
+                            <p style="margin: 0; font-size: 14px; opacity: 0.9;">💡 Anlık Parite: 1 {st.session_state.cev_kaynak_isim} = {capraz_kur:,.4f} {st.session_state.cev_hedef_isim}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
                     else:
                         st.error("Seçilen varlıklardan birinin fiyatı şu an okunamıyor.")
                 except Exception as e:
