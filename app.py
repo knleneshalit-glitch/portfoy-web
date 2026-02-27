@@ -11,6 +11,7 @@ from supabase import create_client
 import numpy as np
 import requests
 import xml.etree.ElementTree as ET
+import streamlit.components.v1 as components
 
 from streamlit_sortables import sort_items
 from streamlit_sortables import sort_items
@@ -117,6 +118,32 @@ if st.session_state.user is None:
     st.stop() # Giriş yapılmadıysa kodun geri kalanını çalıştırma!
 
 user_id = st.session_state.user.id # Artık her yerde bu ID'yi kullanacağız
+
+def google_ads_goster(reklam_birimi_id, yukseklik=100):
+    """
+    Google AdSense reklamlarını Streamlit içinde gösterir.
+    reklam_birimi_id: Google'ın size verdiği özel reklam kutusu numarası
+    """
+    # DİKKAT: Buraya kendi AdSense Yayıncı numaranızı yazmalısınız!
+    yayinci_id = "ca-pub-XXXXXXXXXXXXXXXX" 
+    
+    # Google'ın standart reklam kodu
+    reklam_kodu = f"""
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={yayinci_id}"
+         crossorigin="anonymous"></script>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="{yayinci_id}"
+         data-ad-slot="{reklam_birimi_id}"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({{}});
+    </script>
+    """
+    
+    # Kodu sayfaya entegre ediyoruz
+    components.html(reklam_kodu, height=yukseklik)
 
 # =============================================================================
 # OTOMATİK CANLI YENİLEME SİSTEMİ
