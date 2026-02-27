@@ -13,6 +13,7 @@ import requests
 import xml.etree.ElementTree as ET
 import streamlit.components.v1 as components
 
+
 from streamlit_sortables import sort_items
 from streamlit_sortables import sort_items
 from streamlit_autorefresh import st_autorefresh  # <-- YENİ EKLENEN KÜTÜPHANE
@@ -1119,6 +1120,10 @@ elif menu == "🧮 Hesap Araçları":
                     <p style="margin: 0; font-size: 15px; opacity: 0.9;">📦 Toplam Adet: <b>{toplam_adet:,.2f}</b> &nbsp;|&nbsp; 💰 Toplam Yatırım: <b>{toplam_tutar:,.2f} ₺</b></p>
                 </div>
                 """, unsafe_allow_html=True)
+                
+                # EKRAN KAYDIRMA KODU
+                components.html("""<script>var ana_govde = window.parent.document.querySelector('.main') || window.parent.document.body; ana_govde.scrollTo({ top: ana_govde.scrollHeight, behavior: 'smooth' });</script>""", height=0)
+
             else:
                 st.error("Lütfen hesaplama yapabilmek için adet giriniz.")
 
@@ -1201,6 +1206,10 @@ elif menu == "🧮 Hesap Araçları":
     </div>
 </div>
 """, unsafe_allow_html=True)
+                
+                # EKRAN KAYDIRMA KODU (Kredi bölümüne eklendi)
+                components.html("""<script>var ana_govde = window.parent.document.querySelector('.main') || window.parent.document.body; ana_govde.scrollTo({ top: ana_govde.scrollHeight, behavior: 'smooth' });</script>""", height=0)
+                
             else:
                 st.error("Lütfen hesaplama yapabilmek için tutar ve faiz oranı giriniz.")
 
@@ -1349,6 +1358,9 @@ elif menu == "🧮 Hesap Araçları":
                             <p style="margin: 0; font-size: 14px; opacity: 0.9;">💡 Anlık Parite: 1 {st.session_state.cev_kaynak_isim} = {capraz_kur:,.4f} {st.session_state.cev_hedef_isim}</p>
                         </div>
                         """, unsafe_allow_html=True)
+
+                        # EKRAN KAYDIRMA KODU
+                        components.html("""<script>var ana_govde = window.parent.document.querySelector('.main') || window.parent.document.body; ana_govde.scrollTo({ top: ana_govde.scrollHeight, behavior: 'smooth' });</script>""", height=0)
                     else:
                         st.error("Seçilen varlıklardan birinin fiyatı şu an okunamıyor.")
                 except Exception as e:
