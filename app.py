@@ -1157,6 +1157,83 @@ elif menu == "🧮 Hesap Araçları":
                     st.metric("Toplam Faiz ve Vergi Yükü", f"{toplam_faiz:,.2f} ₺")
                     st.caption(f"*Seçilen tür için hesaplamaya {vergi_carpani}x vergi çarpanı dahil edilmiştir.*")
 
+    # HIZLI ÇEVİRİCİ
+    with tab_cevir:
+        st.subheader("💱 Canlı Döviz ve Maden Çevirici")
+        st.write("Anlık piyasa verileriyle varlıklarınızı birbirine dönüştürün.")
+
+        # Döviz/Maden listesi ve yfinance kodları
+        cevirim_secenekleri = [
+            "Türk Lirası (TRY)", 
+            "Amerikan Doları (USD)", 
+            "Euro (EUR)", 
+            "İngiliz Sterlini (GBP)", 
+            "Gram Altın", 
+            "Gram Gümüş",
+            "Bitcoin (BTC)"
+        ]
+
+        # Arayüz Kutuları
+        col1, col2, col3 = st.columns([2, 1, 2])
+        
+        with col1:
+            cevrilecek_tutar = st.number_input("Tutar Girin:", min_value=0.0, value=100.0, step=10.0)
+            kaynak_varlik = st.selectbox("Elinizdeki Varlık (Neden):", cevirim_secenekleri, index=1) # Varsayılan USD
+            
+        with col3:
+            st.markdown("<br>", unsafe_allow_html=True) # Kutuları hizalamak için boşluk
+            hedef_varlik = st.selectbox("Dönüşecek Varlık (Neye):", cevirim_secenekleri, index=0) # Varsayılan TRY
+
+        if st.button("🔄 Canlı Kurlarla Çevir", use_container_width=True, type="primary"):
+            with st.spinner("Güncel kurlar hesaplanıyor..."):
+                
+                # Arka planda TL fiyatlarını bulduğumuz yardımcı fonksiyon
+                def tl_karsiligini_bul(varlik_adi):
+                    usd_kuru = veri_getir("USDTRY=X")
+                    if usd_kuru == 0: usd_kuru = 1.0 # Hata önleme
+                    
+                    if varlik_adi == "Türk Lirası (TRY)":
+                        return 1.0
+                    elif varlik_adi == "Amerikan Doları (USD)":
+                        return usd_kuru
+                    elif varlik_adi == "Euro (EUR)":
+                        return veri_getir("EURTRY=X")
+                    elif varlik_adi == "İngiliz Sterlini (GBP)":
+                        return veri_getir("GBPTRY=X")
+                    elif varlik_adi == "Gram Altın":
+                        ons = veri_getir("GC=F")
+                        return (ons * usd_kuru) / 31.1035
+                    elif varlik_adi == "Gram Gümüş":
+                        ons_gumus = veri_getir("SI=F")
+                        return (ons_gumus * usd_kuru) / 31.1035
+                    elif varlik_adi == "Bitcoin (BTC)":
+                        btc_usd = veri_getir("BTC-USD")
+                        return btc_usd * usd_kuru
+                    return 1.0
+
+                try:
+                    # 1. Kaynak ve Hedefin 1 adetinin TL karşılığını buluyoruz
+                    kaynak_fiyat_tl = tl_karsiligini_bul(kaynak_varlik)
+                    hedef_fiyat_tl = tl_karsiligini_bul(hedef_varlik)
+                    
+                    # 2. Matematiksel Dönüşüm: (Tutar * Kaynak TL) / Hedef TL
+                    if hedef_fiyat_tl > 0:
+                        sonuc = (cevrilecek_tutar * kaynak_fiyat_tl) / hedef_fiyat_tl
+                        
+                        # Ekrana Şık Yazdırma (Birimlerin kısa isimlerini ayıklayarak)
+                        kisa_kaynak = kaynak_varlik.split('(')[-1].replace(')','') if '(' in kaynak_varlik else kaynak_varlik
+                        kisa_hedef = hedef_varlik.split('(')[-1].replace(')','') if '(' in hedef_varlik else hedef_varlik
+                        
+                        st.success(f"### {cevrilecek_tutar:,.2f} {kisa_kaynak} = {sonuc:,.4f} {kisa_hedef}")
+                        
+                        # Alt bilgi olarak 1 birimlik çapraz kuru gösterelim
+                        capraz_kur = kaynak_fiyat_tl / hedef_fiyat_tl
+                        st.info(f"💡 **Anlık Çapraz Kur:** 1 {kisa_kaynak} = {capraz_kur:,.4f} {kisa_hedef}")
+                    else:
+                        st.error("Hesaplama için veri çekilemedi.")
+                except Exception as e:
+                    st.error("Çeviri sırasında bir hata oluştu. Lütfen bağlantınızı kontrol edin.")
+                    
 # -----------------------------------------------------------------------------
 # SAYFA 5: TAKVİM VE TEMETTÜ 
 # -----------------------------------------------------------------------------
