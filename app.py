@@ -619,47 +619,48 @@ if menu == "📊 Genel Özet":
         "Avalanche": "AVAX-USD", "Binance Coin": "BNB-USD", "Ripple (XRP)": "XRP-USD"
     }
 
-    # 1. ARKA PLAN İŞLEMLERİ (Bu fonksiyonlar menüyü kapatmadan listeyi günceller)
-    def sil_aksiyonu():
-        item = st.session_state.sil_secim
-        if item != "Seçiniz..." and item in st.session_state.sag_panel_listesi:
-            del st.session_state.sag_panel_listesi[item]
+    # 1. ARKA PLAN İŞLEMLERİ (Artık Sadece Geçici Listeyi Günceller)
+    def sil_aksiyonu_temp():
+        item = st.session_state.sil_secim_popup
+        if item != "Seçiniz..." and item in st.session_state.temp_liste:
+            del st.session_state.temp_liste[item]
 
-    def hizli_ekle_aksiyonu():
+    def hizli_ekle_aksiyonu_temp():
         secilen = st.session_state.tablo_hizli_popup
         if secilen != "Seçiniz...":
-            st.session_state.sag_panel_listesi[secilen] = hazir_tablo_varliklar[secilen]
+            st.session_state.temp_liste[secilen] = hazir_tablo_varliklar[secilen]
 
-    def arama_ekle_aksiyonu(bulunanlar):
+    def arama_ekle_aksiyonu_temp(bulunanlar):
         secilen = st.session_state.tablo_sonuc_popup
         if secilen != "Lütfen Seçin...":
-            st.session_state.sag_panel_listesi[secilen.split('-')[0].strip()] = bulunanlar[secilen]
+            kisa_ad = secilen.split('-')[0].strip()
+            st.session_state.temp_liste[kisa_ad] = bulunanlar[secilen]
 
-    # 2. EKRANI KAPATMAYAN YENİ POPUP MENÜSÜ
+    # 2. GEÇİCİ HAFIZA İLE ÇALIŞAN YENİ POPUP MENÜSÜ
     @st.dialog("⚙️ Sağ Tablo Ayarları")
     def tablo_ayarlari_popup():
         st.markdown("**1. Sıralamayı Değiştir (Sürükle & Bırak)**")
         st.caption("👆 *Kutuları sürükleyerek sırayı belirleyin. Menü asla kapanmaz.*")
         
-        mevcut_liste = list(st.session_state.sag_panel_listesi.keys())
+        # Artık ana listeyi değil, geçici hafızayı okuyoruz
+        mevcut_liste = list(st.session_state.temp_liste.keys())
         
         if mevcut_liste:
-            yeni_sira = sort_items(mevcut_liste, direction="vertical")
+            yeni_sira = sort_items(mevcut_liste, direction="vertical", key="sort_popup")
             if yeni_sira != mevcut_liste:
-                st.session_state.sag_panel_listesi = {k: st.session_state.sag_panel_listesi[k] for k in yeni_sira}
+                st.session_state.temp_liste = {k: st.session_state.temp_liste[k] for k in yeni_sira}
                 
             st.markdown("---")
             st.markdown("**2. Listeden Çıkar**")
-            st.selectbox("Kaldırmak istediğiniz varlığı seçin:", ["Seçiniz..."] + mevcut_liste, key="sil_secim", label_visibility="collapsed")
-            # on_click özelliği sayesinde butona basılınca sadece silme işlemi yapılır, menü KAPANMAZ!
-            st.button("❌ Varlığı Sil", on_click=sil_aksiyonu, use_container_width=True)
+            st.selectbox("Kaldırmak istediğiniz varlığı seçin:", ["Seçiniz..."] + mevcut_liste, key="sil_secim_popup", label_visibility="collapsed")
+            st.button("❌ Varlığı Sil", on_click=sil_aksiyonu_temp, use_container_width=True)
         else:
             st.info("Listeniz şu an boş.")
             
         st.markdown("---")
         st.markdown("**3. Hızlı Ekle (Maden, Döviz, Kripto)**")
         st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_tablo_varliklar.keys()), key="tablo_hizli_popup", label_visibility="collapsed")
-        st.button("➕ Tabloya Ekle", on_click=hizli_ekle_aksiyonu, use_container_width=True, key="btn_hizli")
+        st.button("➕ Tabloya Ekle", on_click=hizli_ekle_aksiyonu_temp, use_container_width=True, key="btn_hizli")
 
         st.markdown("---")
         st.markdown("**4. Hisse/Fon Ara**")
@@ -668,12 +669,13 @@ if menu == "📊 Genel Özet":
             bulunanlar_tablo = yahoo_arama(arama_tablo) 
             if bulunanlar_tablo:
                 st.selectbox("Sonuçlar:", ["Lütfen Seçin..."] + list(bulunanlar_tablo.keys()), key="tablo_sonuc_popup")
-                st.button("➕ Arama Sonucunu Ekle", on_click=arama_ekle_aksiyonu, kwargs={"bulunanlar": bulunanlar_tablo}, use_container_width=True, key="btn_ara")
+                st.button("➕ Arama Sonucunu Ekle", on_click=arama_ekle_aksiyonu_temp, kwargs={"bulunanlar": bulunanlar_tablo}, use_container_width=True, key="btn_ara")
 
         st.markdown("---")
-        # Final işlemi: SADECE bu butona basılınca ekranı yeniler ve popup kapanır.
-        if st.button("✅ İşlemleri Bitir ve Kapat", type="primary", use_container_width=True):
-            st.rerun() 
+        # Final işlemi: SADECE bu butona basılınca ana tabloyu günceller ve ekranı yeniler
+        if st.button("✅ Kaydet ve Değişiklikleri Yansıt", type="primary", use_container_width=True):
+            st.session_state.sag_panel_listesi = st.session_state.temp_liste.copy()
+            st.rerun()
 
     # --- SAĞ KOLON (TABLO GÖRÜNÜMÜ) ---
     with sag_kolon:
@@ -749,6 +751,8 @@ if menu == "📊 Genel Özet":
 
         # Tablonun Altına Estetik Düzenle Butonu Ekleme
         if st.button("⚙️ Düzenle", key="tablo_ayar_buton_alt", use_container_width=True):
+            # Popup açılmadan hemen önce arka planın bir kopyasını (geçici hafıza) alır
+            st.session_state.temp_liste = st.session_state.sag_panel_listesi.copy()
             tablo_ayarlari_popup()
 
 # -----------------------------------------------------------------------------
