@@ -652,10 +652,10 @@ if menu == "📊 Genel Özet":
             yeni_sira = sort_items(mevcut_liste, direction="vertical", key=dinamik_key)
             
             # SADECE sıralama değiştiyse ve eleman sayısı aynıysa üzerine yaz. 
-            # Böylece yeni eleman eklerken silinmesinin önüne geçtik.
             if yeni_sira != mevcut_liste and len(yeni_sira) == len(mevcut_liste):
                 st.session_state.temp_liste = {k: st.session_state.temp_liste[k] for k in yeni_sira}
-                st.rerun() # Sıralamayı oturtmak için menüyü kendi içinde tazele
+                # DÜZELTME: Buradaki st.rerun() komutu pencereyi kapattığı için SİLİNDİ.
+                # Sürükle-bırak aracı zaten kendi yenilemesini yapıyor.
                 
             st.markdown("---")
             st.markdown("**2. Listeden Çıkar**")
@@ -682,6 +682,7 @@ if menu == "📊 Genel Özet":
         # Final işlemi: SADECE bu butona basılınca ana tabloyu günceller ve ekranı (arkayı) yeniler
         if st.button("✅ Kaydet ve Değişiklikleri Yansıt", type="primary", use_container_width=True):
             st.session_state.sag_panel_listesi = st.session_state.temp_liste.copy()
+            # BURASI DOĞRU: İşlem bitip kaydet dendiğinde pencerenin kapanması için rerun gereklidir.
             st.rerun()
 
     # --- SAĞ KOLON (TABLO GÖRÜNÜMÜ) ---
