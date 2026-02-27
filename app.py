@@ -1157,83 +1157,124 @@ elif menu == "🧮 Hesap Araçları":
                     st.metric("Toplam Faiz ve Vergi Yükü", f"{toplam_faiz:,.2f} ₺")
                     st.caption(f"*Seçilen tür için hesaplamaya {vergi_carpani}x vergi çarpanı dahil edilmiştir.*")
 
-    # HIZLI ÇEVİRİCİ
-    with tab_cevir:
-        st.subheader("💱 Canlı Döviz ve Maden Çevirici")
-        st.write("Anlık piyasa verileriyle varlıklarınızı birbirine dönüştürün.")
-
-        # Döviz/Maden listesi ve yfinance kodları
-        cevirim_secenekleri = [
-            "Türk Lirası (TRY)", 
-            "Amerikan Doları (USD)", 
-            "Euro (EUR)", 
-            "İngiliz Sterlini (GBP)", 
-            "Gram Altın", 
-            "Gram Gümüş",
-            "Bitcoin (BTC)"
-        ]
-
-        # Arayüz Kutuları
-        col1, col2, col3 = st.columns([2, 1, 2])
+    # --- ÇEVİRİCİ İÇİN HAFIZA (SESSION STATE) AYARLARI ---
+    if 'cev_kaynak_isim' not in st.session_state:
+        st.session_state.cev_kaynak_isim = "Amerikan Doları"
+        st.session_state.cev_kaynak_kod = "USDTRY=X"
         
-        with col1:
-            cevrilecek_tutar = st.number_input("Tutar Girin:", min_value=0.0, value=100.0, step=10.0)
-            kaynak_varlik = st.selectbox("Elinizdeki Varlık (Neden):", cevirim_secenekleri, index=1) # Varsayılan USD
-            
-        with col3:
-            st.markdown("<br>", unsafe_allow_html=True) # Kutuları hizalamak için boşluk
-            hedef_varlik = st.selectbox("Dönüşecek Varlık (Neye):", cevirim_secenekleri, index=0) # Varsayılan TRY
+    if 'cev_hedef_isim' not in st.session_state:
+        st.session_state.cev_hedef_isim = "Türk Lirası"
+        st.session_state.cev_hedef_kod = "TRY"
 
-        if st.button("🔄 Canlı Kurlarla Çevir", use_container_width=True, type="primary"):
-            with st.spinner("Güncel kurlar hesaplanıyor..."):
+    # --- ÇEVİRİCİ İÇİN AÇILIR PENCERE (POPUP) ---
+    @st.dialog("🔍 Varlık Seçimi")
+    def cevirici_varlik_sec_popup(tur_belirteci):
+        st.write(f"**{'Çevrilecek Varlığı' if tur_belirteci == 'kaynak' else 'Dönüşecek Varlığı'} Seçin:**")
+
+        st.markdown("**1. Hızlı Seçim (Döviz & Maden)**")
+        hazir_liste = {
+            "Türk Lirası": "TRY", "Amerikan Doları": "USDTRY=X", "Euro": "EURTRY=X", 
+            "Gram Altın": "GRAM-ALTIN", "Gram Gümüş": "GRAM-GUMUS", 
+            "Bitcoin": "BTC-USD", "Ethereum": "ETH-USD"
+        }
+        sec_hizli = st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_liste.keys()), key=f"hizli_{tur_belirteci}")
+        
+        if st.button("✅ Hızlı Seçimi Onayla", key=f"btn_hizli_{tur_belirteci}", use_container_width=True):
+            if sec_hizli != "Seçiniz...":
+                if tur_belirteci == "kaynak":
+                    st.session_state.cev_kaynak_isim = sec_hizli
+                    st.session_state.cev_kaynak_kod = hazir_liste[sec_hizli]
+                else:
+                    st.session_state.cev_hedef_isim = sec_hizli
+                    st.session_state.cev_hedef_kod = hazir_liste[sec_hizli]
+                st.rerun() # Seçimi yapıp pencereyi kapatır
+
+        st.markdown("---")
+        st.markdown("**2. Hisse, Fon veya Kripto Ara**")
+        ara_kelime = st.text_input("Arama Kelimesi:", placeholder="Örn: THYAO, AAPL, SOL", key=f"ara_{tur_belirteci}")
+        if ara_kelime:
+            # Daha önce yazdığımız yahoo_arama fonksiyonunu kullanıyoruz
+            bulunanlar = yahoo_arama(ara_kelime)
+            if bulunanlar:
+                sec_ara = st.selectbox("Sonuçlar:", ["Lütfen Seçin..."] + list(bulunanlar.keys()), key=f"sonuc_{tur_belirteci}")
+                if st.button("✅ Arama Sonucunu Onayla", key=f"btn_ara_{tur_belirteci}", use_container_width=True, type="primary"):
+                    if sec_ara != "Lütfen Seçin...":
+                        isim = sec_ara.split('-')[0].strip() # Sadece kısa adı alır
+                        kod = bulunanlar[sec_ara]
+                        if tur_belirteci == "kaynak":
+                            st.session_state.cev_kaynak_isim = isim
+                            st.session_state.cev_kaynak_kod = kod
+                        else:
+                            st.session_state.cev_hedef_isim = isim
+                            st.session_state.cev_hedef_kod = kod
+                        st.rerun()
+
+    # --- HIZLI ÇEVİRİCİ ANA EKRANI ---
+    with tab_cevir:
+        st.subheader("💱 Canlı Sınırsız Çevirici")
+        st.write("İstediğiniz hisseyi, fonu, kriptoyu veya dövizi birbirine dönüştürün.")
+
+        col_tutar, col_kaynak, col_hedef = st.columns([1.5, 2, 2])
+        
+        with col_tutar:
+            cevrilecek_tutar = st.number_input("Miktar / Adet:", min_value=0.0000, value=1.0, step=1.0, format="%f")
+            
+        with col_kaynak:
+            st.write("**Elinizdeki Varlık:**")
+            st.info(f"🪙 {st.session_state.cev_kaynak_isim}")
+            if st.button("⚙️ Kaynak Değiştir", use_container_width=True):
+                cevirici_varlik_sec_popup("kaynak")
                 
-                # Arka planda TL fiyatlarını bulduğumuz yardımcı fonksiyon
-                def tl_karsiligini_bul(varlik_adi):
-                    usd_kuru = veri_getir("USDTRY=X")
-                    if usd_kuru == 0: usd_kuru = 1.0 # Hata önleme
+        with col_hedef:
+            st.write("**Dönüşecek Varlık:**")
+            st.success(f"🎯 {st.session_state.cev_hedef_isim}")
+            if st.button("⚙️ Hedef Değiştir", use_container_width=True):
+                cevirici_varlik_sec_popup("hedef")
+
+        if st.button("🔄 Anlık Kurlarla Hesapla", use_container_width=True, type="primary"):
+            with st.spinner("Piyasa verileri çekiliyor..."):
+                
+                # Akıllı TL Çevirme Motoru
+                def tl_degeri_hesapla(kod):
+                    if kod == "TRY": return 1.0
                     
-                    if varlik_adi == "Türk Lirası (TRY)":
-                        return 1.0
-                    elif varlik_adi == "Amerikan Doları (USD)":
-                        return usd_kuru
-                    elif varlik_adi == "Euro (EUR)":
-                        return veri_getir("EURTRY=X")
-                    elif varlik_adi == "İngiliz Sterlini (GBP)":
-                        return veri_getir("GBPTRY=X")
-                    elif varlik_adi == "Gram Altın":
-                        ons = veri_getir("GC=F")
-                        return (ons * usd_kuru) / 31.1035
-                    elif varlik_adi == "Gram Gümüş":
-                        ons_gumus = veri_getir("SI=F")
-                        return (ons_gumus * usd_kuru) / 31.1035
-                    elif varlik_adi == "Bitcoin (BTC)":
-                        btc_usd = veri_getir("BTC-USD")
-                        return btc_usd * usd_kuru
-                    return 1.0
+                    usd_kuru = veri_getir("USDTRY=X")
+                    if usd_kuru == 0: usd_kuru = 1.0
+                    
+                    # 1. Özel Maden Durumları
+                    if kod == "GRAM-ALTIN": return (veri_getir("GC=F") * usd_kuru) / 31.1035
+                    if kod == "GRAM-GUMUS": return (veri_getir("SI=F") * usd_kuru) / 31.1035
+                    if kod == "GRAM-PLATIN": return (veri_getir("PL=F") * usd_kuru) / 31.1035
+                    
+                    # 2. Standart Piyasa Verisi (Hisse, Döviz, Kripto)
+                    fiyat = veri_getir(kod)
+                    
+                    # 3. Akıllı Kur Çevirici: Eğer hisse BİST hissesi (.IS) veya TL paritesi ise fiyat zaten TL'dir.
+                    # Değilse (Örn: Apple veya Bitcoin) Dolar fiyatını TL'ye çevir.
+                    if ".IS" in kod or "TRY" in kod:
+                        return fiyat
+                    else:
+                        return fiyat * usd_kuru
 
                 try:
-                    # 1. Kaynak ve Hedefin 1 adetinin TL karşılığını buluyoruz
-                    kaynak_fiyat_tl = tl_karsiligini_bul(kaynak_varlik)
-                    hedef_fiyat_tl = tl_karsiligini_bul(hedef_varlik)
+                    k_kod = st.session_state.cev_kaynak_kod
+                    h_kod = st.session_state.cev_hedef_kod
                     
-                    # 2. Matematiksel Dönüşüm: (Tutar * Kaynak TL) / Hedef TL
-                    if hedef_fiyat_tl > 0:
-                        sonuc = (cevrilecek_tutar * kaynak_fiyat_tl) / hedef_fiyat_tl
+                    kaynak_tl = tl_degeri_hesapla(k_kod)
+                    hedef_tl = tl_degeri_hesapla(h_kod)
+                    
+                    if hedef_tl > 0 and kaynak_tl > 0:
+                        sonuc = (cevrilecek_tutar * kaynak_tl) / hedef_tl
+                        capraz_kur = kaynak_tl / hedef_tl
                         
-                        # Ekrana Şık Yazdırma (Birimlerin kısa isimlerini ayıklayarak)
-                        kisa_kaynak = kaynak_varlik.split('(')[-1].replace(')','') if '(' in kaynak_varlik else kaynak_varlik
-                        kisa_hedef = hedef_varlik.split('(')[-1].replace(')','') if '(' in hedef_varlik else hedef_varlik
-                        
-                        st.success(f"### {cevrilecek_tutar:,.2f} {kisa_kaynak} = {sonuc:,.4f} {kisa_hedef}")
-                        
-                        # Alt bilgi olarak 1 birimlik çapraz kuru gösterelim
-                        capraz_kur = kaynak_fiyat_tl / hedef_fiyat_tl
-                        st.info(f"💡 **Anlık Çapraz Kur:** 1 {kisa_kaynak} = {capraz_kur:,.4f} {kisa_hedef}")
+                        st.markdown("---")
+                        st.markdown(f"<h3 style='text-align: center; color: #10b981;'>{cevrilecek_tutar:,.2f} {st.session_state.cev_kaynak_isim} = {sonuc:,.4f} {st.session_state.cev_hedef_isim}</h3>", unsafe_allow_html=True)
+                        st.markdown(f"<p style='text-align: center; color: #888;'>💡 <b>Anlık Parite:</b> 1 {st.session_state.cev_kaynak_isim} = {capraz_kur:,.4f} {st.session_state.cev_hedef_isim}</p>", unsafe_allow_html=True)
                     else:
-                        st.error("Hesaplama için veri çekilemedi.")
+                        st.error("Seçilen varlıklardan birinin fiyatı şu an okunamıyor.")
                 except Exception as e:
-                    st.error("Çeviri sırasında bir hata oluştu. Lütfen bağlantınızı kontrol edin.")
-                    
+                    st.error(f"Hesaplama hatası. Kodları kontrol edin.")
+
 # -----------------------------------------------------------------------------
 # SAYFA 5: TAKVİM VE TEMETTÜ 
 # -----------------------------------------------------------------------------
