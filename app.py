@@ -1078,24 +1078,57 @@ elif menu == "🧮 Hesap Araçları":
     
     tab_mal, tab_kredi, tab_cevir = st.tabs(["📉 Maliyet Düşürme", "🏦 Kredi Hesapla", "💱 Hızlı Çevirici"])
     
-    # MALİYET DÜŞÜRME
+    # ---------------------------------------------------------
+    # 📉 MALİYET DÜŞÜRME EKRANI (ŞIK TASARIM)
+    # ---------------------------------------------------------
     with tab_mal:
-        st.subheader("Ortalama Maliyet Hesaplayıcı")
-        col1, col2 = st.columns(2)
-        with col1:
-            mevcut_adet = st.number_input("Mevcut Adet", min_value=0.0, format="%f")
-            mevcut_maliyet = st.number_input("Mevcut Maliyet (₺)", min_value=0.0, format="%f")
-        with col2:
-            yeni_adet = st.number_input("Yeni Alınacak Adet", min_value=0.0, format="%f")
-            yeni_fiyat = st.number_input("Yeni Alış Fiyatı (₺)", min_value=0.0, format="%f")
-            
-        if mevcut_adet + yeni_adet > 0:
-            yeni_ortalama = ((mevcut_adet * mevcut_maliyet) + (yeni_adet * yeni_fiyat)) / (mevcut_adet + yeni_adet)
-            st.success(f"**Yeni Ortalama Maliyetiniz:** {yeni_ortalama:,.2f} ₺")
+        st.markdown("<h3 style='margin-bottom: 5px;'>📉 Ortalama Maliyet Hesaplayıcı</h3>", unsafe_allow_html=True)
+        st.markdown("<span style='color: #a3a3a3; font-size: 14px;'>Elinizdeki varlığa yeni alım yaptığınızda ortalama maliyetinizin ne olacağını önceden görün.</span>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-    # KREDİ HESAPLAYICI
+        c_mevcut, c_arti, c_yeni = st.columns([4, 1, 4], gap="medium")
+        
+        with c_mevcut:
+            with st.container(border=True):
+                st.caption("📦 MEVCUT DURUM")
+                mevcut_adet = st.number_input("Mevcut Adetiniz:", min_value=0.0, format="%f", value=100.0)
+                mevcut_maliyet = st.number_input("Mevcut Maliyetiniz (₺):", min_value=0.0, format="%f", value=50.0)
+
+        with c_arti:
+            # Araya şık bir artı işareti ekliyoruz
+            st.markdown("<div style='text-align: center; font-size: 40px; margin-top: 50px; color: #4b5563;'>➕</div>", unsafe_allow_html=True)
+            
+        with c_yeni:
+            with st.container(border=True):
+                st.caption("🛒 YENİ ALIM")
+                yeni_adet = st.number_input("Yeni Alınacak Adet:", min_value=0.0, format="%f", value=50.0)
+                yeni_fiyat = st.number_input("Yeni Alış Fiyatı (₺):", min_value=0.0, format="%f", value=40.0)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        if st.button("🔄 YENİ MALİYETİ HESAPLA", use_container_width=True, type="primary"):
+            if mevcut_adet + yeni_adet > 0:
+                yeni_ortalama = ((mevcut_adet * mevcut_maliyet) + (yeni_adet * yeni_fiyat)) / (mevcut_adet + yeni_adet)
+                toplam_adet = mevcut_adet + yeni_adet
+                toplam_tutar = (mevcut_adet * mevcut_maliyet) + (yeni_adet * yeni_fiyat)
+                
+                st.markdown(f"""
+                <div style="background: linear-gradient(90deg, #1e3a8a, #3b82f6); padding: 25px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-top: 15px;">
+                    <h4 style="margin: 0; opacity: 0.8; font-weight: 500; font-size: 16px;">YENİ ORTALAMA MALİYETİNİZ</h4>
+                    <h1 style="margin: 15px 0; font-size: 38px; font-weight: 800;">{yeni_ortalama:,.2f} ₺</h1>
+                    <p style="margin: 0; font-size: 15px; opacity: 0.9;">📦 Toplam Adet: <b>{toplam_adet:,.2f}</b> &nbsp;|&nbsp; 💰 Toplam Yatırım: <b>{toplam_tutar:,.2f} ₺</b></p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.error("Lütfen hesaplama yapabilmek için adet giriniz.")
+
+    # ---------------------------------------------------------
+    # 🏦 KREDİ HESAPLAYICI EKRANI (ŞIK TASARIM)
+    # ---------------------------------------------------------
     with tab_kredi:
-        st.subheader("Gelişmiş Kredi Hesaplama Aracı")
+        st.markdown("<h3 style='margin-bottom: 5px;'>🏦 Gelişmiş Kredi Hesaplama Aracı</h3>", unsafe_allow_html=True)
+        st.markdown("<span style='color: #a3a3a3; font-size: 14px;'>Vergi dilimleri dahil edilmiş gerçek maliyetlerle kredilerinizi analiz edin.</span>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         
         kredi_veriler = {
             "İhtiyaç Kredisi": {"oran": 4.29, "vergi_carpani": 1.30},
@@ -1104,58 +1137,73 @@ elif menu == "🧮 Hesap Araçları":
             "Ticari Kredi": {"oran": 3.59, "vergi_carpani": 1.05}
         }
         
-        c_tur, c_mod = st.columns(2)
-        kredi_turu = c_tur.selectbox("Kredi Türü Seçin:", list(kredi_veriler.keys()))
-        hesap_modu = c_mod.radio("Hesaplama Yöntemi:", ["Çekilecek Tutara Göre (Taksit Hesapla)", "Aylık Taksite Göre (Çekilebilir Tutar Hesapla)"])
+        # Üst Panel: Temel Ayarlar
+        with st.container(border=True):
+            c_tur, c_mod = st.columns(2)
+            kredi_turu = c_tur.selectbox("📋 Kredi Türü Seçin:", list(kredi_veriler.keys()))
+            hesap_modu = c_mod.radio("⚙️ Hesaplama Yöntemi:", ["Çekilecek Tutara Göre (Taksit Hesapla)", "Aylık Taksite Göre (Çekilebilir Tutar Hesapla)"])
         
         varsayilan_oran = kredi_veriler[kredi_turu]["oran"]
         vergi_carpani = kredi_veriler[kredi_turu]["vergi_carpani"]
         
-        st.markdown("---")
-        
-        col1, col2 = st.columns([1, 1])
-        
-        # 1. MOD: TUTARA GÖRE TAKSİT HESAPLAMA
-        if hesap_modu == "Çekilecek Tutara Göre (Taksit Hesapla)":
-            with col1:
-                k_tutar = st.number_input("Çekmek İstediğiniz Tutar (₺)", min_value=0.0, step=10000.0, value=100000.0)
-                k_vade = st.selectbox("Vade (Ay)", [12, 24, 36, 48, 60, 120])
-                k_faiz = st.number_input("Aylık Faiz Oranı (%)", min_value=0.0, format="%f", value=float(varsayilan_oran))
-                
-            with col2:
-                st.markdown("### Hesaplama Sonucu")
-                if k_tutar > 0 and k_faiz > 0:
-                    r = (k_faiz / 100.0) * vergi_carpani
-                    n = k_vade
-                    taksit = k_tutar * (r * (1 + r)**n) / ((1 + r)**n - 1)
-                    toplam_odeme = taksit * n
-                    toplam_faiz = toplam_odeme - k_tutar
-                    
-                    st.metric("Aylık Taksitiniz", f"{taksit:,.2f} ₺")
-                    st.metric("Toplam Geri Ödeme", f"{toplam_odeme:,.2f} ₺")
-                    st.metric("Toplam Faiz ve Vergi Yükü", f"{toplam_faiz:,.2f} ₺")
-                    st.caption(f"*Seçilen tür için hesaplamaya {vergi_carpani}x vergi çarpanı dahil edilmiştir.*")
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        # 2. MOD: TAKSİTE GÖRE ÇEKİLEBİLİR TUTAR HESAPLAMA
-        else:
-            with col1:
-                k_taksit = st.number_input("Aylık Ödeyebileceğiniz Taksit (₺)", min_value=0.0, step=1000.0, value=5000.0)
-                k_vade = st.selectbox("Vade (Ay) ", [12, 24, 36, 48, 60, 120])
-                k_faiz = st.number_input("Aylık Faiz Oranı (%) ", min_value=0.0, format="%f", value=float(varsayilan_oran))
+        # Alt Panel: Değer Girişleri
+        with st.container(border=True):
+            c1, c2, c3 = st.columns(3)
+            
+            if hesap_modu == "Çekilecek Tutara Göre (Taksit Hesapla)":
+                k_tutar = c1.number_input("💵 Çekilecek Tutar (₺)", min_value=0.0, step=10000.0, value=100000.0)
+                k_taksit = 0 # Diğer mod için boş bırakıyoruz
+            else:
+                k_taksit = c1.number_input("💵 Aylık Ödenecek Taksit (₺)", min_value=0.0, step=1000.0, value=5000.0)
+                k_tutar = 0 # Diğer mod için boş bırakıyoruz
                 
-            with col2:
-                st.markdown("### Hesaplama Sonucu")
-                if k_taksit > 0 and k_faiz > 0:
-                    r = (k_faiz / 100.0) * vergi_carpani
-                    n = k_vade
-                    P = k_taksit * ((1 + r)**n - 1) / (r * (1 + r)**n)
+            k_vade = c2.selectbox("📅 Vade (Ay)", [12, 24, 36, 48, 60, 120])
+            k_faiz = c3.number_input("📈 Aylık Faiz Oranı (%)", min_value=0.0, format="%f", value=float(varsayilan_oran))
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        if st.button("🔄 KREDİ DETAYLARINI HESAPLA", use_container_width=True, type="primary"):
+            if k_faiz > 0 and (k_tutar > 0 or k_taksit > 0):
+                r = (k_faiz / 100.0) * vergi_carpani
+                n = k_vade
+                
+                # Matematiksel Hesaplamalar
+                if hesap_modu == "Çekilecek Tutara Göre (Taksit Hesapla)":
+                    ana_deger = k_tutar * (r * (1 + r)**n) / ((1 + r)**n - 1)
+                    baslik = "AYLIK ÖDEYECEĞİNİZ TAKSİT"
+                    toplam_odeme = ana_deger * n
+                    toplam_faiz = toplam_odeme - k_tutar
+                else:
+                    ana_deger = k_taksit * ((1 + r)**n - 1) / (r * (1 + r)**n)
+                    baslik = "ÇEKEBİLECEĞİNİZ MAKSİMUM TUTAR"
                     toplam_odeme = k_taksit * n
-                    toplam_faiz = toplam_odeme - P
+                    toplam_faiz = toplam_odeme - ana_deger
+                
+                # Profesyonel Sonuç Kartı
+                st.markdown(f"""
+                <div style="background: linear-gradient(90deg, #1e3a8a, #3b82f6); padding: 25px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-top: 15px;">
+                    <h4 style="margin: 0; opacity: 0.8; font-weight: 500; font-size: 16px;">{baslik}</h4>
+                    <h1 style="margin: 10px 0 20px 0; font-size: 38px; font-weight: 800;">{ana_deger:,.2f} ₺</h1>
                     
-                    st.metric("Çekebileceğiniz Maksimum Kredi", f"{P:,.2f} ₺")
-                    st.metric("Toplam Geri Ödeme", f"{toplam_odeme:,.2f} ₺")
-                    st.metric("Toplam Faiz ve Vergi Yükü", f"{toplam_faiz:,.2f} ₺")
-                    st.caption(f"*Seçilen tür için hesaplamaya {vergi_carpani}x vergi çarpanı dahil edilmiştir.*")
+                    <div style="display: flex; justify-content: space-around; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2);">
+                        <div>
+                            <span style="font-size: 13px; opacity: 0.8;">Toplam Geri Ödeme</span><br>
+                            <span style="font-size: 20px; font-weight: bold;">{toplam_odeme:,.2f} ₺</span>
+                        </div>
+                        <div>
+                            <span style="font-size: 13px; opacity: 0.8;">Toplam Faiz + Vergi Yükü</span><br>
+                            <span style="font-size: 20px; font-weight: bold;">{toplam_faiz:,.2f} ₺</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; font-size: 11px; opacity: 0.6; font-style: italic;">
+                        *Hesaplamaya yasal {vergi_carpani}x vergi çarpanı (BSMV/KKDF) dahil edilmiştir.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.error("Lütfen hesaplama yapabilmek için tutar ve faiz oranı giriniz.")
 
     # --- ÇEVİRİCİ İÇİN AÇILIR PENCERE (POPUP) ---
     @st.dialog("🔍 Varlık Seçimi")
