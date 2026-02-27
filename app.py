@@ -1181,27 +1181,26 @@ elif menu == "🧮 Hesap Araçları":
                     toplam_odeme = k_taksit * n
                     toplam_faiz = toplam_odeme - ana_deger
                 
-                # Profesyonel Sonuç Kartı
+                # Profesyonel Sonuç Kartı (Girintiler ve boşluklar düzeltildi)
                 st.markdown(f"""
-                <div style="background: linear-gradient(90deg, #1e3a8a, #3b82f6); padding: 25px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-top: 15px;">
-                    <h4 style="margin: 0; opacity: 0.8; font-weight: 500; font-size: 16px;">{baslik}</h4>
-                    <h1 style="margin: 10px 0 20px 0; font-size: 38px; font-weight: 800;">{ana_deger:,.2f} ₺</h1>
-                    
-                    <div style="display: flex; justify-content: space-around; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2);">
-                        <div>
-                            <span style="font-size: 13px; opacity: 0.8;">Toplam Geri Ödeme</span><br>
-                            <span style="font-size: 20px; font-weight: bold;">{toplam_odeme:,.2f} ₺</span>
-                        </div>
-                        <div>
-                            <span style="font-size: 13px; opacity: 0.8;">Toplam Faiz + Vergi Yükü</span><br>
-                            <span style="font-size: 20px; font-weight: bold;">{toplam_faiz:,.2f} ₺</span>
-                        </div>
-                    </div>
-                    <div style="margin-top: 15px; font-size: 11px; opacity: 0.6; font-style: italic;">
-                        *Hesaplamaya yasal {vergi_carpani}x vergi çarpanı (BSMV/KKDF) dahil edilmiştir.
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+<div style="background: linear-gradient(90deg, #1e3a8a, #3b82f6); padding: 25px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-top: 15px;">
+    <h4 style="margin: 0; opacity: 0.8; font-weight: 500; font-size: 16px;">{baslik}</h4>
+    <h1 style="margin: 10px 0 20px 0; font-size: 38px; font-weight: 800;">{ana_deger:,.2f} ₺</h1>
+    <div style="display: flex; justify-content: space-around; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2);">
+        <div>
+            <span style="font-size: 13px; opacity: 0.8;">Toplam Geri Ödeme</span><br>
+            <span style="font-size: 20px; font-weight: bold;">{toplam_odeme:,.2f} ₺</span>
+        </div>
+        <div>
+            <span style="font-size: 13px; opacity: 0.8;">Toplam Faiz + Vergi Yükü</span><br>
+            <span style="font-size: 20px; font-weight: bold;">{toplam_faiz:,.2f} ₺</span>
+        </div>
+    </div>
+    <div style="margin-top: 15px; font-size: 11px; opacity: 0.6; font-style: italic;">
+        *Hesaplamaya yasal {vergi_carpani}x vergi çarpanı (BSMV/KKDF) dahil edilmiştir.
+    </div>
+</div>
+""", unsafe_allow_html=True)
             else:
                 st.error("Lütfen hesaplama yapabilmek için tutar ve faiz oranı giriniz.")
 
