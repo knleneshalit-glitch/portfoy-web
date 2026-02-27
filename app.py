@@ -501,7 +501,16 @@ if menu == "📊 Genel Özet":
         if df_varlik.empty:
             st.info("Portföyünüzde henüz varlık bulunmuyor. Yan menüden işlem ekleyerek başlayabilirsiniz!")
         else:
+            # --- YENİ DİNAMİK CANLI HESAPLAMA ---
+            # Veritabanındaki eski fiyata bakmak yerine, guncel_fiyat_bul fonksiyonu ile 
+            # o anki saniyelik fiyatı çekip veri çerçevemize (dataframe) işliyoruz.
+            df_varlik['guncel_fiyat'] = df_varlik['sembol'].apply(lambda x: guncel_fiyat_bul(x, fiyatlar))
+            
+            # Matematiksel hesaplamalar artık bu yepyeni canlı fiyatlar üzerinden yapılıyor
             df_varlik['Yatirim'] = df_varlik['miktar'] * df_varlik['ort_maliyet']
+            df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
+            df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
+            df_varlik['Degisim_%'] = (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100
             df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
             df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
             df_varlik['Degisim_%'] = (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100
