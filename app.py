@@ -606,6 +606,11 @@ if menu == "📊 Genel Özet":
                         legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.0) 
                     )
                     st.plotly_chart(fig, use_container_width=True)
+
+                    # --- GOOGLE ADS BURAYA GELECEK ---
+                    st.markdown("---") # Çizgi çeker
+                    google_ads_goster(reklam_birimi_id="1234567890", yukseklik=120) 
+                    # (1234567890 yerine Google AdSense panelinden oluşturduğunuz reklam birimi kodunu yazmalısınız)
                 else:
                     st.warning("Grafik için veri yok.")
                 
