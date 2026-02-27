@@ -1157,26 +1157,33 @@ elif menu == "🧮 Hesap Araçları":
                     st.metric("Toplam Faiz ve Vergi Yükü", f"{toplam_faiz:,.2f} ₺")
                     st.caption(f"*Seçilen tür için hesaplamaya {vergi_carpani}x vergi çarpanı dahil edilmiştir.*")
 
-    # --- ÇEVİRİCİ İÇİN HAFIZA (SESSION STATE) AYARLARI ---
-    if 'cev_kaynak_isim' not in st.session_state:
-        st.session_state.cev_kaynak_isim = "Amerikan Doları"
-        st.session_state.cev_kaynak_kod = "USDTRY=X"
-        
-    if 'cev_hedef_isim' not in st.session_state:
-        st.session_state.cev_hedef_isim = "Türk Lirası"
-        st.session_state.cev_hedef_kod = "TRY"
-
     # --- ÇEVİRİCİ İÇİN AÇILIR PENCERE (POPUP) ---
     @st.dialog("🔍 Varlık Seçimi")
     def cevirici_varlik_sec_popup(tur_belirteci):
         st.write(f"**{'Çevrilecek Varlığı' if tur_belirteci == 'kaynak' else 'Dönüşecek Varlığı'} Seçin:**")
 
         st.markdown("**1. Hızlı Seçim (Döviz & Maden)**")
+        
+        # --- LİSTE ZENGİNLEŞTİRİLDİ ---
         hazir_liste = {
-            "Türk Lirası": "TRY", "Amerikan Doları": "USDTRY=X", "Euro": "EURTRY=X", 
-            "Gram Altın": "GRAM-ALTIN", "Gram Gümüş": "GRAM-GUMUS", 
-            "Bitcoin": "BTC-USD", "Ethereum": "ETH-USD"
+            "Türk Lirası (TRY)": "TRY", 
+            "Amerikan Doları (USD)": "USDTRY=X", 
+            "Euro (EUR)": "EURTRY=X", 
+            "İngiliz Sterlini (GBP)": "GBPTRY=X",
+            "İsviçre Frangı (CHF)": "CHFTRY=X",
+            "Japon Yeni (JPY)": "JPYTRY=X",
+            "Gram Altın": "GRAM-ALTIN", 
+            "Çeyrek Altın": "CEYREK-ALTIN",
+            "Yarım Altın": "YARIM-ALTIN",
+            "Tam Altın": "TAM-ALTIN",
+            "Ata (Cumhuriyet)": "ATA-ALTIN",
+            "Ons Altın ($)": "ONS-ALTIN",
+            "Gram Gümüş": "GRAM-GUMUS", 
+            "Gram Platin": "GRAM-PLATIN",
+            "Bitcoin (BTC)": "BTC-USD", 
+            "Ethereum (ETH)": "ETH-USD"
         }
+        
         sec_hizli = st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_liste.keys()), key=f"hizli_{tur_belirteci}")
         
         if st.button("✅ Hızlı Seçimi Onayla", key=f"btn_hizli_{tur_belirteci}", use_container_width=True):
@@ -1187,7 +1194,7 @@ elif menu == "🧮 Hesap Araçları":
                 else:
                     st.session_state.cev_hedef_isim = sec_hizli
                     st.session_state.cev_hedef_kod = hazir_liste[sec_hizli]
-                st.rerun() # Seçimi yapıp pencereyi kapatır
+                st.rerun() 
 
         st.markdown("---")
         st.markdown("**2. Hisse, Fon veya Kripto Ara**")
@@ -1249,16 +1256,27 @@ elif menu == "🧮 Hesap Araçları":
         if st.button("🔄 ANLIK KURLARLA HESAPLA", use_container_width=True, type="primary"):
             with st.spinner("Piyasa verileri çekiliyor..."):
                 
-                # Akıllı TL Çevirme Motoru (Mantık aynı kaldı)
+                # Akıllı TL Çevirme Motoru (GELİŞTİRİLMİŞ)
                 def tl_degeri_hesapla(kod):
                     if kod == "TRY": return 1.0
                     usd_kuru = veri_getir("USDTRY=X")
                     if usd_kuru == 0: usd_kuru = 1.0
                     
-                    if kod == "GRAM-ALTIN": return (veri_getir("GC=F") * usd_kuru) / 31.1035
+                    # 1. Altın Çeşitleri İçin Ortak Gram Fiyatı
+                    has_altin_gram_tl = (veri_getir("GC=F") * usd_kuru) / 31.1035
+                    
+                    if kod == "GRAM-ALTIN": return has_altin_gram_tl
+                    if kod == "CEYREK-ALTIN": return has_altin_gram_tl * 1.6065
+                    if kod == "YARIM-ALTIN": return has_altin_gram_tl * 3.2130
+                    if kod == "TAM-ALTIN": return has_altin_gram_tl * 6.4260
+                    if kod == "ATA-ALTIN": return has_altin_gram_tl * 6.6080
+                    if kod == "ONS-ALTIN": return veri_getir("GC=F") * usd_kuru # Ons fiyatı x Dolar Kuru
+                    
+                    # 2. Diğer Madenler
                     if kod == "GRAM-GUMUS": return (veri_getir("SI=F") * usd_kuru) / 31.1035
                     if kod == "GRAM-PLATIN": return (veri_getir("PL=F") * usd_kuru) / 31.1035
                     
+                    # 3. Standart Piyasa Verisi (Hisse, Döviz, Kripto)
                     fiyat = veri_getir(kod)
                     if ".IS" in kod or "TRY" in kod:
                         return fiyat
