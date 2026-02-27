@@ -13,6 +13,8 @@ import requests
 import xml.etree.ElementTree as ET
 
 from streamlit_sortables import sort_items
+from streamlit_sortables import sort_items
+from streamlit_autorefresh import st_autorefresh  # <-- YENİ EKLENEN KÜTÜPHANE
 
 # --- KULLANICI DOĞRULAMA (AUTH) AYARLARI ---
 # Bu satır kodun en üstünde olmalı!
@@ -115,6 +117,12 @@ if st.session_state.user is None:
     st.stop() # Giriş yapılmadıysa kodun geri kalanını çalıştırma!
 
 user_id = st.session_state.user.id # Artık her yerde bu ID'yi kullanacağız
+
+# =============================================================================
+# OTOMATİK CANLI YENİLEME SİSTEMİ
+# =============================================================================
+# Sayfayı her 60.000 milisaniyede (60 saniyede) bir otomatik olarak baştan çalıştırır.
+st_autorefresh(interval=60000, key="canli_piyasa_guncelleme")
 
 # =============================================================================
 # BULUT VERİTABANI BAĞLANTISI (SUPABASE)
