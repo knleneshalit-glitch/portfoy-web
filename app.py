@@ -1121,8 +1121,18 @@ elif menu == "🧮 Hesap Araçları":
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # EKRAN KAYDIRMA KODU
-                components.html("""<script>var ana_govde = window.parent.document.querySelector('.main') || window.parent.document.body; ana_govde.scrollTo({ top: ana_govde.scrollHeight, behavior: 'smooth' });</script>""", height=0)
+                # YENİ EKRAN KAYDIRMA KODU (Gecikmeli ve Garantili)
+                components.html("""
+                <script>
+                    setTimeout(function() {
+                        var parent = window.parent.document;
+                        // Streamlit'in güncel kaydırma alanını bulur
+                        var ana_govde = parent.querySelector('.stAppViewContainer') || parent.querySelector('.main') || parent.body;
+                        // Yumuşakça en aşağı kaydırır
+                        ana_govde.scrollTo({ top: ana_govde.scrollHeight, behavior: 'smooth' });
+                    }, 150); // Ekranın önce yüklenmesi için 150 milisaniye bekler
+                </script>
+                """, height=0)
 
             else:
                 st.error("Lütfen hesaplama yapabilmek için adet giriniz.")
@@ -1207,8 +1217,18 @@ elif menu == "🧮 Hesap Araçları":
 </div>
 """, unsafe_allow_html=True)
                 
-                # EKRAN KAYDIRMA KODU (Kredi bölümüne eklendi)
-                components.html("""<script>var ana_govde = window.parent.document.querySelector('.main') || window.parent.document.body; ana_govde.scrollTo({ top: ana_govde.scrollHeight, behavior: 'smooth' });</script>""", height=0)
+                # YENİ EKRAN KAYDIRMA KODU (Gecikmeli ve Garantili)
+                components.html("""
+                <script>
+                    setTimeout(function() {
+                        var parent = window.parent.document;
+                        // Streamlit'in güncel kaydırma alanını bulur
+                        var ana_govde = parent.querySelector('.stAppViewContainer') || parent.querySelector('.main') || parent.body;
+                        // Yumuşakça en aşağı kaydırır
+                        ana_govde.scrollTo({ top: ana_govde.scrollHeight, behavior: 'smooth' });
+                    }, 150); // Ekranın önce yüklenmesi için 150 milisaniye bekler
+                </script>
+                """, height=0)
                 
             else:
                 st.error("Lütfen hesaplama yapabilmek için tutar ve faiz oranı giriniz.")
@@ -1307,8 +1327,7 @@ elif menu == "🧮 Hesap Araçları":
                     cevirici_varlik_sec_popup("hedef")
 
         st.markdown("<br>", unsafe_allow_html=True)
-
-        # 3. BÖLÜM: HESAPLAMA VE ŞIK SONUÇ PANOSU
+# 3. BÖLÜM: HESAPLAMA VE ŞIK SONUÇ PANOSU
         if st.button("🔄 ANLIK KURLARLA HESAPLA", use_container_width=True, type="primary"):
             with st.spinner("Piyasa verileri çekiliyor..."):
                 
@@ -1326,7 +1345,7 @@ elif menu == "🧮 Hesap Araçları":
                     if kod == "YARIM-ALTIN": return has_altin_gram_tl * 3.2130
                     if kod == "TAM-ALTIN": return has_altin_gram_tl * 6.4260
                     if kod == "ATA-ALTIN": return has_altin_gram_tl * 6.6080
-                    if kod == "ONS-ALTIN": return veri_getir("GC=F") * usd_kuru # Ons fiyatı x Dolar Kuru
+                    if kod == "ONS-ALTIN": return veri_getir("GC=F") * usd_kuru
                     
                     # 2. Diğer Madenler
                     if kod == "GRAM-GUMUS": return (veri_getir("SI=F") * usd_kuru) / 31.1035
@@ -1359,12 +1378,20 @@ elif menu == "🧮 Hesap Araçları":
                         </div>
                         """, unsafe_allow_html=True)
 
-                        # EKRAN KAYDIRMA KODU
-                        components.html("""<script>var ana_govde = window.parent.document.querySelector('.main') || window.parent.document.body; ana_govde.scrollTo({ top: ana_govde.scrollHeight, behavior: 'smooth' });</script>""", height=0)
+                        # YENİ EKRAN KAYDIRMA KODU (Düzenlenmiş JavaScript)
+                        components.html("""
+                            <script>
+                                setTimeout(function() {
+                                    var parentDoc = window.parent.document;
+                                    var scrollTarget = parentDoc.querySelector('.stAppViewContainer') || parentDoc.querySelector('.main') || parentDoc.body;
+                                    scrollTarget.scrollTo({ top: scrollTarget.scrollHeight, behavior: 'smooth' });
+                                }, 150);
+                            </script>
+                        """, height=0)
                     else:
                         st.error("Seçilen varlıklardan birinin fiyatı şu an okunamıyor.")
                 except Exception as e:
-                    st.error(f"Hesaplama hatası. Kodları kontrol edin.")
+                    st.error(f"Hesaplama hatası oluştu: {str(e)}")
 
 # -----------------------------------------------------------------------------
 # SAYFA 5: TAKVİM VE TEMETTÜ 
