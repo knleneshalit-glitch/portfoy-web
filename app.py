@@ -1533,7 +1533,35 @@ elif menu == "📈 Piyasa Analizi":
 
     # 3. ARAYÜZ MANTIĞI
     if girdi_tipi == "Döviz & Emtia (Listeden Seç)":
-        hizli_semboller = ["USDTRY=X", "EURTRY=X", "GRAM-ALTIN", "CEYREK-ALTIN", "GRAM-GUMUS", "GRAM-PLATIN", "GC=F", "SI=F", "CL=F"]
+        # Döviz kurları, pariteler ve genişletilmiş emtia listesi
+        hizli_semboller = [
+            # --- Döviz Kurları ve Pariteler ---
+            "USDTRY=X",   # Dolar / TL
+            "EURTRY=X",   # Euro / TL
+            "GBPTRY=X",   # Sterlin / TL
+            "CHFTRY=X",   # İsviçre Frangı / TL
+            "JPYTRY=X",   # Japon Yeni / TL
+            "EURUSD=X",   # Euro / Dolar Paritesi
+            "GBPUSD=X",   # Sterlin / Dolar Paritesi
+            
+            # --- Yerel Değerli Metaller ---
+            "GRAM-ALTIN", 
+            "CEYREK-ALTIN", 
+            "GRAM-GUMUS", 
+            "GRAM-PLATIN", 
+            
+            # --- Global Emtialar (Ons, Enerji ve Tarım) ---
+            "GC=F",       # Altın Ons
+            "SI=F",       # Gümüş Ons
+            "PL=F",       # Platin Ons
+            "PA=F",       # Paladyum Ons
+            "HG=F",       # Bakır
+            "CL=F",       # WTI Ham Petrol
+            "BZ=F",       # Brent Petrol
+            "NG=F",       # Doğalgaz
+            "ZW=F",       # Buğday
+            "ZC=F"        # Mısır
+        ]
         secilen_sembol = c1.selectbox("Altın, Döviz veya Emtia Seçin:", hizli_semboller)
     
     else:
