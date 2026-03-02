@@ -18,6 +18,21 @@ from streamlit_sortables import sort_items
 from streamlit_sortables import sort_items
 from streamlit_autorefresh import st_autorefresh  # <-- YENİ EKLENEN KÜTÜPHANE
 
+# -----------------------------------------------------------------------------
+# SESSION STATE (OTURUM) BAŞLANGIÇ AYARLARI
+# Uygulama ilk açıldığında hata vermemesi için varsayılan değerleri atıyoruz.
+# -----------------------------------------------------------------------------
+
+# Çevirici Kaynak Varlık Başlangıç Değeri (Örn: Türk Lirası)
+if "cev_kaynak_isim" not in st.session_state:
+    st.session_state.cev_kaynak_isim = "Türk Lirası (TRY)"
+    st.session_state.cev_kaynak_kod = "TRY"
+
+# Çevirici Hedef Varlık Başlangıç Değeri (Örn: Amerikan Doları)
+if "cev_hedef_isim" not in st.session_state:
+    st.session_state.cev_hedef_isim = "Amerikan Doları (USD)"
+    st.session_state.cev_hedef_kod = "USDTRY=X"
+
 # --- KULLANICI DOĞRULAMA (AUTH) AYARLARI ---
 # Bu satır kodun en üstünde olmalı!
 st.set_page_config(page_title="Portföyüm", layout="wide", initial_sidebar_state="expanded")
