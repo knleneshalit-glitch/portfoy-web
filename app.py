@@ -1630,8 +1630,24 @@ elif menu == "📈 Piyasa Analizi":
                 st.area_chart(grafik_verisi, use_container_width=True, color="#3b82f6")
                 
                 st.write("⏱️ **Geçmiş Performans**")
-                p_cols = st.columns(6)
-                araliklar = [("1 Ay", 30), ("3 Ay", 90), ("6 Ay", 180), ("1 Yıl", 365), ("3 Yıl", 1095), ("5 Yıl", 1825)]
+            
+            # --- YENİ EKLENEN KISIM: Metric fontlarını küçültmek için CSS ---
+            st.markdown("""
+                <style>
+                /* Ana değerlerin (Örn: %+15.9) font boyutunu küçültür */
+                [data-testid="stMetricValue"] {
+                    font-size: 1.2rem !important; 
+                }
+                /* Altındaki yeşil/kırmızı değişim oklarının font boyutunu küçültür */
+                [data-testid="stMetricDelta"] {
+                    font-size: 0.8rem !important;
+                }
+                </style>
+            """, unsafe_allow_html=True)
+            # -----------------------------------------------------------------
+
+            p_cols = st.columns(6)
+            araliklar = [("1 Ay", 30), ("3 Ay", 90), ("6 Ay", 180), ("1 Yıl", 365), ("3 Yıl", 1095), ("5 Yıl", 1825)]
                 
                 for i, (ad, gun) in enumerate(araliklar):
                     try:
