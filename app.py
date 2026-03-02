@@ -25,37 +25,6 @@ from streamlit_autorefresh import st_autorefresh  # <-- YENİ EKLENEN KÜTÜPHAN
 # Uygulama ilk açıldığında hata vermemesi için varsayılan değerleri atıyoruz.
 # -----------------------------------------------------------------------------
 
-DOSYA_ADI = "benim_sembollerim.json"
-
-# Uygulama açıldığında dosyaya bakıp eski listeyi getiren fonksiyon
-def sembolleri_hatirla():
-    if os.path.exists(DOSYA_ADI):
-        with open(DOSYA_ADI, "r", encoding="utf-8") as f:
-            return json.load(f)
-    else:
-        # Eğer dosya yoksa (ilk kez açılıyorsa) varsayılan listeyi ver
-        return ["USDTRY=X", "EURTRY=X", "GRAM-ALTIN", "BTC-USD"]
-
-# Yeni bir şey eklediğinizde veya sildiğinizde bunu dosyaya yazan fonksiyon
-def listeyi_kaydet(guncel_liste):
-    with open(DOSYA_ADI, "w", encoding="utf-8") as f:
-        json.dump(guncel_liste, f)
-
-# Sayfa yüklendiğinde listeyi dosyadan çek (Böylece hep hatırlanır)
-if "canli_liste" not in st.session_state:
-    st.session_state.canli_liste = sembolleri_hatirla()
-
-# Kullanıcı yeni bir sembol eklediğinde:
-yeni_sembol = st.text_input("Yeni Sembol Ekle:")
-if st.button("Listeye Ekle"):
-    if yeni_sembol and yeni_sembol not in st.session_state.canli_liste:
-        # 1. Hafızaya ekle
-        st.session_state.canli_liste.append(yeni_sembol)
-        # 2. Kalıcı dosyaya kaydet (İşte sihri yapan kısım burası!)
-        listeyi_kaydet(st.session_state.canli_liste)
-        st.success(f"{yeni_sembol} kalıcı olarak eklendi!")
-        st.rerun() # Sayfayı yenile        
-
 # Çevirici Kaynak Varlık Başlangıç Değeri (Örn: Türk Lirası)
 if "cev_kaynak_isim" not in st.session_state:
     st.session_state.cev_kaynak_isim = "Türk Lirası (TRY)"
