@@ -1533,36 +1533,38 @@ elif menu == "📈 Piyasa Analizi":
 
     # 3. ARAYÜZ MANTIĞI
     if girdi_tipi == "Döviz & Emtia (Listeden Seç)":
-        # Döviz kurları, pariteler ve genişletilmiş emtia listesi
-        hizli_semboller = [
-            # --- Döviz Kurları ve Pariteler ---
-            "USDTRY=X",   # Dolar / TL
-            "EURTRY=X",   # Euro / TL
-            "GBPTRY=X",   # Sterlin / TL
-            "CHFTRY=X",   # İsviçre Frangı / TL
-            "JPYTRY=X",   # Japon Yeni / TL
-            "EURUSD=X",   # Euro / Dolar Paritesi
-            "GBPUSD=X",   # Sterlin / Dolar Paritesi
+        # Kullanıcı dostu isimler ve karşılık gelen Yahoo Finance kodları (Sözlük yapısı)
+        doviz_emtia_sozluk = {
+            "Dolar / TL": "USDTRY=X",
+            "Euro / TL": "EURTRY=X",
+            "Sterlin / TL": "GBPTRY=X",
+            "İsviçre Frangı / TL": "CHFTRY=X",
+            "Japon Yeni / TL": "JPYTRY=X",
+            "Euro / Dolar (Parite)": "EURUSD=X",
+            "Sterlin / Dolar (Parite)": "GBPUSD=X",
             
-            # --- Yerel Değerli Metaller ---
-            "GRAM-ALTIN", 
-            "CEYREK-ALTIN", 
-            "GRAM-GUMUS", 
-            "GRAM-PLATIN", 
+            "Gram Altın (TL)": "GRAM-ALTIN", 
+            "Çeyrek Altın (TL)": "CEYREK-ALTIN", 
+            "Gram Gümüş (TL)": "GRAM-GUMUS", 
+            "Gram Platin (TL)": "GRAM-PLATIN", 
             
-            # --- Global Emtialar (Ons, Enerji ve Tarım) ---
-            "GC=F",       # Altın Ons
-            "SI=F",       # Gümüş Ons
-            "PL=F",       # Platin Ons
-            "PA=F",       # Paladyum Ons
-            "HG=F",       # Bakır
-            "CL=F",       # WTI Ham Petrol
-            "BZ=F",       # Brent Petrol
-            "NG=F",       # Doğalgaz
-            "ZW=F",       # Buğday
-            "ZC=F"        # Mısır
-        ]
-        secilen_sembol = c1.selectbox("Altın, Döviz veya Emtia Seçin:", hizli_semboller)
+            "Ons Altın ($)": "GC=F",
+            "Ons Gümüş ($)": "SI=F",
+            "Ons Platin ($)": "PL=F",
+            "Ons Paladyum ($)": "PA=F",
+            "Bakır ($)": "HG=F",
+            "Ham Petrol - WTI ($)": "CL=F",
+            "Brent Petrol ($)": "BZ=F",
+            "Doğalgaz ($)": "NG=F",
+            "Buğday ($)": "ZW=F",
+            "Mısır ($)": "ZC=F"
+        }
+        
+        # Ekranda sözlüğün anahtarlarını (kullanıcı dostu isimleri) gösteriyoruz
+        secilen_isim = c1.selectbox("Altın, Döviz veya Emtia Seçin:", list(doviz_emtia_sozluk.keys()))
+        
+        # Arka planda kullanılacak asıl kodu sözlükten çekiyoruz
+        secilen_sembol = doviz_emtia_sozluk[secilen_isim]
     
     else:
         # Arama metni kutusu
