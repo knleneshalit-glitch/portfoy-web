@@ -1636,7 +1636,7 @@ elif menu == "📅 Piyasa Takvimi":
             
             col_grafik, col_rapor = st.columns([7, 3])
             
-            with col_grafik:
+        with col_grafik:
             st.subheader(f"📊 {secilen_sembol} Fiyat Grafiği")
             st.area_chart(grafik_verisi, use_container_width=True, color="#3b82f6")
             
