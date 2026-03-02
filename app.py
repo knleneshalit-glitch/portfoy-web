@@ -1658,45 +1658,78 @@ elif menu == "📈 Piyasa Analizi":
                         p_cols[i].metric(label=ad, value="--")
 
             with col_rapor:
-                st.subheader("🤖 Teknik AI Raporu")
+                st.subheader("🤖 Genişletilmiş AI Raporu")
                 with st.container(border=True):
+                    # --- HESAPLAMALAR ---
+                    # 1. Hareketli Ortalamalar (Trend)
                     sma200 = ham_veri.rolling(200).mean().iloc[-1]
+                    sma50 = ham_veri.rolling(50).mean().iloc[-1]
+                    
+                    # 2. RSI Hesaplaması
                     delta = ham_veri.diff()
                     gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
                     loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
                     rs = gain / loss
                     rsi = 100 - (100 / (1 + rs)).iloc[-1]
                     
-                    trend = "YÜKSELİŞ 🟢" if son_fiyat > sma200 else "DÜŞÜŞ 🔴"
+                    # 3. MACD Hesaplaması (Trend İvmesi)
+                    exp1 = ham_veri.ewm(span=12, adjust=False).mean()
+                    exp2 = ham_veri.ewm(span=26, adjust=False).mean()
+                    macd = exp1 - exp2
+                    macd_signal = macd.ewm(span=9, adjust=False).mean()
+                    
+                    # 4. Bollinger Bantları (20 Günlük)
+                    sma20 = ham_veri.rolling(20).mean().iloc[-1]
+                    std20 = ham_veri.rolling(20).std().iloc[-1]
+                    ust_bant = sma20 + (std20 * 2)
+                    alt_bant = sma20 - (std20 * 2)
+
+                    # --- EKRANA YAZDIRMA VE YORUMLAMA ---
+                    
+                    # BÖLÜM 1: Trend ve Yön
+                    st.markdown("### 📈 Trend & Sinyaller")
+                    
+                    if sma50 > sma200 and son_fiyat > sma50:
+                        cross_durum = "Güçlü Yükseliş (Golden Cross) 🚀"
+                    elif sma50 < sma200 and son_fiyat < sma50:
+                        cross_durum = "Güçlü Düşüş (Death Cross) ⚠️"
+                    else:
+                        cross_durum = "Konsolidasyon / Nötr 🟡"
+                        
+                    st.markdown(f"**Genel Durum:** {cross_durum}")
+                    
+                    macd_durum = "AL Sinyali 🟢" if macd.iloc[-1] > macd_signal.iloc[-1] else "SAT Sinyali 🔴"
+                    st.write(f"**MACD (İvme):** {macd_durum}")
+                    
+                    st.markdown("---")
+                    
+                    # BÖLÜM 2: Momentum ve Aşırılıklar
+                    st.markdown("### ⚡ Momentum & Güç")
+                    
                     rsi_durum = "Aşırı Pahalı 🔴" if rsi > 70 else ("Aşırı Ucuz 🟢" if rsi < 30 else "Dengeli 🟡")
+                    st.markdown(f"**RSI (14 Gün):** {rsi_durum} ({rsi:.1f})")
                     
-                    st.markdown(f"**Uzun Vadeli Trend:** {trend}")
-                    st.write(f"Fiyat, 200 günlük ortalamanın ({sma200:,.2f}) {'üzerinde.' if son_fiyat > sma200 else 'altında.'}")
-                    
-                    st.markdown(f"**Momentum (RSI):** {rsi_durum}")
-                    st.write(f"RSI değeri şu an **{rsi:.1f}** seviyesinde.")
-                    
+                    if son_fiyat > ust_bant:
+                        bb_durum = "Aşırı Alım (Üst Bantta) 🔴"
+                    elif son_fiyat < alt_bant:
+                        bb_durum = "Aşırı Satım (Alt Bantta) 🟢"
+                    else:
+                        bb_durum = "Normal (Bant İçinde) 🟡"
+                    st.write(f"**Bollinger Bantları:** {bb_durum}")
+
                     st.markdown("---")
-                    st.markdown("**📐 Fibonacci Seviyeleri (1 Yıllık)**")
+                    
+                    # BÖLÜM 3: Destek, Direnç ve Risk
+                    st.markdown("### 🎯 Seviyeler & Risk")
+                    
+                    son_1_ay = ham_veri.tail(30)
+                    st.markdown(f"**Yakın Direnç (1 Aylık Tepe):** {son_1_ay.max():,.2f}")
+                    st.markdown(f"**Yakın Destek (1 Aylık Dip):** {son_1_ay.min():,.2f}")
+                    
                     son1y = ham_veri.tail(252)
-                    tepe, dip = son1y.max(), son1y.min()
-                    fark = tepe - dip
+                    fark = son1y.max() - son1y.min()
+                    fib_deger = son1y.max() - fark * 0.618
+                    st.write(f"**Fibonacci Kritik Destek:** {fib_deger:,.2f}")
                     
-                    fibs = {
-                        "Tepe": tepe,
-                        "0.236": tepe - fark * 0.236,
-                        "0.382": tepe - fark * 0.382,
-                        "0.500": tepe - fark * 0.5,
-                        "0.618 (Altın)": tepe - fark * 0.618,
-                        "Dip": dip
-                    }
-                    
-                    for k, v in fibs.items():
-                        if abs(son_fiyat - v) / son_fiyat < 0.015:
-                            st.markdown(f"📍 **{k}: {v:,.2f} (Şu an burada)**")
-                        else:
-                            st.write(f"• {k}: {v:,.2f}")
-                    
-                    st.markdown("---")
                     vol = ham_veri.pct_change().std() * 100
-                    st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")
+                    st.write(f"**Günlük Volatilite (Risk):** %{vol:.2f}")
