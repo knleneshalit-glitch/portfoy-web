@@ -1196,7 +1196,7 @@ elif menu == "🧮 Hesap Araçları":
                     toplam_odeme = k_taksit * n
                     toplam_faiz = toplam_odeme - ana_deger
                 
-                # Profesyonel Sonuç Kartı (Girintiler ve boşluklar düzeltildi)
+                # Profesyonel Sonuç Kartı
                 st.markdown(f"""
 <div style="background: linear-gradient(90deg, #1e3a8a, #3b82f6); padding: 25px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-top: 15px;">
     <h4 style="margin: 0; opacity: 0.8; font-weight: 500; font-size: 16px;">{baslik}</h4>
@@ -1327,7 +1327,8 @@ elif menu == "🧮 Hesap Araçları":
                     cevirici_varlik_sec_popup("hedef")
 
         st.markdown("<br>", unsafe_allow_html=True)
-# 3. BÖLÜM: HESAPLAMA VE ŞIK SONUÇ PANOSU
+        
+        # 3. BÖLÜM: HESAPLAMA VE ŞIK SONUÇ PANOSU
         if st.button("🔄 ANLIK KURLARLA HESAPLA", use_container_width=True, type="primary"):
             with st.spinner("Piyasa verileri çekiliyor..."):
                 
@@ -1590,3 +1591,4 @@ elif menu == "📈 Piyasa Analizi":
                 st.markdown("---")
                 vol = ham_veri.pct_change().std() * 100
                 st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")
+
