@@ -1498,7 +1498,8 @@ elif menu == "📅 Piyasa Takvimi":
 # -----------------------------------------------------------------------------
 # SAYFA 6: PRO PİYASA ANALİZİ
 # -----------------------------------------------------------------------------
-# CSS kodunu sayfa düzenini bozmaması için en başa, görünmez bir şekilde ekliyoruz
+elif menu == "📈 Piyasa Analizi":
+    # CSS kodunu sayfa düzenini bozmaması için en başa, görünmez bir şekilde ekliyoruz
     st.markdown("""
         <style>
         [data-testid="stMetricValue"] {
@@ -1636,25 +1637,25 @@ elif menu == "📅 Piyasa Takvimi":
             
             col_grafik, col_rapor = st.columns([7, 3])
             
-        with col_grafik:
-            st.subheader(f"📊 {secilen_sembol} Fiyat Grafiği")
-            st.area_chart(grafik_verisi, use_container_width=True, color="#3b82f6")
-            
-            st.markdown("**⏱️ Geçmiş Performans**")
-            p_cols = st.columns(6)
-            araliklar = [("1 Ay", 30), ("3 Ay", 90), ("6 Ay", 180), ("1 Yıl", 365), ("3 Yıl", 1095), ("5 Yıl", 1825)]
-            
-            for i, (ad, gun) in enumerate(araliklar):
-                try:
-                    hedef_tarih = ham_veri.index[-1] - pd.Timedelta(days=gun)
-                    idx = ham_veri.index.get_indexer([hedef_tarih], method='nearest')[0]
-                    eski_fiyat = ham_veri.iloc[idx]
-                    yuzde_degisim = ((son_fiyat - eski_fiyat) / eski_fiyat) * 100
-                    
-                    # Yazıların daha rahat sığması için formatı +15.9% olarak güncelledik
-                    p_cols[i].metric(label=ad, value=f"{yuzde_degisim:+.1f}%", delta=f"{yuzde_degisim:.1f}%")
-                except:
-                    p_cols[i].metric(label=ad, value="--")
+            with col_grafik:
+                st.subheader(f"📊 {secilen_sembol} Fiyat Grafiği")
+                st.area_chart(grafik_verisi, use_container_width=True, color="#3b82f6")
+                
+                st.markdown("**⏱️ Geçmiş Performans**")
+                p_cols = st.columns(6)
+                araliklar = [("1 Ay", 30), ("3 Ay", 90), ("6 Ay", 180), ("1 Yıl", 365), ("3 Yıl", 1095), ("5 Yıl", 1825)]
+                
+                for i, (ad, gun) in enumerate(araliklar):
+                    try:
+                        hedef_tarih = ham_veri.index[-1] - pd.Timedelta(days=gun)
+                        idx = ham_veri.index.get_indexer([hedef_tarih], method='nearest')[0]
+                        eski_fiyat = ham_veri.iloc[idx]
+                        yuzde_degisim = ((son_fiyat - eski_fiyat) / eski_fiyat) * 100
+                        
+                        # Yazıların daha rahat sığması için formatı +15.9% olarak güncelledik
+                        p_cols[i].metric(label=ad, value=f"{yuzde_degisim:+.1f}%", delta=f"{yuzde_degisim:.1f}%")
+                    except:
+                        p_cols[i].metric(label=ad, value="--")
 
             with col_rapor:
                 st.subheader("🤖 Teknik AI Raporu")
