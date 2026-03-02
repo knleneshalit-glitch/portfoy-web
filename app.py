@@ -1649,7 +1649,7 @@ elif menu == "📈 Piyasa Analizi":
             p_cols = st.columns(6)
             araliklar = [("1 Ay", 30), ("3 Ay", 90), ("6 Ay", 180), ("1 Yıl", 365), ("3 Yıl", 1095), ("5 Yıl", 1825)]
                 
-                for i, (ad, gun) in enumerate(araliklar):
+            for i, (ad, gun) in enumerate(araliklar):
                     try:
                         hedef_tarih = ham_veri.index[-1] - pd.Timedelta(days=gun)
                         idx = ham_veri.index.get_indexer([hedef_tarih], method='nearest')[0]
