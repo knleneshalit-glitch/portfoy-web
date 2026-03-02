@@ -1494,6 +1494,7 @@ elif menu == "📅 Piyasa Takvimi":
         else:
             st.info("Portföyünüzdeki hisselerde yakın zamanda bir temettü ödemesi bulunamadı.")
 
+
 # -----------------------------------------------------------------------------
 # SAYFA 6: PRO PİYASA ANALİZİ
 # -----------------------------------------------------------------------------
@@ -1502,108 +1503,156 @@ elif menu == "📈 Piyasa Analizi":
     st.markdown("⚠️ **YASAL UYARI:** Veriler 10-15 dk gecikmeli gelebilir. Sadece takip amaçlıdır, yatırım tavsiyesi içermez.")
     
     c1, c2, c3 = st.columns([2, 1, 1])
-    hizli_semboller = ["USDTRY=X", "GRAM-ALTIN", "GRAM-GUMUS", "GRAM-PLATIN", "GC=F", "SI=F", "XU100.IS", "BTC-USD", "AAPL"]
-    secilen_sembol = c1.selectbox("🔍 Analiz Edilecek Sembolü Seçin veya Yazın:", hizli_semboller, index=0)
+    
+    # 1. KULLANICI SEÇİM ALANI
+    girdi_tipi = c1.radio("🔍 Varlık Türü:", ["Döviz & Emtia (Listeden Seç)", "Hisse, Fon & Kripto Ara"], horizontal=True)
+    
+    secilen_sembol = None  # İşleme başlamadan önce boş tanımlıyoruz
+    
+    # 2. ARAMA FONKSİYONU (Arka planda Yahoo'da arama yapar)
+    @st.cache_data(ttl=3600)  # Aynı aramaları tekrar tekrar yapıp yavaşlamamak için önbelleğe alıyoruz
+    def sembol_ara(kelime):
+        url = f"https://query2.finance.yahoo.com/v1/finance/search?q={kelime}"
+        headers = {'User-Agent': 'Mozilla/5.0'} # Yahoo'nun bizi bot sanıp engellememesi için tarayıcı kimliği gönderiyoruz
+        try:
+            res = requests.get(url, headers=headers)
+            data = res.json()
+            quotes = data.get('quotes', [])
+            
+            sonuclar = []
+            for q in quotes:
+                symbol = q.get('symbol')
+                name = q.get('shortname', 'İsimsiz')
+                exch = q.get('exchange', 'Bilinmiyor')
+                # Sadece geçerli bir sembol varsa listeye ekle
+                if symbol:
+                    sonuclar.append(f"{symbol} | {name} ({exch})")
+            return sonuclar
+        except:
+            return []
+
+    # 3. ARAYÜZ MANTIĞI
+    if girdi_tipi == "Döviz & Emtia (Listeden Seç)":
+        hizli_semboller = ["USDTRY=X", "EURTRY=X", "GRAM-ALTIN", "CEYREK-ALTIN", "GRAM-GUMUS", "GRAM-PLATIN", "GC=F", "SI=F", "CL=F"]
+        secilen_sembol = c1.selectbox("Altın, Döviz veya Emtia Seçin:", hizli_semboller)
+    
+    else:
+        # Arama metni kutusu
+        arama_metni = c1.text_input("🔍 Aranacak kelimeyi veya kodu yazın (Örn: THY, Apple, BTC):")
+        
+        # Kullanıcı en az 2 harf girdiğinde aramayı tetikle
+        if arama_metni and len(arama_metni) >= 2:
+            bulunan_sonuclar = sembol_ara(arama_metni)
+            
+            if bulunan_sonuclar:
+                secim = c1.selectbox("🎯 Arama Sonuçları (Lütfen Seçin):", bulunan_sonuclar)
+                # "THYAO.IS | Turk Hava Yollari (IST)" gibi bir metinden sadece "THYAO.IS" kısmını ayırıyoruz
+                secilen_sembol = secim.split(" | ")[0].strip()
+            else:
+                c1.warning("Buna benzer bir hisse, fon veya kripto bulunamadı.")
+        else:
+            c1.info("Aramayı başlatmak için kutuya en az 2 karakter yazıp 'Enter'a basın.")
+
     
     periyotlar = {"1 AY": "1mo", "3 AY": "3mo", "6 AY": "6mo", "1 YIL": "1y", "3 YIL": "3y", "5 YIL": "5y"}
     secilen_periyot = c2.selectbox("📅 Zaman Aralığı:", list(periyotlar.keys()), index=3)
     
-    @st.cache_data(ttl=300)
-    def analiz_verisi_getir(sembol, periyot_kodu):
-        try:
-            if sembol in ["GRAM-ALTIN", "CEYREK-ALTIN", "GRAM-GUMUS", "GRAM-PLATIN"]:
-                ons_kod = "GC=F"
-                if "GUMUS" in sembol: ons_kod = "SI=F"
-                elif "PLATIN" in sembol: ons_kod = "PL=F"
-                
-                ons = yf.Ticker(ons_kod).history(period="5y")['Close']
-                usd = yf.Ticker("USDTRY=X").history(period="5y")['Close']
-                
-                df = pd.concat([ons, usd], axis=1, keys=['O','U']).ffill().dropna()
-                fac = 1.6065 if sembol == "CEYREK-ALTIN" else 1
-                data = (df['O'] * df['U']) / 31.1035 * fac
-            else:
-                t = "XU100.IS" if sembol == "BIST" else sembol
-                data = yf.Ticker(t).history(period="5y")['Close'].dropna()
-            
-            return data
-        except:
-            return None
+    # 4. VERİ ÇEKME VE GRAFİK ÇİZME İŞLEMLERİ (Eğer bir sembol seçildiyse)
+    if secilen_sembol:
+        @st.cache_data(ttl=300)
+        def analiz_verisi_getir(sembol, periyot_kodu):
+            try:
+                if sembol in ["GRAM-ALTIN", "CEYREK-ALTIN", "GRAM-GUMUS", "GRAM-PLATIN"]:
+                    ons_kod = "GC=F"
+                    if "GUMUS" in sembol: ons_kod = "SI=F"
+                    elif "PLATIN" in sembol: ons_kod = "PL=F"
+                    
+                    ons = yf.Ticker(ons_kod).history(period="5y")['Close']
+                    usd = yf.Ticker("USDTRY=X").history(period="5y")['Close']
+                    
+                    df = pd.concat([ons, usd], axis=1, keys=['O','U']).ffill().dropna()
+                    fac = 1.6065 if sembol == "CEYREK-ALTIN" else 1
+                    data = (df['O'] * df['U']) / 31.1035 * fac
+                else:
+                    t = "XU100.IS" if sembol == "BIST" else sembol
+                    data = yf.Ticker(t).history(period="5y")['Close'].dropna()
+                return data
+            except:
+                return None
 
-    p_kod = periyotlar[secilen_periyot]
-    ham_veri = analiz_verisi_getir(secilen_sembol, p_kod)
-    
-    if ham_veri is None or ham_veri.empty:
-        st.error("Bu sembol için veri bulunamadı. Lütfen geçerli bir kod girin (Örn: AAPL, THYAO.IS)")
-    else:
-        days_map = {"1mo":30, "3mo":90, "6mo":180, "1y":365, "3y":1095, "5y":1825}
-        grafik_verisi = ham_veri.tail(days_map.get(p_kod, 365))
-        son_fiyat = ham_veri.iloc[-1]
+        p_kod = periyotlar[secilen_periyot]
+        ham_veri = analiz_verisi_getir(secilen_sembol, p_kod)
         
-        c3.metric(label="Güncel Fiyat", value=f"{son_fiyat:,.2f} ₺/$")
-        st.markdown("---")
-        
-        col_grafik, col_rapor = st.columns([7, 3])
-        
-        with col_grafik:
-            st.subheader(f"📊 {secilen_sembol} Fiyat Grafiği")
-            st.area_chart(grafik_verisi, use_container_width=True, color="#3b82f6")
+        if ham_veri is None or ham_veri.empty:
+            st.error("Bu sembol için geçmiş veri bulunamadı.")
+        else:
+            days_map = {"1mo":30, "3mo":90, "6mo":180, "1y":365, "3y":1095, "5y":1825}
+            grafik_verisi = ham_veri.tail(days_map.get(p_kod, 365))
+            son_fiyat = ham_veri.iloc[-1]
             
-            st.write("⏱️ **Geçmiş Performans**")
-            p_cols = st.columns(6)
-            araliklar = [("1 Ay", 30), ("3 Ay", 90), ("6 Ay", 180), ("1 Yıl", 365), ("3 Yıl", 1095), ("5 Yıl", 1825)]
+            c3.metric(label="Güncel Fiyat", value=f"{son_fiyat:,.2f}")
+            st.markdown("---")
             
-            for i, (ad, gun) in enumerate(araliklar):
-                try:
-                    hedef_tarih = ham_veri.index[-1] - pd.Timedelta(days=gun)
-                    idx = ham_veri.index.get_indexer([hedef_tarih], method='nearest')[0]
-                    eski_fiyat = ham_veri.iloc[idx]
-                    yuzde_degisim = ((son_fiyat - eski_fiyat) / eski_fiyat) * 100
-                    p_cols[i].metric(label=ad, value=f"%{yuzde_degisim:+.1f}", delta=f"{yuzde_degisim:.1f}%")
-                except:
-                    p_cols[i].metric(label=ad, value="--")
+            col_grafik, col_rapor = st.columns([7, 3])
+            
+            with col_grafik:
+                st.subheader(f"📊 {secilen_sembol} Fiyat Grafiği")
+                st.area_chart(grafik_verisi, use_container_width=True, color="#3b82f6")
+                
+                st.write("⏱️ **Geçmiş Performans**")
+                p_cols = st.columns(6)
+                araliklar = [("1 Ay", 30), ("3 Ay", 90), ("6 Ay", 180), ("1 Yıl", 365), ("3 Yıl", 1095), ("5 Yıl", 1825)]
+                
+                for i, (ad, gun) in enumerate(araliklar):
+                    try:
+                        hedef_tarih = ham_veri.index[-1] - pd.Timedelta(days=gun)
+                        idx = ham_veri.index.get_indexer([hedef_tarih], method='nearest')[0]
+                        eski_fiyat = ham_veri.iloc[idx]
+                        yuzde_degisim = ((son_fiyat - eski_fiyat) / eski_fiyat) * 100
+                        p_cols[i].metric(label=ad, value=f"%{yuzde_degisim:+.1f}", delta=f"{yuzde_degisim:.1f}%")
+                    except:
+                        p_cols[i].metric(label=ad, value="--")
 
-        with col_rapor:
-            st.subheader("🤖 Teknik AI Raporu")
-            with st.container(border=True):
-                sma200 = ham_veri.rolling(200).mean().iloc[-1]
-                delta = ham_veri.diff()
-                gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-                loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-                rs = gain / loss
-                rsi = 100 - (100 / (1 + rs)).iloc[-1]
-                
-                trend = "YÜKSELİŞ 🟢" if son_fiyat > sma200 else "DÜŞÜŞ 🔴"
-                rsi_durum = "Aşırı Pahalı 🔴" if rsi > 70 else ("Aşırı Ucuz 🟢" if rsi < 30 else "Dengeli 🟡")
-                
-                st.markdown(f"**Uzun Vadeli Trend:** {trend}")
-                st.write(f"Fiyat, 200 günlük hareketli ortalamanın ({sma200:,.2f}) {'üzerinde.' if son_fiyat > sma200 else 'altında.'}")
-                
-                st.markdown(f"**Momentum (RSI):** {rsi_durum}")
-                st.write(f"RSI değeri şu an **{rsi:.1f}** seviyesinde.")
-                
-                st.markdown("---")
-                st.markdown("**📐 Fibonacci Seviyeleri (1 Yıllık)**")
-                son1y = ham_veri.tail(252)
-                tepe, dip = son1y.max(), son1y.min()
-                fark = tepe - dip
-                
-                fibs = {
-                    "Tepe": tepe,
-                    "0.236": tepe - fark * 0.236,
-                    "0.382": tepe - fark * 0.382,
-                    "0.500": tepe - fark * 0.5,
-                    "0.618 (Altın)": tepe - fark * 0.618,
-                    "Dip": dip
-                }
-                
-                for k, v in fibs.items():
-                    if abs(son_fiyat - v) / son_fiyat < 0.015:
-                        st.markdown(f"📍 **{k}: {v:,.2f} (Şu an burada)**")
-                    else:
-                        st.write(f"• {k}: {v:,.2f}")
-                
-                st.markdown("---")
-                vol = ham_veri.pct_change().std() * 100
-                st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")
-
+            with col_rapor:
+                st.subheader("🤖 Teknik AI Raporu")
+                with st.container(border=True):
+                    sma200 = ham_veri.rolling(200).mean().iloc[-1]
+                    delta = ham_veri.diff()
+                    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+                    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+                    rs = gain / loss
+                    rsi = 100 - (100 / (1 + rs)).iloc[-1]
+                    
+                    trend = "YÜKSELİŞ 🟢" if son_fiyat > sma200 else "DÜŞÜŞ 🔴"
+                    rsi_durum = "Aşırı Pahalı 🔴" if rsi > 70 else ("Aşırı Ucuz 🟢" if rsi < 30 else "Dengeli 🟡")
+                    
+                    st.markdown(f"**Uzun Vadeli Trend:** {trend}")
+                    st.write(f"Fiyat, 200 günlük ortalamanın ({sma200:,.2f}) {'üzerinde.' if son_fiyat > sma200 else 'altında.'}")
+                    
+                    st.markdown(f"**Momentum (RSI):** {rsi_durum}")
+                    st.write(f"RSI değeri şu an **{rsi:.1f}** seviyesinde.")
+                    
+                    st.markdown("---")
+                    st.markdown("**📐 Fibonacci Seviyeleri (1 Yıllık)**")
+                    son1y = ham_veri.tail(252)
+                    tepe, dip = son1y.max(), son1y.min()
+                    fark = tepe - dip
+                    
+                    fibs = {
+                        "Tepe": tepe,
+                        "0.236": tepe - fark * 0.236,
+                        "0.382": tepe - fark * 0.382,
+                        "0.500": tepe - fark * 0.5,
+                        "0.618 (Altın)": tepe - fark * 0.618,
+                        "Dip": dip
+                    }
+                    
+                    for k, v in fibs.items():
+                        if abs(son_fiyat - v) / son_fiyat < 0.015:
+                            st.markdown(f"📍 **{k}: {v:,.2f} (Şu an burada)**")
+                        else:
+                            st.write(f"• {k}: {v:,.2f}")
+                    
+                    st.markdown("---")
+                    vol = ham_veri.pct_change().std() * 100
+                    st.write(f"**Volatilite (Günlük Risk):** %{vol:.2f}")
