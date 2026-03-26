@@ -106,29 +106,119 @@ if "user" not in st.session_state:
     st.session_state.user = None
 
 def login_page():
-    st.title("💎 Portföyüm'e Hoş Geldiniz")
-    tab1, tab2 = st.tabs(["Giriş Yap", "Hesap Oluştur"])
-    
-    with tab1:
-        email = st.text_input("E-posta", key="login_email")
-        password = st.text_input("Şifre", type="password", key="login_pass")
-        if st.button("Giriş"):
-            try:
-                res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-                st.session_state.user = res.user
-                st.rerun()
-            except Exception:
-                st.error("Giriş başarısız: E-posta veya şifre hatalı.")
+    # --- MODERN TASARIM İÇİN CSS ---
+    st.markdown("""
+    <style>
+        /* Ana ekranın arka planını çok hafif koyulaştırarak kartı öne çıkaralım (Opsiyonel) */
+        .stApp {
+            background-color: #0e1117;
+        }
+        
+        /* Şık ve renk geçişli (gradient) ana başlık */
+        .hero-title {
+            text-align: center;
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: -webkit-linear-gradient(45deg, #3b82f6, #00ffcc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+            padding-top: 2rem;
+        }
+        
+        /* Başlığın altındaki açıklama metni */
+        .hero-subtitle {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+        
+        /* Butonları modern, yuvarlak hatlı ve animasyonlu yapalım */
+        .stButton>button {
+            width: 100%;
+            border-radius: 25px;
+            background: linear-gradient(90deg, #1e3a8a, #3b82f6);
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            border: none;
+            padding: 10px 0;
+            transition: all 0.3s ease;
+        }
+        
+        /* Fare butonun üzerine geldiğinde (hover) parlaması ve hafif büyümesi */
+        .stButton>button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+            color: #ffffff;
+        }
+        
+        /* Sekmeleri (tabs) ortala ve aralarını aç */
+        .stTabs [data-baseweb="tab-list"] {
+            justify-content: center;
+            gap: 20px;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
-    with tab2:
-        new_email = st.text_input("Yeni E-posta", key="reg_email")
-        new_password = st.text_input("Şifre (En az 6 karakter)", type="password", key="reg_pass")
-        if st.button("Kayıt Ol"):
-            try:
-                supabase.auth.sign_up({"email": new_email, "password": new_password})
-                st.success("Hesap oluşturuldu! Şimdi 'Giriş Yap' sekmesinden girebilirsiniz.")
-            except Exception:
-                st.error("Kayıt hatası: Bu e-posta zaten kullanımda olabilir.")
+    # --- ORTALANMIŞ EKRAN DÜZENİ ---
+    # Ekranı 3 sütuna bölüyoruz: Sol boşluk (1), Orta Form (1.2), Sağ boşluk (1)
+    # Bu sayede giriş formu ekranın tam ortasında şık bir şekilde durur.
+    col_bos_sol, col_orta, col_bos_sag = st.columns([1, 1.2, 1])
+
+    with col_orta:
+        # Karşılama Başlıkları
+        st.markdown('<div class="hero-title">💎 Portföyüm</div>', unsafe_allow_html=True)
+        st.markdown('<div class="hero-subtitle">Finansal özgürlüğünüze giden yolda ilk adımı atın.</div>', unsafe_allow_html=True)
+
+        # Kart Görünümlü Konteyner
+        with st.container(border=True):
+            tab1, tab2 = st.tabs(["🔑 Giriş Yap", "🚀 Yeni Hesap Oluştur"])
+            
+            # --- GİRİŞ YAP SEKME İÇERİĞİ ---
+            with tab1:
+                st.markdown("<br>", unsafe_allow_html=True)
+                email = st.text_input("📧 E-posta Adresi", placeholder="ornek@mail.com", key="login_email")
+                password = st.text_input("🔒 Şifre", type="password", placeholder="••••••••", key="login_pass")
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                if st.button("Sisteme Giriş Yap", key="btn_login"):
+                    if email and password:
+                        with st.spinner("Güvenli bağlantı kuruluyor..."):
+                            try:
+                                res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+                                st.session_state.user = res.user
+                                st.rerun()
+                            except Exception:
+                                st.error("❌ Giriş başarısız: E-posta veya şifre hatalı.")
+                    else:
+                        st.warning("Lütfen e-posta ve şifrenizi eksiksiz girin.")
+
+            # --- KAYIT OL SEKME İÇERİĞİ ---
+            with tab2:
+                st.markdown("<br>", unsafe_allow_html=True)
+                new_email = st.text_input("📧 Yeni E-posta", placeholder="ornek@mail.com", key="reg_email")
+                new_password = st.text_input("🔒 Şifre Belirleyin", type="password", placeholder="En az 6 karakter", key="reg_pass")
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                if st.button("Aramıza Katıl", key="btn_register"):
+                    if new_email and len(new_password) >= 6:
+                        with st.spinner("Hesabınız oluşturuluyor..."):
+                            try:
+                                supabase.auth.sign_up({"email": new_email, "password": new_password})
+                                st.success("🎉 Harika! Hesabınız oluşturuldu. Lütfen 'Giriş Yap' sekmesinden giriş yapın.")
+                            except Exception:
+                                st.error("❌ Kayıt hatası: Bu e-posta zaten kullanımda olabilir veya şifre çok kısa.")
+                    else:
+                        st.warning("Lütfen geçerli bir e-posta ve en az 6 karakterli bir şifre girin.")
+
+        # Alt Bilgi Metni (Güvenlik hissi vermek için)
+        st.markdown("""
+        <div style='text-align:center; margin-top: 25px; color:#6b7280; font-size:13px; display: flex; align-items: center; justify-content: center;'>
+            🔒 Tüm verileriniz Supabase altyapısı ile şifrelenerek korunmaktadır.
+        </div>
+        """, unsafe_allow_html=True)
 
 # --- ANA KONTROL MEKANİZMASI ---
 if st.session_state.user is None:
