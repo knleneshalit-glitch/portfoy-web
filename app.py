@@ -201,7 +201,6 @@ def login_page():
                         st.warning("Lütfen e-posta adresinizi girin.")
 
         # Güvenlik bilgi notu
-        st.markdown("<p style='text-align:center; color:#64748b; font-size:13px; margin-top:20px;'>🔒 Tüm verileriniz Supabase altyapısıyla şifrelenmektedir.</p>", unsafe_allow_html=True)p>", unsafe_allow_html=True)
 
             # --- KAYIT OL SEKME İÇERİĞİ ---
             with tab2:
