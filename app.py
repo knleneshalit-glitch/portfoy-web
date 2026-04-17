@@ -114,7 +114,7 @@ def login_page():
             text-align: center;
             font-size: 3.2rem;
             font-weight: 800;
-            color: #38bdf8; /* Hoş ve modern bir mavi */
+            color: #38bdf8;
             margin-bottom: 0px;
             padding-top: 1.5rem;
         }
@@ -136,7 +136,6 @@ def login_page():
     """, unsafe_allow_html=True)
 
     # --- ORTALANMIŞ EKRAN DÜZENİ ---
-    # Orta sütunu biraz daha genişleterek formun daralıp sıkışmasını engelliyoruz
     col_sol, col_orta, col_sag = st.columns([1, 1.5, 1])
 
     with col_orta:
@@ -149,10 +148,10 @@ def login_page():
             
             # --- GİRİŞ YAP SEKME İÇERİĞİ ---
             with tab1:
-                st.write("") # Yukarıdan hafif boşluk
+                st.write("")
                 email = st.text_input("E-posta Adresi", placeholder="ornek@mail.com", key="login_email")
                 password = st.text_input("Şifre", type="password", placeholder="••••••••", key="login_pass")
-                st.write("") # Buton öncesi boşluk
+                st.write("")
                 
                 if st.button("Sisteme Giriş Yap", type="primary", use_container_width=True, key="btn_login"):
                     if email and password:
@@ -194,16 +193,15 @@ def login_page():
                     if reset_email:
                         with st.spinner("Bağlantı gönderiliyor..."):
                             try:
-                                # Supabase şifre sıfırlama maili tetikleyicisi
                                 supabase.auth.reset_password_email(reset_email)
-                                st.success("✅ Şifre sıfırlama bağlantısı e-posta adresinize gönderildi! Lütfen gelen kutunuzu (ve spam klasörünü) kontrol edin.")
-                            except Exception as e:
+                                st.success("✅ Şifre sıfırlama bağlantısı e-posta adresinize gönderildi! Lütfen gelen kutunuzu kontrol edin.")
+                            except Exception:
                                 st.error("❌ Bir hata oluştu. E-posta adresini doğru yazdığınızdan emin olun.")
                     else:
                         st.warning("Lütfen e-posta adresinizi girin.")
 
         # Güvenlik bilgi notu
-        st.markdown("<p style='text-align:center; color:#64748b; font-size:13px; margin-top:20px;'>🔒 Tüm verileriniz Supabase altyapısıyla şifrelenmektedir.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#64748b; font-size:13px; margin-top:20px;'>🔒 Tüm verileriniz Supabase altyapısıyla şifrelenmektedir.</p>", unsafe_allow_html=True)p>", unsafe_allow_html=True)
 
             # --- KAYIT OL SEKME İÇERİĞİ ---
             with tab2:
