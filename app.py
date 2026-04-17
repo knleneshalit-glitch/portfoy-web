@@ -145,16 +145,44 @@ def login_page():
 
         # Şık çerçeveli konteyner
         with st.container(border=True):
-            # Sekmeleri 3'e çıkarıyoruz
             tab1, tab2, tab3 = st.tabs(["🔑 Giriş Yap", "🚀 Kayıt Ol", "🔄 Şifre Sıfırla"])
             
             # --- GİRİŞ YAP SEKME İÇERİĞİ ---
             with tab1:
-                # ... (Mevcut Giriş Yap kodların burada kalacak) ...
+                st.write("") # Yukarıdan hafif boşluk
+                email = st.text_input("E-posta Adresi", placeholder="ornek@mail.com", key="login_email")
+                password = st.text_input("Şifre", type="password", placeholder="••••••••", key="login_pass")
+                st.write("") # Buton öncesi boşluk
+                
+                if st.button("Sisteme Giriş Yap", type="primary", use_container_width=True, key="btn_login"):
+                    if email and password:
+                        with st.spinner("Giriş yapılıyor..."):
+                            try:
+                                res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+                                st.session_state.user = res.user
+                                st.rerun()
+                            except Exception:
+                                st.error("❌ E-posta veya şifre hatalı.")
+                    else:
+                        st.warning("Lütfen giriş bilgilerinizi doldurun.")
 
             # --- KAYIT OL SEKME İÇERİĞİ ---
             with tab2:
-                # ... (Mevcut Kayıt Ol kodların burada kalacak) ...
+                st.write("")
+                new_email = st.text_input("Yeni E-posta", placeholder="ornek@mail.com", key="reg_email")
+                new_password = st.text_input("Şifre Belirleyin", type="password", placeholder="En az 6 karakter", key="reg_pass")
+                st.write("")
+                
+                if st.button("Yeni Hesap Oluştur", type="primary", use_container_width=True, key="btn_reg"):
+                    if new_email and len(new_password) >= 6:
+                        with st.spinner("Hesabınız oluşturuluyor..."):
+                            try:
+                                supabase.auth.sign_up({"email": new_email, "password": new_password})
+                                st.success("🎉 Hesabınız oluşturuldu! 'Giriş Yap' sekmesinden girebilirsiniz.")
+                            except Exception:
+                                st.error("❌ Kayıt hatası: Bu e-posta kullanımda olabilir veya şifreniz çok kısa.")
+                    else:
+                        st.warning("Lütfen geçerli bir e-posta ve en az 6 haneli bir şifre girin.")
 
             # --- ŞİFRE SIFIRLA SEKME İÇERİĞİ (YENİ EKLENEN) ---
             with tab3:
