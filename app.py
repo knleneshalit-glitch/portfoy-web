@@ -202,6 +202,27 @@ def login_page():
                     else:
                         st.warning("Lütfen e-posta adresinizi girin.")
 
+        # Güvenlik bilgi notu
+        st.markdown("<p style='text-align:center; color:#64748b; font-size:13px; margin-top:20px;'>🔒 Tüm verileriniz Supabase altyapısıyla şifrelenmektedir.</p>", unsafe_allow_html=True)
+
+            # --- ŞİFRE SIFIRLA SEKME İÇERİĞİ (YENİ EKLENEN) ---
+            with tab3:
+                st.write("")
+                reset_email = st.text_input("Kayıtlı E-posta Adresiniz", placeholder="ornek@mail.com", key="reset_email")
+                st.write("")
+                
+                if st.button("Şifre Sıfırlama Bağlantısı Gönder", type="primary", use_container_width=True, key="btn_reset"):
+                    if reset_email:
+                        with st.spinner("Bağlantı gönderiliyor..."):
+                            try:
+                                # Supabase şifre sıfırlama maili tetikleyicisi
+                                supabase.auth.reset_password_email(reset_email)
+                                st.success("✅ Şifre sıfırlama bağlantısı e-posta adresinize gönderildi! Lütfen gelen kutunuzu (ve spam klasörünü) kontrol edin.")
+                            except Exception as e:
+                                st.error("❌ Bir hata oluştu. E-posta adresini doğru yazdığınızdan emin olun.")
+                    else:
+                        st.warning("Lütfen e-posta adresinizi girin.")
+
             # --- KAYIT OL SEKME İÇERİĞİ ---
             with tab2:
                 st.write("")
