@@ -892,7 +892,8 @@ elif menu == "🔥 Isı Haritası":
     st.write("Varlıklarınızın anlık kar/zarar durumunu renklerle analiz edin.")
     
     conn = get_db_connection()
-    df = pd.read_sql_query("SELECT sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0", conn)
+    # HATA BURADAYDI: user_id filtresi eklendi!
+    df = pd.read_sql_query("SELECT sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id=%s", conn, params=(user_id,))
     conn.close()
     
     if df.empty:
