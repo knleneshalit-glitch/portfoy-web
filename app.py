@@ -109,29 +109,9 @@ def login_page():
     # --- DAHA TEMİZ VE UYUMLU CSS ---
     st.markdown("""
     <style>
-        /* Başlık için daha zarif, göz yormayan bir görünüm */
-        .main-title {
-            text-align: center;
-            font-size: 3.2rem;
-            font-weight: 800;
-            color: #38bdf8;
-            margin-bottom: 0px;
-            padding-top: 1.5rem;
-        }
-        
-        /* Alt başlık için yumuşak gri tonu */
-        .sub-title {
-            text-align: center;
-            color: #94a3b8;
-            font-size: 1.1rem;
-            margin-bottom: 2.5rem;
-            font-weight: 400;
-        }
-        
-        /* Sekmelerin arasına biraz nefes aldıracak boşluk */
-        .stTabs {
-            margin-top: 0.5rem;
-        }
+        .main-title { text-align: center; font-size: 3.2rem; font-weight: 800; color: #38bdf8; margin-bottom: 0px; padding-top: 1.5rem; }
+        .sub-title { text-align: center; color: #94a3b8; font-size: 1.1rem; margin-bottom: 2.5rem; font-weight: 400; }
+        .stTabs { margin-top: 0.5rem; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -142,11 +122,9 @@ def login_page():
         st.markdown('<div class="main-title">💎 Portföyüm</div>', unsafe_allow_html=True)
         st.markdown('<div class="sub-title">Finansal özgürlüğünüze giden yolda ilk adım.</div>', unsafe_allow_html=True)
 
-        # Şık çerçeveli konteyner
         with st.container(border=True):
             tab1, tab2, tab3 = st.tabs(["🔑 Giriş Yap", "🚀 Kayıt Ol", "🔄 Şifre Sıfırla"])
             
-            # --- GİRİŞ YAP SEKME İÇERİĞİ ---
             with tab1:
                 st.write("")
                 email = st.text_input("E-posta Adresi", placeholder="ornek@mail.com", key="login_email")
@@ -165,7 +143,6 @@ def login_page():
                     else:
                         st.warning("Lütfen giriş bilgilerinizi doldurun.")
 
-            # --- KAYIT OL SEKME İÇERİĞİ ---
             with tab2:
                 st.write("")
                 new_email = st.text_input("Yeni E-posta", placeholder="ornek@mail.com", key="reg_email")
@@ -183,7 +160,6 @@ def login_page():
                     else:
                         st.warning("Lütfen geçerli bir e-posta ve en az 6 haneli bir şifre girin.")
 
-            # --- ŞİFRE SIFIRLA SEKME İÇERİĞİ ---
             with tab3:
                 st.write("")
                 reset_email = st.text_input("Kayıtlı E-posta Adresiniz", placeholder="ornek@mail.com", key="reset_email")
@@ -200,8 +176,7 @@ def login_page():
                     else:
                         st.warning("Lütfen e-posta adresinizi girin.")
 
-        # Güvenlik bilgi notu
-
+        st.markdown("<p style='text-align:center; color:#64748b; font-size:13px; margin-top:20px;'>🔒 Tüm verileriniz Supabase altyapısıyla şifrelenmektedir.</p>", unsafe_allow_html=True)
             # --- KAYIT OL SEKME İÇERİĞİ ---
             with tab2:
                 st.write("")
