@@ -145,28 +145,34 @@ def login_page():
 
         # Şık çerçeveli konteyner
         with st.container(border=True):
-            tab1, tab2 = st.tabs(["🔑 Giriş Yap", "🚀 Kayıt Ol"])
+            # Sekmeleri 3'e çıkarıyoruz
+            tab1, tab2, tab3 = st.tabs(["🔑 Giriş Yap", "🚀 Kayıt Ol", "🔄 Şifre Sıfırla"])
             
             # --- GİRİŞ YAP SEKME İÇERİĞİ ---
             with tab1:
-                st.write("") # Yukarıdan hafif boşluk
-                email = st.text_input("E-posta Adresi", placeholder="ornek@mail.com", key="login_email")
-                password = st.text_input("Şifre", type="password", placeholder="••••••••", key="login_pass")
-                st.write("") # Buton öncesi boşluk
+                # ... (Mevcut Giriş Yap kodların burada kalacak) ...
+
+            # --- KAYIT OL SEKME İÇERİĞİ ---
+            with tab2:
+                # ... (Mevcut Kayıt Ol kodların burada kalacak) ...
+
+            # --- ŞİFRE SIFIRLA SEKME İÇERİĞİ (YENİ EKLENEN) ---
+            with tab3:
+                st.write("")
+                reset_email = st.text_input("Kayıtlı E-posta Adresiniz", placeholder="ornek@mail.com", key="reset_email")
+                st.write("")
                 
-                # type="primary" temaya uygun ana rengi verir.
-                # use_container_width=True butonu taşırmadan tam ekrana yayar.
-                if st.button("Sisteme Giriş Yap", type="primary", use_container_width=True, key="btn_login"):
-                    if email and password:
-                        with st.spinner("Giriş yapılıyor..."):
+                if st.button("Şifre Sıfırlama Bağlantısı Gönder", type="primary", use_container_width=True, key="btn_reset"):
+                    if reset_email:
+                        with st.spinner("Bağlantı gönderiliyor..."):
                             try:
-                                res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-                                st.session_state.user = res.user
-                                st.rerun()
-                            except Exception:
-                                st.error("❌ E-posta veya şifre hatalı.")
+                                # Supabase şifre sıfırlama maili tetikleyicisi
+                                supabase.auth.reset_password_email(reset_email)
+                                st.success("✅ Şifre sıfırlama bağlantısı e-posta adresinize gönderildi! Lütfen gelen kutunuzu (ve spam klasörünü) kontrol edin.")
+                            except Exception as e:
+                                st.error("❌ Bir hata oluştu. E-posta adresini doğru yazdığınızdan emin olun.")
                     else:
-                        st.warning("Lütfen giriş bilgilerinizi doldurun.")
+                        st.warning("Lütfen e-posta adresinizi girin.")
 
             # --- KAYIT OL SEKME İÇERİĞİ ---
             with tab2:
