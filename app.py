@@ -6,19 +6,15 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 from datetime import date, datetime, timedelta
 import os
-import psycopg2 # YENİ BULUT KÜTÜPHANEMİZ
+import psycopg2 
 from supabase import create_client
 import numpy as np
 import requests
 import xml.etree.ElementTree as ET
 import streamlit.components.v1 as components
 import json
-import os
-
-
 from streamlit_sortables import sort_items
-from streamlit_sortables import sort_items
-from streamlit_autorefresh import st_autorefresh  # <-- YENİ EKLENEN KÜTÜPHANE
+from streamlit_autorefresh import st_autorefresh
 
 # -----------------------------------------------------------------------------
 # SESSION STATE (OTURUM) BAŞLANGIÇ AYARLARI
@@ -40,32 +36,22 @@ if "cev_hedef_isim" not in st.session_state:
 st.set_page_config(page_title="Portföyüm", layout="wide", initial_sidebar_state="expanded")
 
 # --- MOBİL UYUM (RESPONSIVE) CSS KODU ---
-# Tüm sayfalara etki eden genel mobil optimizasyon
 st.markdown("""
 <style>
-    /* Sadece telefon ve küçük tablet ekranları (768px altı) için geçerli kurallar */
     @media (max-width: 768px) {
-        /* 1. Sayfa kenar boşluklarını daralt (Telefonda ekranı ziyan etmemek için) */
         .block-container {
             padding-left: 0.5rem !important;
             padding-right: 0.5rem !important;
             padding-top: 1rem !important;
         }
-        
-        /* 2. Dev rakamları (Kâr/Zarar metriklerini) ekrana sığacak kadar küçült */
         [data-testid="stMetricValue"] {
             font-size: 1.4rem !important;
         }
-        
-        /* 3. Özel Canlı Piyasa tablosunun taşmasını engelle (Yatay kaydırma ekle) */
         table {
             display: block !important;
             overflow-x: auto !important;
-            -webkit-overflow-scrolling: touch !important; /* Telefonda yumuşak kaydırma sağlar */
+            -webkit-overflow-scrolling: touch !important;
         }
-        
-        /* 4. "Varlıklar & İşlemler" sayfasındaki yapışkan (sticky) sağ paneli iptal et */
-        /* Mobilde ekranı kilitliyordu, artık alt alta özgürce kayacak */
         [data-testid="column"]:nth-of-type(2) {
             position: relative !important;
             top: 0 !important;
@@ -74,8 +60,6 @@ st.markdown("""
             background-color: transparent !important;
             padding: 0 !important;
         }
-
-        /* 5. Alt taraftaki haber bandının yüksekliğini ve yazılarını mobilde küçült */
         .news-label {
             font-size: 11px !important;
             padding: 8px 10px !important;
@@ -87,10 +71,8 @@ st.markdown("""
         .news-footer {
             border-top: 2px solid #e60000 !important;
         }
-        
-        /* 6. Arama kutuları ve butonların mobilde tam genişlik olması */
         .stTextInput input, .stSelectbox > div {
-            font-size: 16px !important; /* iOS'un otomatik zoom yapmasını engeller */
+            font-size: 16px !important;
         }
     }
 </style>
@@ -106,7 +88,6 @@ if "user" not in st.session_state:
     st.session_state.user = None
 
 def login_page():
-    # --- DAHA TEMİZ VE UYUMLU CSS ---
     st.markdown("""
     <style>
         .main-title { text-align: center; font-size: 3.2rem; font-weight: 800; color: #38bdf8; margin-bottom: 0px; padding-top: 1.5rem; }
@@ -115,7 +96,6 @@ def login_page():
     </style>
     """, unsafe_allow_html=True)
 
-    # --- ORTALANMIŞ EKRAN DÜZENİ ---
     col_sol, col_orta, col_sag = st.columns([1, 1.5, 1])
 
     with col_orta:
@@ -177,43 +157,16 @@ def login_page():
                         st.warning("Lütfen e-posta adresinizi girin.")
 
         st.markdown("<p style='text-align:center; color:#64748b; font-size:13px; margin-top:20px;'>🔒 Tüm verileriniz Supabase altyapısıyla şifrelenmektedir.</p>", unsafe_allow_html=True)
-            # --- KAYIT OL SEKME İÇERİĞİ ---
-            with tab2:
-                st.write("")
-                new_email = st.text_input("Yeni E-posta", placeholder="ornek@mail.com", key="reg_email")
-                new_password = st.text_input("Şifre Belirleyin", type="password", placeholder="En az 6 karakter", key="reg_pass")
-                st.write("")
-                
-                if st.button("Yeni Hesap Oluştur", type="primary", use_container_width=True, key="btn_reg"):
-                    if new_email and len(new_password) >= 6:
-                        with st.spinner("Hesabınız oluşturuluyor..."):
-                            try:
-                                supabase.auth.sign_up({"email": new_email, "password": new_password})
-                                st.success("🎉 Hesabınız oluşturuldu! 'Giriş Yap' sekmesinden girebilirsiniz.")
-                            except Exception:
-                                st.error("❌ Kayıt hatası: Bu e-posta kullanımda olabilir veya şifreniz çok kısa.")
-                    else:
-                        st.warning("Lütfen geçerli bir e-posta ve en az 6 haneli bir şifre girin.")
-
-        # Güvenlik bilgi notu
-        st.markdown("<p style='text-align:center; color:#64748b; font-size:13px; margin-top:20px;'>🔒 Tüm verileriniz Supabase altyapısıyla şifrelenmektedir.</p>", unsafe_allow_html=True)
 
 # --- ANA KONTROL MEKANİZMASI ---
 if st.session_state.user is None:
     login_page()
     st.stop() # Giriş yapılmadıysa kodun geri kalanını çalıştırma!
 
-user_id = st.session_state.user.id # Artık her yerde bu ID'yi kullanacağız
+user_id = st.session_state.user.id 
 
 def google_ads_goster(reklam_birimi_id, yukseklik=100):
-    """
-    Google AdSense reklamlarını Streamlit içinde gösterir.
-    reklam_birimi_id: Google'ın size verdiği özel reklam kutusu numarası
-    """
-    # DİKKAT: Buraya kendi AdSense Yayıncı numaranızı yazmalısınız!
     yayinci_id = "ca-pub-XXXXXXXXXXXXXXXX" 
-    
-    # Google'ın standart reklam kodu
     reklam_kodu = f"""
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={yayinci_id}"
          crossorigin="anonymous"></script>
@@ -227,14 +180,11 @@ def google_ads_goster(reklam_birimi_id, yukseklik=100):
          (adsbygoogle = window.adsbygoogle || []).push({{}});
     </script>
     """
-    
-    # Kodu sayfaya entegre ediyoruz
     components.html(reklam_kodu, height=yukseklik)
 
 # =============================================================================
 # OTOMATİK CANLI YENİLEME SİSTEMİ
 # =============================================================================
-# Sayfayı her 60.000 milisaniyede (60 saniyede) bir otomatik olarak baştan çalıştırır.
 st_autorefresh(interval=60000, key="canli_piyasa_guncelleme")
 
 # =============================================================================
@@ -243,7 +193,7 @@ st_autorefresh(interval=60000, key="canli_piyasa_guncelleme")
 def get_db_connection():
     return psycopg2.connect(st.secrets["DB_URL"])
 
-@st.cache_resource # EKLENEN SİHİRLİ KOD: Bu işlem sadece 1 kere çalışır, hızı artırır!
+@st.cache_resource 
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -300,7 +250,6 @@ def fiyatlari_hesapla(serbest_altin_girdisi):
     platin_tl = (ons_platin * usd) / 31.1035
 
     try:
-        # Kullanıcı kutuyu boş bırakırsa hata vermemesi için if kontrolü eklendi
         if serbest_altin_girdisi:
             has_altin_serbest = float(str(serbest_altin_girdisi).replace(".", "").replace(",", "."))
             if has_altin_serbest <= 0: has_altin_serbest = has_altin_banka
@@ -317,8 +266,8 @@ def guncel_fiyat_bul(sembol, fiyatlar):
     if sembol == "GRAM-ALTIN": return has_altin_banka
     elif sembol == "GRAM-ALTIN-S": return has_altin_serbest
     elif sembol == "GRAM-ALTIN-22": return has_altin_serbest * 0.916
-    elif sembol == "GRAM-ALTIN-22-B": return has_altin_serbest * 0.910  # EKSİK OLAN 22 AYAR BİLEZİK EKLENDİ
-    elif sembol == "GRAM-ALTIN-14": return has_altin_serbest * 0.585    # İHTİMALE KARŞI 14 AYAR EKLENDİ
+    elif sembol == "GRAM-ALTIN-22-B": return has_altin_serbest * 0.910
+    elif sembol == "GRAM-ALTIN-14": return has_altin_serbest * 0.585
     elif sembol == "CEYREK-ALTIN": return has_altin_serbest * 1.6065
     elif sembol == "YARIM-ALTIN": return has_altin_serbest * 3.2130
     elif sembol == "TAM-ALTIN": return has_altin_serbest * 6.4260
@@ -330,44 +279,34 @@ def guncel_fiyat_bul(sembol, fiyatlar):
 # =============================================================================
 # MODERNİZE EDİLMİŞ SOL MENÜ (SIDEBAR) TASARIMI
 # =============================================================================
-
-# Menüye özel canlandırıcı CSS dokunuşları
 st.sidebar.markdown("""
 <style>
-    /* Sidebar içeriğini en yukarı çekme */
     [data-testid="stSidebarContent"] {
         padding-top: 0rem !important;
     }
-    
-    /* Menü Başlığı Tasarımı */
     .sidebar-title {
         font-size: 22px !important;
         font-weight: 800 !important;
         color: #ffffff !important;
         text-align: center;
-        margin-top: -20px; /* Başlığı daha da yukarı çeker */
+        margin-top: -20px;
         margin-bottom: 20px;
         padding: 12px;
         background: linear-gradient(90deg, #1e3a8a, #3b82f6);
-        border-radius: 0px 0px 15px 15px; /* Sadece alt köşeleri yuvarlatır */
+        border-radius: 0px 0px 15px 15px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
-    
-    /* Menü Seçenekleri Animasyonu */
     div[class*="stRadio"] label {
         transition: all 0.3s ease-in-out;
         padding: 8px 12px !important;
         border-radius: 10px !important;
         margin-bottom: 5px;
     }
-    
     div[class*="stRadio"] label:hover {
-        transform: translateX(10px); /* Sağa kayma animasyonu */
+        transform: translateX(10px);
         background-color: rgba(59, 130, 246, 0.15) !important;
         color: #3b82f6 !important;
     }
-
-    /* Çıkış Butonu Tasarımı */
     .stButton>button[kind="secondary"] {
         width: 100%;
         border-radius: 15px;
@@ -385,20 +324,17 @@ st.sidebar.markdown("""
 """, unsafe_allow_html=True)
 
 with st.sidebar:
-    # 1. En Tepe: Sade Başlık
     st.markdown('<div class="sidebar-title">💎 PORTFÖYÜM</div>', unsafe_allow_html=True)
     
-    # 2. Orta: Sayfa Gezinme Menüsü
     menu = st.radio(
         "📍 Hızlı Erişim",
         ["📊 Genel Özet", "🔥 Isı Haritası", "💵 Varlıklar & İşlemler", "📈 Piyasa Analizi", "🧮 Hesap Araçları", "📅 Piyasa Takvimi"],
         index=0,
-        label_visibility="collapsed" # Gereksiz 'Hızlı Erişim' yazısını gizler
+        label_visibility="collapsed"
     )
     
     st.markdown("---")
     
-    # 3. Alt Kısım: Ayarlar ve Fiyat Girişi
     st.subheader("⚙️ Sistem Ayarları")
     serbest_altin = st.text_input("Serbest Piyasa Gr Altın (₺):", placeholder="Örn: 3150")
     fiyatlar = fiyatlari_hesapla(serbest_altin)
@@ -416,7 +352,6 @@ with st.sidebar:
             conn.close()
         st.success("Veriler yenilendi!")
 
-    # 4. En Alt: Güvenli Çıkış
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🚪 Güvenli Çıkış", type="secondary", use_container_width=True):
         st.session_state.user = None
@@ -471,7 +406,6 @@ st.markdown(footer_css, unsafe_allow_html=True)
 if menu == "📊 Genel Özet":
     st.title("Portföy Analizi")
 
-    # --- HAFIZA KORUMASI (Hata Almamak İçin) ---
     if 'takip_listesi_bant' not in st.session_state:
         st.session_state.takip_listesi_bant = {
             "Dolar/TL": "USDTRY=X", "Euro/TL": "EURTRY=X", 
@@ -483,7 +417,6 @@ if menu == "📊 Genel Özet":
             "Gram Altın": "GRAM_ALTIN", "Dolar/TL": "USDTRY=X", "Bitcoin": "BTC-USD"
         }
 
-    # 1. YAHOO FİNANS CANLI ARAMA MOTORU
     @st.cache_data(ttl=3600)
     def yahoo_arama(kelime):
         url = f"https://query2.finance.yahoo.com/v1/finance/search?q={kelime}"
@@ -501,7 +434,6 @@ if menu == "📊 Genel Özet":
         except:
             return {}
 
-    # 2. VERİ ÇEKME MOTORU (KAYAN BANT İÇİN)
     @st.cache_data(ttl=300) 
     def dinamik_bant_verisi_cek(takip_sozlugu):
         sonuclar = []
@@ -534,7 +466,6 @@ if menu == "📊 Genel Özet":
                 sonuclar.append(f"⚠️ {ad[:10]}: Hata")
         return sonuclar
 
-    # 3. KAYAN BANT ARAYÜZÜ (DİŞLİ ÇARK)
     col_bant, col_ayar = st.columns([12, 1])
     with col_ayar:
         with st.popover("⚙️"):
@@ -591,9 +522,6 @@ if menu == "📊 Genel Özet":
         ticker_data = dinamik_bant_verisi_cek(st.session_state.takip_listesi_bant)
         if not ticker_data: ticker_data = ["Gösterilecek veri yok."]
 
-        # ÇÖZÜM BURADA: 
-        # 1. 'padding-left: 100%;' komutu silindi. Artık yazılar uzaydan değil, tam kenardan yola çıkacak.
-        # 2. Hız '100s' yerine '45s' yapıldı ki ekrana daha akıcı ve hızlı gelsin.
         ticker_html = f"""
         <div style="background-color: #0e1117; padding: 0px 10px; border-radius: 5px; border: 1px solid #30333d; overflow: hidden; white-space: nowrap; height: 42px; display: flex; align-items: center;">
             <div style="display: inline-block; animation: marquee 45s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
@@ -604,9 +532,6 @@ if menu == "📊 Genel Özet":
         st.markdown(ticker_html, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         
-    # =========================================================================
-    # ANA EKRAN: SOL KOLON (PORTFÖY) VE SAĞ KOLON (CANLI TABLO)
-    # =========================================================================
     ana_kolon, sag_kolon = st.columns([3, 1], gap="large")
 
     with ana_kolon:
@@ -617,19 +542,12 @@ if menu == "📊 Genel Özet":
         if df_varlik.empty:
             st.info("Portföyünüzde henüz varlık bulunmuyor. Yan menüden işlem ekleyerek başlayabilirsiniz!")
         else:
-            # --- YENİ DİNAMİK CANLI HESAPLAMA ---
-            # Veritabanındaki eski fiyata bakmak yerine, guncel_fiyat_bul fonksiyonu ile 
-            # o anki saniyelik fiyatı çekip veri çerçevemize (dataframe) işliyoruz.
             df_varlik['guncel_fiyat'] = df_varlik['sembol'].apply(lambda x: guncel_fiyat_bul(x, fiyatlar))
             
-            # Matematiksel hesaplamalar artık bu yepyeni canlı fiyatlar üzerinden yapılıyor
             df_varlik['Yatirim'] = df_varlik['miktar'] * df_varlik['ort_maliyet']
             df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
             df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
-            df_varlik['Degisim_%'] = (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100
-            df_varlik['Guncel'] = df_varlik['miktar'] * df_varlik['guncel_fiyat']
-            df_varlik['Kar_Zarar'] = df_varlik['Guncel'] - df_varlik['Yatirim']
-            df_varlik['Degisim_%'] = (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100
+            df_varlik['Degisim_%'] = np.where(df_varlik['Yatirim'] > 0, (df_varlik['Kar_Zarar'] / df_varlik['Yatirim']) * 100, 0)
             
             top_yatirim = df_varlik['Yatirim'].sum()
             top_guncel = df_varlik['Guncel'].sum()
@@ -651,7 +569,6 @@ if menu == "📊 Genel Özet":
                 'Degisim_%': 'Değişim (%)'
             })
 
-            # Kâr ve Zarar durumuna göre yeşil/kırmızı renk kuralı (YENİ EKLENEN KISIM)
             def portfoy_renk(val):
                 try:
                     if float(val) > 0:
@@ -693,10 +610,8 @@ if menu == "📊 Genel Özet":
                     )
                     st.plotly_chart(fig, use_container_width=True)
 
-                    # --- GOOGLE ADS BURAYA GELECEK ---
-                    st.markdown("---") # Çizgi çeker
+                    st.markdown("---")
                     google_ads_goster(reklam_birimi_id="1234567890", yukseklik=120) 
-                    # (1234567890 yerine Google AdSense panelinden oluşturduğunuz reklam birimi kodunu yazmalısınız)
                 else:
                     st.warning("Grafik için veri yok.")
                 
@@ -728,10 +643,6 @@ if menu == "📊 Genel Özet":
                             
         conn.close()
 
-    # =========================================================================
-    # AÇILIR MENÜ (POPUP) FONKSİYONLARI VE AYARLARI (GÜNCELLENMİŞ)
-    # =========================================================================
-    
     hazir_tablo_varliklar = {
         "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", "Gram Platin": "GRAM_PLATIN",
         "Ons Altın": "GC=F", "Ons Gümüş": "SI=F", "Ons Platin": "PL=F",
@@ -741,7 +652,6 @@ if menu == "📊 Genel Özet":
         "Avalanche": "AVAX-USD", "Binance Coin": "BNB-USD", "Ripple (XRP)": "XRP-USD"
     }
 
-    # 1. ARKA PLAN İŞLEMLERİ (Geçici Hafıza)
     def sil_aksiyonu_temp():
         item = st.session_state.sil_secim_popup
         if item != "Seçiniz..." and item in st.session_state.temp_liste:
@@ -758,7 +668,6 @@ if menu == "📊 Genel Özet":
             kisa_ad = secilen.split('-')[0].strip()
             st.session_state.temp_liste[kisa_ad] = bulunanlar[secilen]
 
-    # 2. GEÇİCİ HAFIZA İLE ÇALIŞAN YENİ POPUP MENÜSÜ
     @st.dialog("⚙️ Sağ Tablo Ayarları")
     def tablo_ayarlari_popup():
         st.markdown("**1. Sıralamayı Değiştir (Sürükle & Bırak)**")
@@ -767,16 +676,11 @@ if menu == "📊 Genel Özet":
         mevcut_liste = list(st.session_state.temp_liste.keys())
         
         if mevcut_liste:
-            # ÇÖZÜM BURADA: Liste uzunluğunu 'key' içine ekleyerek, 
-            # yeni eleman eklendiğinde sürükle-bırak eklentisinin eski hafızasını silmesini sağlıyoruz.
             dinamik_key = f"sort_popup_{len(mevcut_liste)}"
             yeni_sira = sort_items(mevcut_liste, direction="vertical", key=dinamik_key)
             
-            # SADECE sıralama değiştiyse ve eleman sayısı aynıysa üzerine yaz. 
             if yeni_sira != mevcut_liste and len(yeni_sira) == len(mevcut_liste):
                 st.session_state.temp_liste = {k: st.session_state.temp_liste[k] for k in yeni_sira}
-                # DÜZELTME: Buradaki st.rerun() komutu pencereyi kapattığı için SİLİNDİ.
-                # Sürükle-bırak aracı zaten kendi yenilemesini yapıyor.
                 
             st.markdown("---")
             st.markdown("**2. Listeden Çıkar**")
@@ -800,13 +704,10 @@ if menu == "📊 Genel Özet":
                 st.button("➕ Arama Sonucunu Ekle", on_click=arama_ekle_aksiyonu_temp, kwargs={"bulunanlar": bulunanlar_tablo}, use_container_width=True, key="btn_ara")
 
         st.markdown("---")
-        # Final işlemi: SADECE bu butona basılınca ana tabloyu günceller ve ekranı (arkayı) yeniler
         if st.button("✅ Kaydet ve Değişiklikleri Yansıt", type="primary", use_container_width=True):
             st.session_state.sag_panel_listesi = st.session_state.temp_liste.copy()
-            # BURASI DOĞRU: İşlem bitip kaydet dendiğinde pencerenin kapanması için rerun gereklidir.
             st.rerun()
 
-    # --- SAĞ KOLON (TABLO GÖRÜNÜMÜ) ---
     with sag_kolon:
         st.markdown("<h3 style='margin:0; margin-bottom: 10px; white-space:nowrap; font-size:20px;'>📊 Canlı Piyasa</h3>", unsafe_allow_html=True)
 
@@ -878,9 +779,7 @@ if menu == "📊 Genel Özet":
         else:
             st.info("Tablo boş.")
 
-        # Tablonun Altına Estetik Düzenle Butonu Ekleme
         if st.button("⚙️ Düzenle", key="tablo_ayar_buton_alt", use_container_width=True):
-            # Popup açılmadan hemen önce arka planın bir kopyasını (geçici hafıza) alır
             st.session_state.temp_liste = st.session_state.sag_panel_listesi.copy()
             tablo_ayarlari_popup()
 
@@ -892,7 +791,6 @@ elif menu == "🔥 Isı Haritası":
     st.write("Varlıklarınızın anlık kar/zarar durumunu renklerle analiz edin.")
     
     conn = get_db_connection()
-    # HATA BURADAYDI: user_id filtresi eklendi!
     df = pd.read_sql_query("SELECT sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id=%s", conn, params=(user_id,))
     conn.close()
     
@@ -951,7 +849,6 @@ elif menu == "🔥 Isı Haritası":
 # SAYFA 3: VARLIKLAR & İŞLEMLER
 # -----------------------------------------------------------------------------
 elif menu == "💵 Varlıklar & İşlemler":
-    # 3 PANELLİ ANA EKRAN DÜZENİ İÇİN CSS
     st.markdown("""
     <style>
         [data-testid="column"]:nth-of-type(2) {
@@ -976,7 +873,6 @@ elif menu == "💵 Varlıklar & İşlemler":
     with col_orta:
         st.title("Varlık & İşlem Yönetimi")
 
-        # --- 1. AKILLI ARAMA MOTORU (Form Dışında, Hisse/Fon/Kripto İçin) ---
         @st.cache_data(ttl=3600)
         def yahoo_arama_islem(kelime):
             import requests
@@ -1004,13 +900,12 @@ elif menu == "💵 Varlıklar & İşlemler":
             if sonuclar:
                 secim = st.selectbox("Bulunan Sonuçlar:", ["Seçiniz..."] + list(sonuclar.keys()))
                 if secim != "Seçiniz...":
-                    secilen_sembol = sonuclar[secim] # Seçilen sembolü hafızaya alır
+                    secilen_sembol = sonuclar[secim] 
             else:
                 st.warning("Sonuç bulunamadı.")
                 
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # --- 2. HAZIR LİSTE (Maden & Döviz İçin) ---
         hizli_varliklar = {
             "Manuel Giriş veya Arama Sonucu": "",
             "GRAM ALTIN (Serbest/Kuyumcu)": "GRAM-ALTIN-S",
@@ -1034,17 +929,12 @@ elif menu == "💵 Varlıklar & İşlemler":
             "ETHEREUM ($)": "ETH-USD"
         }
 
-        # --- 3. İŞLEM KAYIT FORMU ---
         with st.expander("➕ YENİ İŞLEM EKLE (Alış / Satış)", expanded=True):
-            # clear_on_submit=False yaptık ki arama yapıldığında form sıfırlanmasın
             with st.form("islem_formu", clear_on_submit=False):
                 c1, c2, c3 = st.columns([1, 2, 2])
                 tip = c1.selectbox("İşlem Tipi", ["ALIS", "SATIS"])
                 
-                # Döviz/Maden seçimi
                 secilen_isim = c2.selectbox("Hızlı Seçim (Döviz/Maden)", list(hizli_varliklar.keys()))
-                
-                # Arama yapıldıysa kutu dolar, yapılmadıysa boş kalır veya elle yazılır
                 elle_giris = c3.text_input("Veya Hisse/Kripto Kodu", value=secilen_sembol, placeholder="Örn: AAPL, THYAO.IS")
                 
                 c4, c5, c6 = st.columns([1, 2, 2])
@@ -1052,13 +942,11 @@ elif menu == "💵 Varlıklar & İşlemler":
                 fiyat = c6.number_input("Birim Fiyat (₺ veya $)", min_value=0.00, format="%f", step=10.0)
                 
                 if st.form_submit_button("💾 İşlemi Kaydet", use_container_width=True):
-                    # Sembol belirleme: Eğer elle giriş/arama varsa onu al, yoksa hızlı seçimi al
                     if elle_giris.strip(): 
                         sembol = elle_giris.strip().upper()
                     else: 
                         sembol = hizli_varliklar[secilen_isim]
                         
-                    # Hata kontrolleri
                     if not sembol: 
                         st.error("Lütfen listeden bir varlık seçin veya bir sembol yazın!")
                     elif miktar <= 0: 
@@ -1094,7 +982,6 @@ elif menu == "💵 Varlıklar & İşlemler":
                         
                         conn.close()
 
-        # --- 4. SEKMELER (Varlıklarım ve İşlem Geçmişi) ---
         tab1, tab2 = st.tabs(["💼 Mevcut Varlıklarım", "📜 İşlem Geçmişi (Silme)"])
         
         with tab1:
@@ -1165,9 +1052,6 @@ elif menu == "🧮 Hesap Araçları":
     
     tab_mal, tab_kredi, tab_cevir = st.tabs(["📉 Maliyet Düşürme", "🏦 Kredi Hesapla", "💱 Hızlı Çevirici"])
     
-    # ---------------------------------------------------------
-    # 📉 MALİYET DÜŞÜRME EKRANI (ŞIK TASARIM)
-    # ---------------------------------------------------------
     with tab_mal:
         st.markdown("<h3 style='margin-bottom: 5px;'>📉 Ortalama Maliyet Hesaplayıcı</h3>", unsafe_allow_html=True)
         st.markdown("<span style='color: #a3a3a3; font-size: 14px;'>Elinizdeki varlığa yeni alım yaptığınızda ortalama maliyetinizin ne olacağını önceden görün.</span>", unsafe_allow_html=True)
@@ -1182,7 +1066,6 @@ elif menu == "🧮 Hesap Araçları":
                 mevcut_maliyet = st.number_input("Mevcut Maliyetiniz (₺):", min_value=0.0, format="%f", value=50.0)
 
         with c_arti:
-            # Araya şık bir artı işareti ekliyoruz
             st.markdown("<div style='text-align: center; font-size: 40px; margin-top: 50px; color: #4b5563;'>➕</div>", unsafe_allow_html=True)
             
         with c_yeni:
@@ -1207,25 +1090,19 @@ elif menu == "🧮 Hesap Araçları":
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # YENİ EKRAN KAYDIRMA KODU (Gecikmeli ve Garantili)
                 components.html("""
                 <script>
                     setTimeout(function() {
                         var parent = window.parent.document;
-                        // Streamlit'in güncel kaydırma alanını bulur
                         var ana_govde = parent.querySelector('.stAppViewContainer') || parent.querySelector('.main') || parent.body;
-                        // Yumuşakça en aşağı kaydırır
                         ana_govde.scrollTo({ top: ana_govde.scrollHeight, behavior: 'smooth' });
-                    }, 150); // Ekranın önce yüklenmesi için 150 milisaniye bekler
+                    }, 150);
                 </script>
                 """, height=0)
 
             else:
                 st.error("Lütfen hesaplama yapabilmek için adet giriniz.")
 
-    # ---------------------------------------------------------
-    # 🏦 KREDİ HESAPLAYICI EKRANI (ŞIK TASARIM)
-    # ---------------------------------------------------------
     with tab_kredi:
         st.markdown("<h3 style='margin-bottom: 5px;'>🏦 Gelişmiş Kredi Hesaplama Aracı</h3>", unsafe_allow_html=True)
         st.markdown("<span style='color: #a3a3a3; font-size: 14px;'>Vergi dilimleri dahil edilmiş gerçek maliyetlerle kredilerinizi analiz edin.</span>", unsafe_allow_html=True)
@@ -1238,7 +1115,6 @@ elif menu == "🧮 Hesap Araçları":
             "Ticari Kredi": {"oran": 3.59, "vergi_carpani": 1.05}
         }
         
-        # Üst Panel: Temel Ayarlar
         with st.container(border=True):
             c_tur, c_mod = st.columns(2)
             kredi_turu = c_tur.selectbox("📋 Kredi Türü Seçin:", list(kredi_veriler.keys()))
@@ -1249,16 +1125,15 @@ elif menu == "🧮 Hesap Araçları":
         
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Alt Panel: Değer Girişleri
         with st.container(border=True):
             c1, c2, c3 = st.columns(3)
             
             if hesap_modu == "Çekilecek Tutara Göre (Taksit Hesapla)":
                 k_tutar = c1.number_input("💵 Çekilecek Tutar (₺)", min_value=0.0, step=10000.0, value=100000.0)
-                k_taksit = 0 # Diğer mod için boş bırakıyoruz
+                k_taksit = 0 
             else:
                 k_taksit = c1.number_input("💵 Aylık Ödenecek Taksit (₺)", min_value=0.0, step=1000.0, value=5000.0)
-                k_tutar = 0 # Diğer mod için boş bırakıyoruz
+                k_tutar = 0 
                 
             k_vade = c2.selectbox("📅 Vade (Ay)", [12, 24, 36, 48, 60, 120])
             k_faiz = c3.number_input("📈 Aylık Faiz Oranı (%)", min_value=0.0, format="%f", value=float(varsayilan_oran))
@@ -1270,7 +1145,6 @@ elif menu == "🧮 Hesap Araçları":
                 r = (k_faiz / 100.0) * vergi_carpani
                 n = k_vade
                 
-                # Matematiksel Hesaplamalar
                 if hesap_modu == "Çekilecek Tutara Göre (Taksit Hesapla)":
                     ana_deger = k_tutar * (r * (1 + r)**n) / ((1 + r)**n - 1)
                     baslik = "AYLIK ÖDEYECEĞİNİZ TAKSİT"
@@ -1282,7 +1156,6 @@ elif menu == "🧮 Hesap Araçları":
                     toplam_odeme = k_taksit * n
                     toplam_faiz = toplam_odeme - ana_deger
                 
-                # Profesyonel Sonuç Kartı
                 st.markdown(f"""
 <div style="background: linear-gradient(90deg, #1e3a8a, #3b82f6); padding: 25px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-top: 15px;">
     <h4 style="margin: 0; opacity: 0.8; font-weight: 500; font-size: 16px;">{baslik}</h4>
@@ -1303,30 +1176,25 @@ elif menu == "🧮 Hesap Araçları":
 </div>
 """, unsafe_allow_html=True)
                 
-                # YENİ EKRAN KAYDIRMA KODU (Gecikmeli ve Garantili)
                 components.html("""
                 <script>
                     setTimeout(function() {
                         var parent = window.parent.document;
-                        // Streamlit'in güncel kaydırma alanını bulur
                         var ana_govde = parent.querySelector('.stAppViewContainer') || parent.querySelector('.main') || parent.body;
-                        // Yumuşakça en aşağı kaydırır
                         ana_govde.scrollTo({ top: ana_govde.scrollHeight, behavior: 'smooth' });
-                    }, 150); // Ekranın önce yüklenmesi için 150 milisaniye bekler
+                    }, 150); 
                 </script>
                 """, height=0)
                 
             else:
                 st.error("Lütfen hesaplama yapabilmek için tutar ve faiz oranı giriniz.")
 
-    # --- ÇEVİRİCİ İÇİN AÇILIR PENCERE (POPUP) ---
     @st.dialog("🔍 Varlık Seçimi")
     def cevirici_varlik_sec_popup(tur_belirteci):
         st.write(f"**{'Çevrilecek Varlığı' if tur_belirteci == 'kaynak' else 'Dönüşecek Varlığı'} Seçin:**")
 
         st.markdown("**1. Hızlı Seçim (Döviz & Maden)**")
         
-        # --- LİSTE ZENGİNLEŞTİRİLDİ ---
         hazir_liste = {
             "Türk Lirası (TRY)": "TRY", 
             "Amerikan Doları (USD)": "USDTRY=X", 
@@ -1362,13 +1230,12 @@ elif menu == "🧮 Hesap Araçları":
         st.markdown("**2. Hisse, Fon veya Kripto Ara**")
         ara_kelime = st.text_input("Arama Kelimesi:", placeholder="Örn: THYAO, AAPL, SOL", key=f"ara_{tur_belirteci}")
         if ara_kelime:
-            # Daha önce yazdığımız yahoo_arama fonksiyonunu kullanıyoruz
             bulunanlar = yahoo_arama(ara_kelime)
             if bulunanlar:
                 sec_ara = st.selectbox("Sonuçlar:", ["Lütfen Seçin..."] + list(bulunanlar.keys()), key=f"sonuc_{tur_belirteci}")
                 if st.button("✅ Arama Sonucunu Onayla", key=f"btn_ara_{tur_belirteci}", use_container_width=True, type="primary"):
                     if sec_ara != "Lütfen Seçin...":
-                        isim = sec_ara.split('-')[0].strip() # Sadece kısa adı alır
+                        isim = sec_ara.split('-')[0].strip() 
                         kod = bulunanlar[sec_ara]
                         if tur_belirteci == "kaynak":
                             st.session_state.cev_kaynak_isim = isim
@@ -1378,20 +1245,17 @@ elif menu == "🧮 Hesap Araçları":
                             st.session_state.cev_hedef_kod = kod
                         st.rerun()
 
-    # --- HIZLI ÇEVİRİCİ ANA EKRANI (YENİLENMİŞ ŞIK TASARIM) ---
     with tab_cevir:
         st.markdown("<h3 style='margin-bottom: 5px;'>💱 Canlı Sınırsız Çevirici</h3>", unsafe_allow_html=True)
         st.markdown("<span style='color: #a3a3a3; font-size: 14px;'>İstediğiniz hisseyi, fonu, kriptoyu veya dövizi anlık piyasa verileriyle birbirine dönüştürün.</span>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # 1. BÖLÜM: MİKTAR GİRİŞİ (Üstte ferah bir alan)
         c_tutar, c_bos = st.columns([1, 2])
         with c_tutar:
             cevrilecek_tutar = st.number_input("💰 Çevrilecek Miktar / Adet:", min_value=0.0000, value=1.0, step=1.0, format="%f")
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # 2. BÖLÜM: VARLIK KARTLARI (Düzenli Container Yapısı)
         c_kaynak, c_ok, c_hedef = st.columns([4, 1, 4], gap="medium")
         
         with c_kaynak:
@@ -1402,7 +1266,6 @@ elif menu == "🧮 Hesap Araçları":
                     cevirici_varlik_sec_popup("kaynak")
 
         with c_ok:
-            # Araya şık bir ok işareti ekliyoruz
             st.markdown("<div style='text-align: center; font-size: 40px; margin-top: 30px; color: #4b5563;'>➡️</div>", unsafe_allow_html=True)
                     
         with c_hedef:
@@ -1414,17 +1277,14 @@ elif menu == "🧮 Hesap Araçları":
 
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # 3. BÖLÜM: HESAPLAMA VE ŞIK SONUÇ PANOSU
         if st.button("🔄 ANLIK KURLARLA HESAPLA", use_container_width=True, type="primary"):
             with st.spinner("Piyasa verileri çekiliyor..."):
                 
-                # Akıllı TL Çevirme Motoru (GELİŞTİRİLMİŞ)
                 def tl_degeri_hesapla(kod):
                     if kod == "TRY": return 1.0
                     usd_kuru = veri_getir("USDTRY=X")
                     if usd_kuru == 0: usd_kuru = 1.0
                     
-                    # 1. Altın Çeşitleri İçin Ortak Gram Fiyatı
                     has_altin_gram_tl = (veri_getir("GC=F") * usd_kuru) / 31.1035
                     
                     if kod == "GRAM-ALTIN": return has_altin_gram_tl
@@ -1434,11 +1294,9 @@ elif menu == "🧮 Hesap Araçları":
                     if kod == "ATA-ALTIN": return has_altin_gram_tl * 6.6080
                     if kod == "ONS-ALTIN": return veri_getir("GC=F") * usd_kuru
                     
-                    # 2. Diğer Madenler
                     if kod == "GRAM-GUMUS": return (veri_getir("SI=F") * usd_kuru) / 31.1035
                     if kod == "GRAM-PLATIN": return (veri_getir("PL=F") * usd_kuru) / 31.1035
                     
-                    # 3. Standart Piyasa Verisi (Hisse, Döviz, Kripto)
                     fiyat = veri_getir(kod)
                     if ".IS" in kod or "TRY" in kod:
                         return fiyat
@@ -1456,7 +1314,6 @@ elif menu == "🧮 Hesap Araçları":
                         sonuc = (cevrilecek_tutar * kaynak_tl) / hedef_tl
                         capraz_kur = kaynak_tl / hedef_tl
                         
-                        # --- YENİ PROFESYONEL SONUÇ HTML'İ ---
                         st.markdown(f"""
                         <div style="background: linear-gradient(90deg, #1e3a8a, #3b82f6); padding: 25px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-top: 15px;">
                             <h4 style="margin: 0; opacity: 0.8; font-weight: 500; font-size: 16px;">ÇEVİRİ SONUCU</h4>
@@ -1465,7 +1322,6 @@ elif menu == "🧮 Hesap Araçları":
                         </div>
                         """, unsafe_allow_html=True)
 
-                        # YENİ EKRAN KAYDIRMA KODU (Düzenlenmiş JavaScript)
                         components.html("""
                             <script>
                                 setTimeout(function() {
@@ -1570,7 +1426,6 @@ elif menu == "📅 Piyasa Takvimi":
 # SAYFA 6: PRO PİYASA ANALİZİ
 # -----------------------------------------------------------------------------
 elif menu == "📈 Piyasa Analizi":
-    # CSS kodunu sayfa düzenini bozmaması için en başa, görünmez bir şekilde ekliyoruz
     st.markdown("""
         <style>
         [data-testid="stMetricValue"] {
@@ -1587,16 +1442,14 @@ elif menu == "📈 Piyasa Analizi":
     
     c1, c2, c3 = st.columns([2, 1, 1])
     
-    # 1. KULLANICI SEÇİM ALANI
     girdi_tipi = c1.radio("🔍 Varlık Türü:", ["Döviz & Emtia (Listeden Seç)", "Hisse, Fon & Kripto Ara"], horizontal=True)
     
-    secilen_sembol = None  # İşleme başlamadan önce boş tanımlıyoruz
+    secilen_sembol = None  
     
-    # 2. ARAMA FONKSİYONU (Arka planda Yahoo'da arama yapar)
-    @st.cache_data(ttl=3600)  # Aynı aramaları tekrar tekrar yapıp yavaşlamamak için önbelleğe alıyoruz
+    @st.cache_data(ttl=3600)  
     def sembol_ara(kelime):
         url = f"https://query2.finance.yahoo.com/v1/finance/search?q={kelime}"
-        headers = {'User-Agent': 'Mozilla/5.0'} # Yahoo'nun bizi bot sanıp engellememesi için tarayıcı kimliği gönderiyoruz
+        headers = {'User-Agent': 'Mozilla/5.0'} 
         try:
             res = requests.get(url, headers=headers)
             data = res.json()
@@ -1607,16 +1460,13 @@ elif menu == "📈 Piyasa Analizi":
                 symbol = q.get('symbol')
                 name = q.get('shortname', 'İsimsiz')
                 exch = q.get('exchange', 'Bilinmiyor')
-                # Sadece geçerli bir sembol varsa listeye ekle
                 if symbol:
                     sonuclar.append(f"{symbol} | {name} ({exch})")
             return sonuclar
         except:
             return []
 
-    # 3. ARAYÜZ MANTIĞI
     if girdi_tipi == "Döviz & Emtia (Listeden Seç)":
-        # Kullanıcı dostu isimler ve karşılık gelen Yahoo Finance kodları (Sözlük yapısı)
         doviz_emtia_sozluk = {
             "Dolar / TL": "USDTRY=X",
             "Euro / TL": "EURTRY=X",
@@ -1643,23 +1493,17 @@ elif menu == "📈 Piyasa Analizi":
             "Mısır ($)": "ZC=F"
         }
         
-        # Ekranda sözlüğün anahtarlarını (kullanıcı dostu isimleri) gösteriyoruz
         secilen_isim = c1.selectbox("Altın, Döviz veya Emtia Seçin:", list(doviz_emtia_sozluk.keys()))
-        
-        # Arka planda kullanılacak asıl kodu sözlükten çekiyoruz
         secilen_sembol = doviz_emtia_sozluk[secilen_isim]
     
     else:
-        # Arama metni kutusu
         arama_metni = c1.text_input("🔍 Aranacak kelimeyi veya kodu yazın (Örn: THY, Apple, BTC):")
         
-        # Kullanıcı en az 2 harf girdiğinde aramayı tetikle
         if arama_metni and len(arama_metni) >= 2:
             bulunan_sonuclar = sembol_ara(arama_metni)
             
             if bulunan_sonuclar:
                 secim = c1.selectbox("🎯 Arama Sonuçları (Lütfen Seçin):", bulunan_sonuclar)
-                # "THYAO.IS | Turk Hava Yollari (IST)" gibi bir metinden sadece "THYAO.IS" kısmını ayırıyoruz
                 secilen_sembol = secim.split(" | ")[0].strip()
             else:
                 c1.warning("Buna benzer bir hisse, fon veya kripto bulunamadı.")
@@ -1670,7 +1514,6 @@ elif menu == "📈 Piyasa Analizi":
     periyotlar = {"1 AY": "1mo", "3 AY": "3mo", "6 AY": "6mo", "1 YIL": "1y", "3 YIL": "3y", "5 YIL": "5y"}
     secilen_periyot = c2.selectbox("📅 Zaman Aralığı:", list(periyotlar.keys()), index=3)
     
-    # 4. VERİ ÇEKME VE GRAFİK ÇİZME İŞLEMLERİ (Eğer bir sembol seçildiyse)
     if secilen_sembol:
         @st.cache_data(ttl=300)
         def analiz_verisi_getir(sembol, periyot_kodu):
@@ -1723,7 +1566,6 @@ elif menu == "📈 Piyasa Analizi":
                         eski_fiyat = ham_veri.iloc[idx]
                         yuzde_degisim = ((son_fiyat - eski_fiyat) / eski_fiyat) * 100
                         
-                        # Yazıların daha rahat sığması için formatı +15.9% olarak güncelledik
                         p_cols[i].metric(label=ad, value=f"{yuzde_degisim:+.1f}%", delta=f"{yuzde_degisim:.1f}%")
                     except:
                         p_cols[i].metric(label=ad, value="--")
@@ -1732,35 +1574,28 @@ elif menu == "📈 Piyasa Analizi":
                 st.subheader("🧠 Akıllı AI Özeti")
                 with st.container(border=True):
                     
-                    # --- AI ALGORİTMASI VE HESAPLAMALAR ---
-                    # 1. AI Trend Puanı Hesaplama (Maksimum 100 Puan)
                     puan = 0
                     sma50 = ham_veri.rolling(50).mean().iloc[-1]
                     sma200 = ham_veri.rolling(200).mean().iloc[-1]
                     son_1_ay_getiri = (son_fiyat - ham_veri.iloc[-30]) / ham_veri.iloc[-30]
                     
-                    if son_fiyat > sma50: puan += 25  # Kısa vadede güçlüyse +25
-                    if son_fiyat > sma200: puan += 25 # Uzun vadede güçlüyse +25
-                    if sma50 > sma200: puan += 25     # Altın kesişim varsa +25
-                    if son_1_ay_getiri > 0: puan += 25 # Son 1 ayda kazandırdıysa +25
+                    if son_fiyat > sma50: puan += 25  
+                    if son_fiyat > sma200: puan += 25 
+                    if sma50 > sma200: puan += 25     
+                    if son_1_ay_getiri > 0: puan += 25 
                     
-                    # 2. Zirve Analizi (Drawdown)
                     son_1_yil = ham_veri.tail(252)
                     zirve = son_1_yil.max()
                     zirveye_uzaklik = ((zirve - son_fiyat) / zirve) * 100
                     
-                    # 3. Risk ve Dalgalanma Profili
                     gunluk_getiri = ham_veri.pct_change().dropna()
                     volatilite = gunluk_getiri.std() * 100
                     if volatilite < 1.0: risk_seviyesi = "Düşük (Sakin) 🟢"
                     elif volatilite < 2.5: risk_seviyesi = "Orta (Dengeli) 🟡"
                     else: risk_seviyesi = "Yüksek (Agresif) 🔴"
                     
-                    # 4. Son 1 Hafta Ateşi
                     son_5_gun_getiri = ((son_fiyat - ham_veri.iloc[-5]) / ham_veri.iloc[-5]) * 100
 
-                    # --- EKRANA ÇIKTI VERME ---
-                    
                     st.markdown(f"**Gelişim Skoru:** {puan}/100")
                     st.progress(puan / 100)
                     if puan >= 75: st.caption("Durum: **Çok Güçlü** 🚀")
