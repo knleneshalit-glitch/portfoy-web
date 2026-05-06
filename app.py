@@ -33,19 +33,66 @@ if "cev_hedef_isim" not in st.session_state:
 
 # --- KULLANICI DOĞRULAMA (AUTH) AYARLARI ---
 # Bu satır kodun en üstünde olmalı!
-st.set_page_config(page_title="Portföyüm", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Portföyüm", page_icon="💎", layout="wide", initial_sidebar_state="expanded")
 
-# --- MOBİL UYUM (RESPONSIVE) CSS KODU ---
+# --- GLOBAL VE MOBİL UYUM (RESPONSIVE) CSS KODU ---
 st.markdown("""
 <style>
+    /* Global Metrik Kart Tasarımı */
+    [data-testid="stMetric"] {
+        background: linear-gradient(145deg, #1e293b, #0f172a);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        border: 1px solid #334155;
+        transition: transform 0.2s ease;
+    }
+    [data-testid="stMetric"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+    [data-testid="stMetricValue"] {
+        color: #38bdf8 !important;
+        font-size: 2rem !important;
+        font-weight: 800;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 1.1rem !important;
+        color: #94a3b8 !important;
+        font-weight: 600;
+    }
+    
+    /* Modern Sekmeler (Tabs) */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 15px;
+        border-bottom: 2px solid #334155;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        background-color: transparent;
+        border-radius: 8px 8px 0px 0px;
+        padding: 10px 20px;
+        font-weight: 600;
+        color: #cbd5e1;
+        transition: all 0.3s;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: rgba(56, 189, 248, 0.1) !important;
+        border-bottom: 3px solid #38bdf8 !important;
+        color: #38bdf8 !important;
+    }
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
     @media (max-width: 768px) {
         .block-container {
-            padding-left: 0.5rem !important;
-            padding-right: 0.5rem !important;
+            padding-left: 0.8rem !important;
+            padding-right: 0.8rem !important;
             padding-top: 1rem !important;
         }
         [data-testid="stMetricValue"] {
-            font-size: 1.4rem !important;
+            font-size: 1.5rem !important;
         }
         table {
             display: block !important;
@@ -90,9 +137,10 @@ if "user" not in st.session_state:
 def login_page():
     st.markdown("""
     <style>
-        .main-title { text-align: center; font-size: 3.2rem; font-weight: 800; color: #38bdf8; margin-bottom: 0px; padding-top: 1.5rem; }
-        .sub-title { text-align: center; color: #94a3b8; font-size: 1.1rem; margin-bottom: 2.5rem; font-weight: 400; }
+        .main-title { text-align: center; font-size: 3.5rem; font-weight: 900; background: -webkit-linear-gradient(45deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 5px; padding-top: 2rem; }
+        .sub-title { text-align: center; color: #94a3b8; font-size: 1.2rem; margin-bottom: 3rem; font-weight: 500; }
         .stTabs { margin-top: 0.5rem; }
+        div[data-testid="stContainer"] { border-radius: 15px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); background-color: #1e293b; border: 1px solid #334155; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -156,7 +204,7 @@ def login_page():
                     else:
                         st.warning("Lütfen e-posta adresinizi girin.")
 
-        st.markdown("<p style='text-align:center; color:#64748b; font-size:13px; margin-top:20px;'>🔒 Tüm verileriniz Supabase altyapısıyla şifrelenmektedir.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#64748b; font-size:13px; margin-top:25px;'>🔒 Tüm verileriniz Supabase altyapısıyla uçtan uca şifrelenmektedir.</p>", unsafe_allow_html=True)
 
 # --- ANA KONTROL MEKANİZMASI ---
 if st.session_state.user is None:
@@ -283,42 +331,53 @@ st.sidebar.markdown("""
 <style>
     [data-testid="stSidebarContent"] {
         padding-top: 0rem !important;
+        background: linear-gradient(180deg, #0f172a, #1e293b);
     }
     .sidebar-title {
-        font-size: 22px !important;
-        font-weight: 800 !important;
+        font-size: 24px !important;
+        font-weight: 900 !important;
         color: #ffffff !important;
         text-align: center;
         margin-top: -20px;
-        margin-bottom: 20px;
-        padding: 12px;
-        background: linear-gradient(90deg, #1e3a8a, #3b82f6);
-        border-radius: 0px 0px 15px 15px;
+        margin-bottom: 25px;
+        padding: 15px;
+        background: linear-gradient(90deg, #2563eb, #38bdf8);
+        border-radius: 0px 0px 20px 20px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        letter-spacing: 1px;
     }
     div[class*="stRadio"] label {
         transition: all 0.3s ease-in-out;
-        padding: 8px 12px !important;
-        border-radius: 10px !important;
-        margin-bottom: 5px;
+        padding: 10px 15px !important;
+        border-radius: 12px !important;
+        margin-bottom: 8px;
+        font-weight: 500;
     }
     div[class*="stRadio"] label:hover {
-        transform: translateX(10px);
-        background-color: rgba(59, 130, 246, 0.15) !important;
-        color: #3b82f6 !important;
+        transform: translateX(8px);
+        background-color: rgba(56, 189, 248, 0.15) !important;
+        color: #38bdf8 !important;
     }
     .stButton>button[kind="secondary"] {
         width: 100%;
-        border-radius: 15px;
+        border-radius: 12px;
         border: 1px solid #ef4444;
         color: #ef4444;
-        transition: 0.3s;
+        background-color: transparent;
+        transition: all 0.3s ease;
         font-weight: bold;
+        padding: 10px;
     }
     .stButton>button[kind="secondary"]:hover {
         background-color: #ef4444;
         color: white;
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        border-color: #ef4444;
+    }
+    .stButton>button[kind="primary"] {
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        padding: 10px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -333,13 +392,13 @@ with st.sidebar:
         label_visibility="collapsed"
     )
     
-    st.markdown("---")
+    st.divider()
     
     st.subheader("⚙️ Sistem Ayarları")
     serbest_altin = st.text_input("Serbest Piyasa Gr Altın (₺):", placeholder="Örn: 3150")
     fiyatlar = fiyatlari_hesapla(serbest_altin)
 
-    if st.button("🔄 Fiyatları Güncelle", use_container_width=True):
+    if st.button("🔄 Fiyatları Güncelle", use_container_width=True, type="primary"):
         with st.spinner("Güncelleniyor..."):
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -352,7 +411,7 @@ with st.sidebar:
             conn.close()
         st.success("Veriler yenilendi!")
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br><br>", unsafe_allow_html=True)
     if st.button("🚪 Güvenli Çıkış", type="secondary", use_container_width=True):
         st.session_state.user = None
         st.rerun()
@@ -382,14 +441,14 @@ haber_metni = haberleri_getir_marquee()
 footer_css = f"""
 <style>
     .block-container {{ padding-bottom: 80px !important; padding-top: 2rem; }}
-    .news-footer {{ position: fixed; left: 0; bottom: 0; width: 100%; background-color: #ffffff; border-top: 4px solid #e60000; display: flex; align-items: center; z-index: 99999; font-family: 'Segoe UI', Tahoma, sans-serif; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }}
-    .news-label {{ background-color: #e60000; color: white; padding: 12px 20px; font-weight: bold; font-size: 15px; white-space: nowrap; z-index: 100000; box-shadow: 2px 0 5px rgba(0,0,0,0.1); text-transform: uppercase; }}
-    .marquee-container {{ overflow: hidden; white-space: nowrap; width: 100%; padding-left: 10px; }}
+    .news-footer {{ position: fixed; left: 0; bottom: 0; width: 100%; background-color: #0f172a; border-top: 3px solid #ef4444; display: flex; align-items: center; z-index: 99999; font-family: 'Segoe UI', Tahoma, sans-serif; box-shadow: 0 -4px 15px rgba(0,0,0,0.3); }}
+    .news-label {{ background: linear-gradient(90deg, #ef4444, #dc2626); color: white; padding: 12px 25px; font-weight: 800; font-size: 14px; white-space: nowrap; z-index: 100000; box-shadow: 3px 0 10px rgba(0,0,0,0.2); text-transform: uppercase; letter-spacing: 1px; }}
+    .marquee-container {{ overflow: hidden; white-space: nowrap; width: 100%; padding-left: 15px; }}
     .marquee-content {{ display: inline-block; animation: marquee 80s linear infinite; }}
     .marquee-content:hover {{ animation-play-state: paused; }}
     @keyframes marquee {{ 0% {{ transform: translateX(100%); }} 100% {{ transform: translateX(-100%); }} }}
-    .news-link {{ color: #1a1a1a; text-decoration: none; margin-right: 50px; font-size: 16px; font-weight: 600; transition: color 0.3s; }}
-    .news-link:hover {{ color: #e60000; }}
+    .news-link {{ color: #cbd5e1; text-decoration: none; margin-right: 60px; font-size: 15px; font-weight: 500; transition: color 0.3s; }}
+    .news-link:hover {{ color: #ef4444; }}
 </style>
 <div class="news-footer">
     <div class="news-label">📰 SON DAKİKA</div>
@@ -405,6 +464,7 @@ st.markdown(footer_css, unsafe_allow_html=True)
 # -----------------------------------------------------------------------------
 if menu == "📊 Genel Özet":
     st.title("Portföy Analizi")
+    st.markdown("<p style='color: #94a3b8; font-size: 1.1rem; margin-top: -15px;'>Varlıklarınızın güncel durumu ve piyasa takibi</p>", unsafe_allow_html=True)
 
     if 'takip_listesi_bant' not in st.session_state:
         st.session_state.takip_listesi_bant = {
@@ -482,7 +542,7 @@ if menu == "📊 Genel Özet":
                 st.session_state.takip_listesi_bant = {k: st.session_state.takip_listesi_bant[k] for k in aktif_secimler}
                 st.rerun()
 
-            st.markdown("---")
+            st.divider()
             st.markdown("**2. Hızlı Ekle (Maden & Döviz)**")
             hazir_varliklar = {
                 "Gram Altın": "GRAM_ALTIN", "Gram Gümüş": "GRAM_GUMUS", "Gram Platin": "GRAM_PLATIN",
@@ -495,7 +555,7 @@ if menu == "📊 Genel Özet":
                     st.session_state.takip_listesi_bant[secili_hazir] = hazir_varliklar[secili_hazir]
                     st.rerun()
 
-            st.markdown("---")
+            st.divider()
             st.markdown("**3. Hızlı Ekle (Kripto Para)**")
             kripto_varliklar = {
                 "Bitcoin": "BTC-USD", "Ethereum": "ETH-USD", "Solana": "SOL-USD", "Avalanche": "AVAX-USD"
@@ -506,7 +566,7 @@ if menu == "📊 Genel Özet":
                     st.session_state.takip_listesi_bant[secili_kripto] = kripto_varliklar[secili_kripto]
                     st.rerun()
 
-            st.markdown("---")
+            st.divider()
             st.markdown("**4. Hisse/Fon Ara**")
             arama_kelimesi = st.text_input("Şirket veya Fon Kodu:", placeholder="Örn: Tesla, AKBNK")
             if arama_kelimesi:
@@ -523,9 +583,9 @@ if menu == "📊 Genel Özet":
         if not ticker_data: ticker_data = ["Gösterilecek veri yok."]
 
         ticker_html = f"""
-        <div style="background-color: #0e1117; padding: 0px 10px; border-radius: 5px; border: 1px solid #30333d; overflow: hidden; white-space: nowrap; height: 42px; display: flex; align-items: center;">
-            <div style="display: inline-block; animation: marquee 45s linear infinite; font-family: monospace; font-size: 16px; color: #00ffcc;">
-                {" &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_data)}
+        <div style="background: linear-gradient(90deg, #0f172a, #1e293b); padding: 0px 15px; border-radius: 8px; border: 1px solid #334155; overflow: hidden; white-space: nowrap; height: 46px; display: flex; align-items: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);">
+            <div style="display: inline-block; animation: marquee 45s linear infinite; font-family: 'Courier New', monospace; font-size: 16px; color: #38bdf8; font-weight: 600;">
+                {" &nbsp;&nbsp;&nbsp;&nbsp; <span style='color:#475569'>|</span> &nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_data)}
             </div>
         </div>
         """
@@ -555,16 +615,16 @@ if menu == "📊 Genel Özet":
             yuzde_kz = (net_kz / top_yatirim * 100) if top_yatirim > 0 else 0 
               
             cc1, cc2, cc3 = st.columns(3)
-            cc1.metric("💼 Yatırım", f"{top_yatirim:,.0f} ₺")
-            cc2.metric("💎 Güncel", f"{top_guncel:,.0f} ₺")
+            cc1.metric("💼 Toplam Yatırım", f"{top_yatirim:,.0f} ₺")
+            cc2.metric("💎 Güncel Değer", f"{top_guncel:,.0f} ₺")
             cc3.metric("🚀 Net K/Z", f"{net_kz:+,.0f} ₺", f"%{yuzde_kz:.2f}")
             
-            st.write("---")
+            st.write("<br>", unsafe_allow_html=True)
             df_gosterim = df_varlik.rename(columns={
-                'sembol': 'Varlık',
-                'miktar': 'Adet',
-                'ort_maliyet': 'Maliyet',
-                'guncel_fiyat': 'Fiyat',
+                'sembol': 'Varlık Sembolü',
+                'miktar': 'Adet / Miktar',
+                'ort_maliyet': 'Ortalama Maliyet',
+                'guncel_fiyat': 'Güncel Fiyat',
                 'Kar_Zarar': 'K/Z (₺)',
                 'Degisim_%': 'Değişim (%)'
             })
@@ -572,51 +632,57 @@ if menu == "📊 Genel Özet":
             def portfoy_renk(val):
                 try:
                     if float(val) > 0:
-                        return 'color: #10b981; font-weight: bold;'
+                        return 'color: #10b981; font-weight: 700;'
                     elif float(val) < 0:
-                        return 'color: #ef4444; font-weight: bold;'
+                        return 'color: #ef4444; font-weight: 700;'
                     else:
-                        return 'color: #888888; font-weight: bold;'
+                        return 'color: #94a3b8; font-weight: 700;'
                 except:
                     return ''
 
             st.dataframe(
                 df_gosterim.style
                 .format({
-                    'Adet': '{:.2f}', 'Maliyet': '{:,.2f} ₺', 
-                    'Fiyat': '{:,.2f} ₺', 'Yatirim': '{:,.2f} ₺', 
+                    'Adet / Miktar': '{:.2f}', 'Ortalama Maliyet': '{:,.2f} ₺', 
+                    'Güncel Fiyat': '{:,.2f} ₺', 'Yatirim': '{:,.2f} ₺', 
                     'Guncel': '{:,.2f} ₺', 'K/Z (₺)': '{:+,.2f} ₺', 'Değişim (%)': '%{:.2f}'
                 })
                 .map(portfoy_renk, subset=['K/Z (₺)', 'Değişim (%)']),
                 use_container_width=True, 
-                hide_index=True
+                hide_index=True,
+                height=350
             )
 
-            col_grafik, col_hedef = st.columns([2, 1])
+            col_grafik, col_hedef = st.columns([2, 1], gap="large")
             
             with col_grafik:
                 st.subheader("Varlık Dağılımı")
                 if 'Guncel' in df_varlik.columns:
                     df_pie = df_varlik.sort_values(by="Guncel", ascending=False).head(10)
                     fig = px.pie(
-                        df_pie, values='Guncel', names='sembol', hole=0.4,
-                        color_discrete_sequence=px.colors.qualitative.Pastel
+                        df_pie, values='Guncel', names='Varlık Sembolü', hole=0.45,
+                        color_discrete_sequence=px.colors.qualitative.Bold
                     )
-                    fig.update_traces(textposition='inside', textinfo='percent', insidetextorientation='radial')
+                    fig.update_traces(
+                        textposition='inside', 
+                        textinfo='percent', 
+                        insidetextorientation='radial',
+                        marker=dict(line=dict(color='#0e1117', width=2))
+                    )
                     fig.update_layout(
-                        margin=dict(t=10, b=10, l=10, r=10),
+                        margin=dict(t=20, b=20, l=10, r=10),
                         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                        legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.0) 
+                        legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.0, font=dict(color="#cbd5e1")) 
                     )
                     st.plotly_chart(fig, use_container_width=True)
 
-                    st.markdown("---")
+                    st.divider()
                     google_ads_goster(reklam_birimi_id="1234567890", yukseklik=120) 
                 else:
                     st.warning("Grafik için veri yok.")
                 
             with col_hedef:
-                st.subheader("🎯 Hedef")
+                st.subheader("🎯 Finansal Hedef")
                 cursor = conn.cursor()
                 cursor.execute("SELECT ad, tutar FROM hedefler WHERE user_id=%s LIMIT 1", (user_id,))
                 hedef = cursor.fetchone()
@@ -627,15 +693,15 @@ if menu == "📊 Genel Özet":
                 ilerleme = (top_guncel / h_tutar) * 100
                 if ilerleme > 100: ilerleme = 100 
                 
-                st.write(f"**{h_ad}** ({h_tutar:,.0f} ₺)")
+                st.markdown(f"**{h_ad}** <br> <span style='font-size:1.2rem; color:#38bdf8;'>{h_tutar:,.0f} ₺</span>", unsafe_allow_html=True)
                 st.progress(int(ilerleme))
-                st.write(f"%{ilerleme:.1f} Tamamlandı")
+                st.write(f"<span style='color:#10b981; font-weight:bold;'>%{ilerleme:.1f} Tamamlandı</span>", unsafe_allow_html=True)
                 
-                with st.expander("✏️ Düzenle"):
+                with st.expander("✏️ Hedefi Düzenle"):
                     with st.form("hedef_form"):
                         yeni_ad = st.text_input("Hedef Adı", value=h_ad)
                         yeni_tutar = st.number_input("Hedef Tutar", value=float(h_tutar), step=1000.0)
-                        if st.form_submit_button("Kaydet"):
+                        if st.form_submit_button("💾 Kaydet", use_container_width=True):
                             cursor.execute("DELETE FROM hedefler WHERE user_id=%s", (user_id,))
                             cursor.execute("INSERT INTO hedefler (ad, tutar, user_id) VALUES (%s, %s, %s)", (yeni_ad, yeni_tutar, user_id))
                             conn.commit()
@@ -682,19 +748,19 @@ if menu == "📊 Genel Özet":
             if yeni_sira != mevcut_liste and len(yeni_sira) == len(mevcut_liste):
                 st.session_state.temp_liste = {k: st.session_state.temp_liste[k] for k in yeni_sira}
                 
-            st.markdown("---")
+            st.divider()
             st.markdown("**2. Listeden Çıkar**")
             st.selectbox("Kaldırmak istediğiniz varlığı seçin:", ["Seçiniz..."] + mevcut_liste, key="sil_secim_popup", label_visibility="collapsed")
             st.button("❌ Varlığı Sil", on_click=sil_aksiyonu_temp, use_container_width=True)
         else:
             st.info("Listeniz şu an boş.")
             
-        st.markdown("---")
+        st.divider()
         st.markdown("**3. Hızlı Ekle (Maden, Döviz, Kripto)**")
         st.selectbox("Listeden Seçin:", ["Seçiniz..."] + list(hazir_tablo_varliklar.keys()), key="tablo_hizli_popup", label_visibility="collapsed")
         st.button("➕ Tabloya Ekle", on_click=hizli_ekle_aksiyonu_temp, use_container_width=True, key="btn_hizli")
 
-        st.markdown("---")
+        st.divider()
         st.markdown("**4. Hisse/Fon Ara**")
         arama_tablo = st.text_input("Hisse/Fon Ara:", placeholder="Örn: AAPL, THYAO", key="tablo_ara_popup")
         if arama_tablo:
@@ -703,13 +769,13 @@ if menu == "📊 Genel Özet":
                 st.selectbox("Sonuçlar:", ["Lütfen Seçin..."] + list(bulunanlar_tablo.keys()), key="tablo_sonuc_popup")
                 st.button("➕ Arama Sonucunu Ekle", on_click=arama_ekle_aksiyonu_temp, kwargs={"bulunanlar": bulunanlar_tablo}, use_container_width=True, key="btn_ara")
 
-        st.markdown("---")
+        st.divider()
         if st.button("✅ Kaydet ve Değişiklikleri Yansıt", type="primary", use_container_width=True):
             st.session_state.sag_panel_listesi = st.session_state.temp_liste.copy()
             st.rerun()
 
     with sag_kolon:
-        st.markdown("<h3 style='margin:0; margin-bottom: 10px; white-space:nowrap; font-size:20px;'>📊 Canlı Piyasa</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='margin:0; margin-bottom: 15px; white-space:nowrap; font-size:22px; color:#f8fafc;'>📊 Canlı Piyasa</h3>", unsafe_allow_html=True)
 
         @st.cache_data(ttl=300)
         def tablo_verisi_hazirla_html(sozluk):
@@ -746,40 +812,42 @@ if menu == "📊 Genel Özet":
                     renk = "#10b981" if degisim_yuzde > 0 else "#ef4444"
                     ok = "▲" if degisim_yuzde > 0 else "▼"
 
-                    satirlar_html += f'<tr style="border-bottom: 1px solid #2d3748;">'
-                    satirlar_html += f'<td style="padding: 10px 5px; color: #e2e8f0; font-size: 13px; font-weight: 500; vertical-align: middle; white-space: nowrap;">{ad}</td>'
-                    satirlar_html += f'<td style="padding: 10px 5px; color: #ffffff; font-weight: 600; text-align: right; font-size: 13px; vertical-align: middle; white-space: nowrap;">{bugun:,.2f}</td>'
-                    satirlar_html += f'<td style="padding: 10px 5px; color: {renk}; font-weight: 600; text-align: right; font-size: 13px; vertical-align: middle; white-space: nowrap;">{ok} {abs(degisim_yuzde):.2f}%</td>'
+                    satirlar_html += f'<tr style="border-bottom: 1px solid #334155; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor=\'#1e293b\'" onmouseout="this.style.backgroundColor=\'transparent\'">'
+                    satirlar_html += f'<td style="padding: 12px 8px; color: #f1f5f9; font-size: 14px; font-weight: 500; vertical-align: middle; white-space: nowrap;">{ad}</td>'
+                    satirlar_html += f'<td style="padding: 12px 8px; color: #ffffff; font-weight: 700; text-align: right; font-size: 14px; vertical-align: middle; white-space: nowrap;">{bugun:,.2f}</td>'
+                    satirlar_html += f'<td style="padding: 12px 8px; color: {renk}; font-weight: 700; text-align: right; font-size: 14px; vertical-align: middle; white-space: nowrap;">{ok} {abs(degisim_yuzde):.2f}%</td>'
                     satirlar_html += f'</tr>'
                 except Exception as e:
-                    satirlar_html += f'<tr style="border-bottom: 1px solid #2d3748;">'
-                    satirlar_html += f'<td style="padding: 10px 5px; color: #e2e8f0; font-size: 13px; font-weight: 500; vertical-align: middle; white-space: nowrap;">{ad[:15]}</td>'
-                    satirlar_html += f'<td style="padding: 10px 5px; color: #ffffff; font-weight: 600; text-align: right; font-size: 13px; vertical-align: middle; white-space: nowrap;">0.00</td>'
-                    satirlar_html += f'<td style="padding: 10px 5px; color: #888888; font-weight: 600; text-align: right; font-size: 13px; vertical-align: middle; white-space: nowrap;">0.00%</td>'
+                    satirlar_html += f'<tr style="border-bottom: 1px solid #334155;">'
+                    satirlar_html += f'<td style="padding: 12px 8px; color: #f1f5f9; font-size: 14px; font-weight: 500; vertical-align: middle; white-space: nowrap;">{ad[:15]}</td>'
+                    satirlar_html += f'<td style="padding: 12px 8px; color: #ffffff; font-weight: 700; text-align: right; font-size: 14px; vertical-align: middle; white-space: nowrap;">0.00</td>'
+                    satirlar_html += f'<td style="padding: 12px 8px; color: #64748b; font-weight: 700; text-align: right; font-size: 14px; vertical-align: middle; white-space: nowrap;">0.00%</td>'
                     satirlar_html += f'</tr>'
             return satirlar_html
 
         html_govde = tablo_verisi_hazirla_html(st.session_state.sag_panel_listesi)
         
         if html_govde:
-            st.markdown(f"""<div style="background-color: #111827; padding: 12px; border-radius: 12px; border: 1px solid #1f2937; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); margin-bottom: 15px;">
-<table style="width: 100%; border-collapse: collapse; font-family: inherit;">
-<thead>
-<tr style="border-bottom: 2px solid #374151; text-align: left;">
-<th style="padding: 0px 5px 8px 5px; color: #a0aec0; font-size: 11px; font-weight: 600; text-transform: uppercase; white-space: nowrap;">Varlık</th>
-<th style="padding: 0px 5px 8px 5px; color: #a0aec0; font-size: 11px; font-weight: 600; text-transform: uppercase; text-align: right; white-space: nowrap;">Fiyat</th>
-<th style="padding: 0px 5px 8px 5px; color: #a0aec0; font-size: 11px; font-weight: 600; text-transform: uppercase; text-align: right; white-space: nowrap;">Değişim</th>
-</tr>
-</thead>
-<tbody>
-{html_govde}
-</tbody>
-</table>
-</div>""", unsafe_allow_html=True)
+            st.markdown(f"""
+<div style="background-color: #0f172a; padding: 15px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); margin-bottom: 20px;">
+    <table style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, sans-serif;">
+        <thead>
+            <tr style="border-bottom: 2px solid #475569; text-align: left;">
+                <th style="padding: 0px 8px 12px 8px; color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;">Varlık</th>
+                <th style="padding: 0px 8px 12px 8px; color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; text-align: right; white-space: nowrap;">Fiyat</th>
+                <th style="padding: 0px 8px 12px 8px; color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; text-align: right; white-space: nowrap;">Değişim</th>
+            </tr>
+        </thead>
+        <tbody>
+            {html_govde}
+        </tbody>
+    </table>
+</div>
+""", unsafe_allow_html=True)
         else:
             st.info("Tablo boş.")
 
-        if st.button("⚙️ Düzenle", key="tablo_ayar_buton_alt", use_container_width=True):
+        if st.button("⚙️ Listeyi Düzenle", key="tablo_ayar_buton_alt", use_container_width=True):
             st.session_state.temp_liste = st.session_state.sag_panel_listesi.copy()
             tablo_ayarlari_popup()
 
@@ -788,14 +856,14 @@ if menu == "📊 Genel Özet":
 # -----------------------------------------------------------------------------
 elif menu == "🔥 Isı Haritası":
     st.title("Portföy Isı Haritası")
-    st.write("Varlıklarınızın anlık kar/zarar durumunu renklerle analiz edin.")
+    st.markdown("<p style='color: #94a3b8; font-size: 1.1rem; margin-top: -15px;'>Varlıklarınızın anlık kâr/zarar durumunu görsel olarak analiz edin.</p>", unsafe_allow_html=True)
     
     conn = get_db_connection()
     df = pd.read_sql_query("SELECT sembol, miktar, ort_maliyet, guncel_fiyat FROM varliklar WHERE miktar > 0 AND user_id=%s", conn, params=(user_id,))
     conn.close()
     
     if df.empty:
-        st.warning("Görüntülenecek veri bulunamadı.")
+        st.warning("Görüntülenecek varlık verisi bulunamadı.")
     else:
         df['Tutar'] = df['miktar'] * df['guncel_fiyat']
         df['KZ_TL'] = (df['guncel_fiyat'] - df['ort_maliyet']) * df['miktar']
@@ -803,11 +871,11 @@ elif menu == "🔥 Isı Haritası":
         df = df.sort_values(by="Tutar", ascending=False)
         
         legend_html = """
-        <div style='display: flex; justify-content: flex-end; align-items: center; margin-bottom: 20px;'>
-            <span style='color: #ef4444; font-weight: bold; font-size: 12px; margin-right: 5px;'>ZARAR</span>
-            <span style='color: #be123c; font-size: 18px;'>⬛</span>
-            <span style='color: #059669; font-size: 18px;'>⬛</span>
-            <span style='color: #10b981; font-weight: bold; font-size: 12px; margin-left: 5px;'>KAR</span>
+        <div style='display: flex; justify-content: flex-end; align-items: center; margin-bottom: 25px; padding: 10px; background-color: #1e293b; border-radius: 8px; border: 1px solid #334155;'>
+            <span style='color: #ef4444; font-weight: bold; font-size: 13px; margin-right: 8px; letter-spacing: 0.5px;'>GÜÇLÜ DÜŞÜŞ</span>
+            <span style='color: #be123c; font-size: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);'>⬛</span>
+            <span style='color: #059669; font-size: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);'>⬛</span>
+            <span style='color: #10b981; font-weight: bold; font-size: 13px; margin-left: 8px; letter-spacing: 0.5px;'>GÜÇLÜ YÜKSELİŞ</span>
         </div>
         """
         st.markdown(legend_html, unsafe_allow_html=True)
@@ -823,24 +891,24 @@ elif menu == "🔥 Isı Haritası":
                 y = row['Yuzde']
                 if y >= 0:
                     ok = "▲"
-                    if y >= 10: bg = "#059669"
-                    elif y >= 3: bg = "#10b981"
-                    else: bg = "#34d399"
+                    if y >= 10: bg = "linear-gradient(135deg, #059669, #047857)"
+                    elif y >= 3: bg = "linear-gradient(135deg, #10b981, #059669)"
+                    else: bg = "linear-gradient(135deg, #34d399, #10b981)"
                 else:
                     ok = "▼"
-                    if y <= -10: bg = "#be123c"
-                    elif y <= -3: bg = "#e11d48"
-                    else: bg = "#fb7185"
+                    if y <= -10: bg = "linear-gradient(135deg, #be123c, #9f1239)"
+                    elif y <= -3: bg = "linear-gradient(135deg, #e11d48, #be123c)"
+                    else: bg = "linear-gradient(135deg, #fb7185, #e11d48)"
                 
                 isim = row['sembol']
-                f_size = "14px" if len(isim) > 12 else "18px"
+                f_size = "15px" if len(isim) > 12 else "18px"
                 
                 kutu_html = f"""
-                <div style="background-color: {bg}; padding: 20px; border-radius: 10px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px;">
-                    <div style="font-size: {f_size}; font-weight: bold; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{isim}">{isim}</div>
-                    <div style="font-size: 26px; font-weight: bold; margin-bottom: 10px;">{ok} %{abs(y):.2f}</div>
-                    <div style="font-size: 16px; margin-top: 10px; font-weight: 500;">{row['Tutar']:,.0f} ₺</div>
-                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">({row['KZ_TL']:+,.0f} ₺)</div>
+                <div style="background: {bg}; padding: 25px 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; transition: transform 0.3s ease;">
+                    <div style="font-size: {f_size}; font-weight: 800; margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.5px;" title="{isim}">{isim}</div>
+                    <div style="font-size: 28px; font-weight: 900; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">{ok} %{abs(y):.2f}</div>
+                    <div style="font-size: 16px; margin-top: 15px; font-weight: 600; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 5px;">{row['Tutar']:,.0f} ₺</div>
+                    <div style="font-size: 14px; font-weight: 500; opacity: 0.9; margin-top: 8px;">({row['KZ_TL']:+,.0f} ₺)</div>
                 </div>
                 """
                 col.markdown(kutu_html, unsafe_allow_html=True)
@@ -852,19 +920,17 @@ elif menu == "💵 Varlıklar & İşlemler":
     st.markdown("""
     <style>
         [data-testid="column"]:nth-of-type(2) {
-            background-color: #1a1a1a;
-            border-left: 2px solid #333;
-            padding: 0px 15px 15px 15px;
-            border-radius: 5px;
+            background-color: #0f172a;
+            border-left: 2px solid #334155;
+            padding: 20px;
+            border-radius: 10px;
             height: 85vh;
             overflow-y: auto;
             position: sticky;
             top: 3rem;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
         }
         [data-testid="column"]:nth-of-type(2)::-webkit-scrollbar { display: none; }
-        [data-baseweb="tab-list"] { background-color: #1a1a1a; gap: 5px; }
-        [data-baseweb="tab"] { color: #aaaaaa !important; font-weight: bold; }
-        [aria-selected="true"] { background-color: #dc2626 !important; color: white !important; border-radius: 3px; }
     </style>
     """, unsafe_allow_html=True)
     
@@ -872,6 +938,7 @@ elif menu == "💵 Varlıklar & İşlemler":
     
     with col_orta:
         st.title("Varlık & İşlem Yönetimi")
+        st.markdown("<p style='color: #94a3b8; font-size: 1.1rem; margin-top: -15px;'>Yeni alım/satım işlemlerini kaydedin ve geçmişi yönetin.</p>", unsafe_allow_html=True)
 
         @st.cache_data(ttl=3600)
         def yahoo_arama_islem(kelime):
@@ -941,6 +1008,7 @@ elif menu == "💵 Varlıklar & İşlemler":
                 miktar = c5.number_input("Adet / Miktar", min_value=0.0000, format="%f", step=1.0)
                 fiyat = c6.number_input("Birim Fiyat (₺ veya $)", min_value=0.00, format="%f", step=10.0)
                 
+                st.write("")
                 if st.form_submit_button("💾 İşlemi Kaydet", use_container_width=True):
                     if elle_giris.strip(): 
                         sembol = elle_giris.strip().upper()
@@ -982,6 +1050,7 @@ elif menu == "💵 Varlıklar & İşlemler":
                         
                         conn.close()
 
+        st.markdown("<br>", unsafe_allow_html=True)
         tab1, tab2 = st.tabs(["💼 Mevcut Varlıklarım", "📜 İşlem Geçmişi (Silme)"])
         
         with tab1:
@@ -1001,10 +1070,10 @@ elif menu == "💵 Varlıklar & İşlemler":
             
             if not df_islem.empty:
                 st.dataframe(df_islem, use_container_width=True, hide_index=True)
-                st.markdown("---")
+                st.divider()
                 st.subheader("🗑️ İşlem Sil")
                 sil_id = st.selectbox("Silmek istediğiniz işlemin ID numarasını seçin:", df_islem['id'].tolist())
-                if st.button("Seçili İşlemi Sil (Geri Alınamaz)"):
+                if st.button("Seçili İşlemi Sil (Geri Alınamaz)", type="primary"):
                     cursor = conn.cursor()
                     cursor.execute("SELECT sembol FROM islemler WHERE id=%s AND user_id=%s", (sil_id, user_id))
                     sembol_sil = cursor.fetchone()[0]
@@ -1041,7 +1110,7 @@ elif menu == "💵 Varlıklar & İşlemler":
             conn.close()
 
     with col_sag:
-        st.write("### Sabit Piyasa Verileri")
+        st.markdown("<h3 style='margin-bottom: 10px; color:#f8fafc;'>📈 Piyasaya Bakış</h3>", unsafe_allow_html=True)
         st.write("Buraya canlı piyasa takip grafikleri eklenebilir...")
 
 # -----------------------------------------------------------------------------
@@ -1049,28 +1118,29 @@ elif menu == "💵 Varlıklar & İşlemler":
 # -----------------------------------------------------------------------------
 elif menu == "🧮 Hesap Araçları":
     st.title("Hesap Araçları & Simülasyon")
+    st.markdown("<p style='color: #94a3b8; font-size: 1.1rem; margin-top: -15px;'>Maliyet düşürme, kredi yükü ve döviz çeviri araçları.</p>", unsafe_allow_html=True)
     
     tab_mal, tab_kredi, tab_cevir = st.tabs(["📉 Maliyet Düşürme", "🏦 Kredi Hesapla", "💱 Hızlı Çevirici"])
     
     with tab_mal:
-        st.markdown("<h3 style='margin-bottom: 5px;'>📉 Ortalama Maliyet Hesaplayıcı</h3>", unsafe_allow_html=True)
-        st.markdown("<span style='color: #a3a3a3; font-size: 14px;'>Elinizdeki varlığa yeni alım yaptığınızda ortalama maliyetinizin ne olacağını önceden görün.</span>", unsafe_allow_html=True)
+        st.markdown("<h3 style='margin-bottom: 5px; margin-top: 10px;'>📉 Ortalama Maliyet Hesaplayıcı</h3>", unsafe_allow_html=True)
+        st.markdown("<span style='color: #94a3b8; font-size: 15px;'>Elinizdeki varlığa yeni alım yaptığınızda ortalama maliyetinizin ne olacağını önceden görün.</span>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
         c_mevcut, c_arti, c_yeni = st.columns([4, 1, 4], gap="medium")
         
         with c_mevcut:
             with st.container(border=True):
-                st.caption("📦 MEVCUT DURUM")
+                st.markdown("**📦 MEVCUT DURUM**")
                 mevcut_adet = st.number_input("Mevcut Adetiniz:", min_value=0.0, format="%f", value=100.0)
                 mevcut_maliyet = st.number_input("Mevcut Maliyetiniz (₺):", min_value=0.0, format="%f", value=50.0)
 
         with c_arti:
-            st.markdown("<div style='text-align: center; font-size: 40px; margin-top: 50px; color: #4b5563;'>➕</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center; font-size: 50px; margin-top: 40px; color: #3b82f6;'>➕</div>", unsafe_allow_html=True)
             
         with c_yeni:
             with st.container(border=True):
-                st.caption("🛒 YENİ ALIM")
+                st.markdown("**🛒 YENİ ALIM**")
                 yeni_adet = st.number_input("Yeni Alınacak Adet:", min_value=0.0, format="%f", value=50.0)
                 yeni_fiyat = st.number_input("Yeni Alış Fiyatı (₺):", min_value=0.0, format="%f", value=40.0)
 
@@ -1083,10 +1153,12 @@ elif menu == "🧮 Hesap Araçları":
                 toplam_tutar = (mevcut_adet * mevcut_maliyet) + (yeni_adet * yeni_fiyat)
                 
                 st.markdown(f"""
-                <div style="background: linear-gradient(90deg, #1e3a8a, #3b82f6); padding: 25px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-top: 15px;">
-                    <h4 style="margin: 0; opacity: 0.8; font-weight: 500; font-size: 16px;">YENİ ORTALAMA MALİYETİNİZ</h4>
-                    <h1 style="margin: 15px 0; font-size: 38px; font-weight: 800;">{yeni_ortalama:,.2f} ₺</h1>
-                    <p style="margin: 0; font-size: 15px; opacity: 0.9;">📦 Toplam Adet: <b>{toplam_adet:,.2f}</b> &nbsp;|&nbsp; 💰 Toplam Yatırım: <b>{toplam_tutar:,.2f} ₺</b></p>
+                <div style="background: linear-gradient(135deg, #0f172a, #1e293b); padding: 30px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.4); margin-top: 20px; border: 1px solid #334155;">
+                    <h4 style="margin: 0; color: #94a3b8; font-weight: 600; font-size: 16px; letter-spacing: 1px;">YENİ ORTALAMA MALİYETİNİZ</h4>
+                    <h1 style="margin: 20px 0; font-size: 48px; font-weight: 900; color: #38bdf8;">{yeni_ortalama:,.2f} ₺</h1>
+                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; display: inline-block;">
+                        <p style="margin: 0; font-size: 16px; color: #cbd5e1;">📦 Toplam Adet: <b style="color: white;">{toplam_adet:,.2f}</b> &nbsp;&nbsp;|&nbsp;&nbsp; 💰 Toplam Yatırım: <b style="color: white;">{toplam_tutar:,.2f} ₺</b></p>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -1104,8 +1176,8 @@ elif menu == "🧮 Hesap Araçları":
                 st.error("Lütfen hesaplama yapabilmek için adet giriniz.")
 
     with tab_kredi:
-        st.markdown("<h3 style='margin-bottom: 5px;'>🏦 Gelişmiş Kredi Hesaplama Aracı</h3>", unsafe_allow_html=True)
-        st.markdown("<span style='color: #a3a3a3; font-size: 14px;'>Vergi dilimleri dahil edilmiş gerçek maliyetlerle kredilerinizi analiz edin.</span>", unsafe_allow_html=True)
+        st.markdown("<h3 style='margin-bottom: 5px; margin-top: 10px;'>🏦 Gelişmiş Kredi Hesaplama Aracı</h3>", unsafe_allow_html=True)
+        st.markdown("<span style='color: #94a3b8; font-size: 15px;'>Vergi dilimleri (BSMV/KKDF) dahil edilmiş gerçek maliyetlerle kredilerinizi analiz edin.</span>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         
         kredi_veriler = {
@@ -1157,20 +1229,20 @@ elif menu == "🧮 Hesap Araçları":
                     toplam_faiz = toplam_odeme - ana_deger
                 
                 st.markdown(f"""
-<div style="background: linear-gradient(90deg, #1e3a8a, #3b82f6); padding: 25px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-top: 15px;">
-    <h4 style="margin: 0; opacity: 0.8; font-weight: 500; font-size: 16px;">{baslik}</h4>
-    <h1 style="margin: 10px 0 20px 0; font-size: 38px; font-weight: 800;">{ana_deger:,.2f} ₺</h1>
-    <div style="display: flex; justify-content: space-around; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2);">
-        <div>
-            <span style="font-size: 13px; opacity: 0.8;">Toplam Geri Ödeme</span><br>
-            <span style="font-size: 20px; font-weight: bold;">{toplam_odeme:,.2f} ₺</span>
+<div style="background: linear-gradient(135deg, #0f172a, #1e293b); padding: 30px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.4); margin-top: 20px; border: 1px solid #334155;">
+    <h4 style="margin: 0; color: #94a3b8; font-weight: 600; font-size: 16px; letter-spacing: 1px;">{baslik}</h4>
+    <h1 style="margin: 15px 0 25px 0; font-size: 48px; font-weight: 900; color: #38bdf8;">{ana_deger:,.2f} ₺</h1>
+    <div style="display: flex; justify-content: space-around; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; width: 45%;">
+            <span style="font-size: 14px; color: #cbd5e1;">Toplam Geri Ödeme</span><br>
+            <span style="font-size: 24px; font-weight: 800; color: white;">{toplam_odeme:,.2f} ₺</span>
         </div>
-        <div>
-            <span style="font-size: 13px; opacity: 0.8;">Toplam Faiz + Vergi Yükü</span><br>
-            <span style="font-size: 20px; font-weight: bold;">{toplam_faiz:,.2f} ₺</span>
+        <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; width: 45%;">
+            <span style="font-size: 14px; color: #cbd5e1;">Toplam Faiz + Vergi Yükü</span><br>
+            <span style="font-size: 24px; font-weight: 800; color: #ef4444;">{toplam_faiz:,.2f} ₺</span>
         </div>
     </div>
-    <div style="margin-top: 15px; font-size: 11px; opacity: 0.6; font-style: italic;">
+    <div style="margin-top: 20px; font-size: 12px; color: #64748b; font-style: italic;">
         *Hesaplamaya yasal {vergi_carpani}x vergi çarpanı (BSMV/KKDF) dahil edilmiştir.
     </div>
 </div>
@@ -1226,7 +1298,7 @@ elif menu == "🧮 Hesap Araçları":
                     st.session_state.cev_hedef_kod = hazir_liste[sec_hizli]
                 st.rerun() 
 
-        st.markdown("---")
+        st.divider()
         st.markdown("**2. Hisse, Fon veya Kripto Ara**")
         ara_kelime = st.text_input("Arama Kelimesi:", placeholder="Örn: THYAO, AAPL, SOL", key=f"ara_{tur_belirteci}")
         if ara_kelime:
@@ -1246,8 +1318,8 @@ elif menu == "🧮 Hesap Araçları":
                         st.rerun()
 
     with tab_cevir:
-        st.markdown("<h3 style='margin-bottom: 5px;'>💱 Canlı Sınırsız Çevirici</h3>", unsafe_allow_html=True)
-        st.markdown("<span style='color: #a3a3a3; font-size: 14px;'>İstediğiniz hisseyi, fonu, kriptoyu veya dövizi anlık piyasa verileriyle birbirine dönüştürün.</span>", unsafe_allow_html=True)
+        st.markdown("<h3 style='margin-bottom: 5px; margin-top: 10px;'>💱 Canlı Sınırsız Çevirici</h3>", unsafe_allow_html=True)
+        st.markdown("<span style='color: #94a3b8; font-size: 15px;'>İstediğiniz hisseyi, fonu, kriptoyu veya dövizi anlık piyasa verileriyle birbirine dönüştürün.</span>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
         c_tutar, c_bos = st.columns([1, 2])
@@ -1260,18 +1332,20 @@ elif menu == "🧮 Hesap Araçları":
         
         with c_kaynak:
             with st.container(border=True):
-                st.caption("📤 ELİNİZDEKİ VARLIK")
-                st.markdown(f"<h3 style='margin-top: 0px;'>🪙 {st.session_state.cev_kaynak_isim}</h3>", unsafe_allow_html=True)
+                st.markdown("**📤 ELİNİZDEKİ VARLIK**")
+                st.markdown(f"<h3 style='margin-top: 5px; color:#38bdf8;'>🪙 {st.session_state.cev_kaynak_isim}</h3>", unsafe_allow_html=True)
+                st.write("")
                 if st.button("⚙️ Kaynak Değiştir", key="btn_kaynak", use_container_width=True):
                     cevirici_varlik_sec_popup("kaynak")
 
         with c_ok:
-            st.markdown("<div style='text-align: center; font-size: 40px; margin-top: 30px; color: #4b5563;'>➡️</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center; font-size: 40px; margin-top: 40px; color: #3b82f6;'>➡️</div>", unsafe_allow_html=True)
                     
         with c_hedef:
             with st.container(border=True):
-                st.caption("📥 DÖNÜŞECEK VARLIK")
-                st.markdown(f"<h3 style='margin-top: 0px;'>🎯 {st.session_state.cev_hedef_isim}</h3>", unsafe_allow_html=True)
+                st.markdown("**📥 DÖNÜŞECEK VARLIK**")
+                st.markdown(f"<h3 style='margin-top: 5px; color:#10b981;'>🎯 {st.session_state.cev_hedef_isim}</h3>", unsafe_allow_html=True)
+                st.write("")
                 if st.button("⚙️ Hedef Değiştir", key="btn_hedef", use_container_width=True):
                     cevirici_varlik_sec_popup("hedef")
 
@@ -1315,10 +1389,14 @@ elif menu == "🧮 Hesap Araçları":
                         capraz_kur = kaynak_tl / hedef_tl
                         
                         st.markdown(f"""
-                        <div style="background: linear-gradient(90deg, #1e3a8a, #3b82f6); padding: 25px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-top: 15px;">
-                            <h4 style="margin: 0; opacity: 0.8; font-weight: 500; font-size: 16px;">ÇEVİRİ SONUCU</h4>
-                            <h1 style="margin: 15px 0; font-size: 36px; font-weight: 800;">{cevrilecek_tutar:,.2f} {st.session_state.cev_kaynak_isim} = {sonuc:,.4f} {st.session_state.cev_hedef_isim}</h1>
-                            <p style="margin: 0; font-size: 14px; opacity: 0.9;">💡 Anlık Parite: 1 {st.session_state.cev_kaynak_isim} = {capraz_kur:,.4f} {st.session_state.cev_hedef_isim}</p>
+                        <div style="background: linear-gradient(135deg, #0f172a, #1e293b); padding: 30px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.4); margin-top: 20px; border: 1px solid #334155;">
+                            <h4 style="margin: 0; color: #94a3b8; font-weight: 600; font-size: 16px; letter-spacing: 1px;">ÇEVİRİ SONUCU</h4>
+                            <h1 style="margin: 20px 0; font-size: 38px; font-weight: 900; color: #38bdf8;">
+                                <span style="color:white; font-size:28px;">{cevrilecek_tutar:,.2f} {st.session_state.cev_kaynak_isim} =</span> <br> {sonuc:,.4f} {st.session_state.cev_hedef_isim}
+                            </h1>
+                            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; display: inline-block; margin-top: 10px;">
+                                <p style="margin: 0; font-size: 15px; color: #cbd5e1;">💡 Anlık Parite: 1 {st.session_state.cev_kaynak_isim} = <b>{capraz_kur:,.4f}</b> {st.session_state.cev_hedef_isim}</p>
+                            </div>
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -1341,6 +1419,7 @@ elif menu == "🧮 Hesap Araçları":
 # -----------------------------------------------------------------------------
 elif menu == "📅 Piyasa Takvimi":
     st.title("Önemli Tarihler & Temettü Beklentileri")
+    st.markdown("<p style='color: #94a3b8; font-size: 1.1rem; margin-top: -15px;'>Kritik ekonomik veriler ve şirketlerinizin kâr payı ödemeleri.</p>", unsafe_allow_html=True)
     
     tab_takvim, tab_temettu = st.tabs(["🗓️ Ekonomik Takvim", "💰 Temettü (Kâr Payı) Tarayıcı"])
     
@@ -1366,7 +1445,7 @@ elif menu == "📅 Piyasa Takvimi":
             {"Tarih": t_nfp.strftime("%d.%m.%Y"), "Olay": "ABD Tarım Dışı İstihdam (NFP)", "Önem": "🔴 Yüksek"},
             {"Tarih": t_cpi.strftime("%d.%m.%Y"), "Olay": "ABD Enflasyon (TÜFE)", "Önem": "🔴 Yüksek"},
             {"Tarih": t_tcmb.strftime("%d.%m.%Y"), "Olay": "TCMB Faiz Kararı", "Önem": "🟠 Orta"},
-            {"Tarih": t_fed.strftime("%d.%m.%Y"), "Olay": "FED Faiz Beklentisi", "Önem": "🔴 Yüksek"},
+            {"Tarih": t_fed.strftime("%d.%m.%Y"), "Olay": "FED Faiz Kararı", "Önem": "🔴 Yüksek"},
             {"Tarih": date(yil, ay, 1).strftime("%d.%m.%Y"), "Olay": "TR İmalat PMI", "Önem": "🟢 Düşük"},
             {"Tarih": date(yil, ay, 3).strftime("%d.%m.%Y"), "Olay": "TR Enflasyon (TÜFE)", "Önem": "🔴 Yüksek"}
         ]
@@ -1376,7 +1455,7 @@ elif menu == "📅 Piyasa Takvimi":
         
     with tab_temettu:
         st.subheader("Hisse Temettü Tarayıcı")
-        st.write("Portföyünüzdeki hisselerin temettü (kâr payı) verimleri Yahoo Finance üzerinden taranıyor...")
+        st.info("Portföyünüzdeki hisselerin temettü (kâr payı) verimleri Yahoo Finance üzerinden taranıyor...")
         
         conn = get_db_connection()
         hisseler = pd.read_sql_query("SELECT sembol, miktar FROM varliklar WHERE miktar > 0 AND user_id=%s", conn, params=(user_id,))
@@ -1385,7 +1464,7 @@ elif menu == "📅 Piyasa Takvimi":
         yoksay = ["TRY=X", "GRAM", "=F", "BTC", "ETH", "ALTIN", "GUMUS", "PLATIN", "USD", "EUR"]
         temettu_listesi = []
         
-        with st.spinner('Geçmiş ve gelecek temettü verileri hesaplanıyor... Lütfen bekleyin.'):
+        with st.spinner('Geçmiş ve gelecek temettü verileri analiz ediliyor... Lütfen bekleyin.'):
             for _, row in hisseler.iterrows():
                 sembol = row['sembol']
                 miktar = row['miktar']
@@ -1419,8 +1498,7 @@ elif menu == "📅 Piyasa Takvimi":
         if temettu_listesi:
             st.dataframe(pd.DataFrame(temettu_listesi), hide_index=True, use_container_width=True)
         else:
-            st.info("Portföyünüzdeki hisselerde yakın zamanda bir temettü ödemesi bulunamadı.")
-
+            st.warning("Portföyünüzdeki hisselerde yakın zamanda bir temettü ödemesi bulunamadı.")
 
 # -----------------------------------------------------------------------------
 # SAYFA 6: PRO PİYASA ANALİZİ
@@ -1429,197 +1507,199 @@ elif menu == "📈 Piyasa Analizi":
     st.markdown("""
         <style>
         [data-testid="stMetricValue"] {
-            font-size: 1.1rem !important; 
+            font-size: 1.5rem !important; 
         }
         [data-testid="stMetricDelta"] {
-            font-size: 0.8rem !important;
+            font-size: 1rem !important;
         }
         </style>
     """, unsafe_allow_html=True)
 
     st.title("📈 Pro Piyasa Analizi")
     st.markdown("⚠️ **YASAL UYARI:** Veriler 10-15 dk gecikmeli gelebilir. Sadece takip amaçlıdır, yatırım tavsiyesi içermez.")
+    st.write("")
     
-    c1, c2, c3 = st.columns([2, 1, 1])
-    
-    girdi_tipi = c1.radio("🔍 Varlık Türü:", ["Döviz & Emtia (Listeden Seç)", "Hisse, Fon & Kripto Ara"], horizontal=True)
-    
-    secilen_sembol = None  
-    
-    @st.cache_data(ttl=3600)  
-    def sembol_ara(kelime):
-        url = f"https://query2.finance.yahoo.com/v1/finance/search?q={kelime}"
-        headers = {'User-Agent': 'Mozilla/5.0'} 
-        try:
-            res = requests.get(url, headers=headers)
-            data = res.json()
-            quotes = data.get('quotes', [])
-            
-            sonuclar = []
-            for q in quotes:
-                symbol = q.get('symbol')
-                name = q.get('shortname', 'İsimsiz')
-                exch = q.get('exchange', 'Bilinmiyor')
-                if symbol:
-                    sonuclar.append(f"{symbol} | {name} ({exch})")
-            return sonuclar
-        except:
-            return []
-
-    if girdi_tipi == "Döviz & Emtia (Listeden Seç)":
-        doviz_emtia_sozluk = {
-            "Dolar / TL": "USDTRY=X",
-            "Euro / TL": "EURTRY=X",
-            "Sterlin / TL": "GBPTRY=X",
-            "İsviçre Frangı / TL": "CHFTRY=X",
-            "Japon Yeni / TL": "JPYTRY=X",
-            "Euro / Dolar (Parite)": "EURUSD=X",
-            "Sterlin / Dolar (Parite)": "GBPUSD=X",
-            
-            "Gram Altın (TL)": "GRAM-ALTIN", 
-            "Çeyrek Altın (TL)": "CEYREK-ALTIN", 
-            "Gram Gümüş (TL)": "GRAM-GUMUS", 
-            "Gram Platin (TL)": "GRAM-PLATIN", 
-            
-            "Ons Altın ($)": "GC=F",
-            "Ons Gümüş ($)": "SI=F",
-            "Ons Platin ($)": "PL=F",
-            "Ons Paladyum ($)": "PA=F",
-            "Bakır ($)": "HG=F",
-            "Ham Petrol - WTI ($)": "CL=F",
-            "Brent Petrol ($)": "BZ=F",
-            "Doğalgaz ($)": "NG=F",
-            "Buğday ($)": "ZW=F",
-            "Mısır ($)": "ZC=F"
-        }
+    with st.container(border=True):
+        c1, c2, c3 = st.columns([2, 1, 1])
         
-        secilen_isim = c1.selectbox("Altın, Döviz veya Emtia Seçin:", list(doviz_emtia_sozluk.keys()))
-        secilen_sembol = doviz_emtia_sozluk[secilen_isim]
-    
-    else:
-        arama_metni = c1.text_input("🔍 Aranacak kelimeyi veya kodu yazın (Örn: THY, Apple, BTC):")
+        girdi_tipi = c1.radio("🔍 Varlık Türü:", ["Döviz & Emtia (Listeden Seç)", "Hisse, Fon & Kripto Ara"], horizontal=True)
         
-        if arama_metni and len(arama_metni) >= 2:
-            bulunan_sonuclar = sembol_ara(arama_metni)
-            
-            if bulunan_sonuclar:
-                secim = c1.selectbox("🎯 Arama Sonuçları (Lütfen Seçin):", bulunan_sonuclar)
-                secilen_sembol = secim.split(" | ")[0].strip()
-            else:
-                c1.warning("Buna benzer bir hisse, fon veya kripto bulunamadı.")
-        else:
-            c1.info("Aramayı başlatmak için kutuya en az 2 karakter yazıp 'Enter'a basın.")
-
-    
-    periyotlar = {"1 AY": "1mo", "3 AY": "3mo", "6 AY": "6mo", "1 YIL": "1y", "3 YIL": "3y", "5 YIL": "5y"}
-    secilen_periyot = c2.selectbox("📅 Zaman Aralığı:", list(periyotlar.keys()), index=3)
-    
-    if secilen_sembol:
-        @st.cache_data(ttl=300)
-        def analiz_verisi_getir(sembol, periyot_kodu):
+        secilen_sembol = None  
+        
+        @st.cache_data(ttl=3600)  
+        def sembol_ara(kelime):
+            url = f"https://query2.finance.yahoo.com/v1/finance/search?q={kelime}"
+            headers = {'User-Agent': 'Mozilla/5.0'} 
             try:
-                if sembol in ["GRAM-ALTIN", "CEYREK-ALTIN", "GRAM-GUMUS", "GRAM-PLATIN"]:
-                    ons_kod = "GC=F"
-                    if "GUMUS" in sembol: ons_kod = "SI=F"
-                    elif "PLATIN" in sembol: ons_kod = "PL=F"
-                    
-                    ons = yf.Ticker(ons_kod).history(period="5y")['Close']
-                    usd = yf.Ticker("USDTRY=X").history(period="5y")['Close']
-                    
-                    df = pd.concat([ons, usd], axis=1, keys=['O','U']).ffill().dropna()
-                    fac = 1.6065 if sembol == "CEYREK-ALTIN" else 1
-                    data = (df['O'] * df['U']) / 31.1035 * fac
-                else:
-                    t = "XU100.IS" if sembol == "BIST" else sembol
-                    data = yf.Ticker(t).history(period="5y")['Close'].dropna()
-                return data
+                res = requests.get(url, headers=headers)
+                data = res.json()
+                quotes = data.get('quotes', [])
+                
+                sonuclar = []
+                for q in quotes:
+                    symbol = q.get('symbol')
+                    name = q.get('shortname', 'İsimsiz')
+                    exch = q.get('exchange', 'Bilinmiyor')
+                    if symbol:
+                        sonuclar.append(f"{symbol} | {name} ({exch})")
+                return sonuclar
             except:
-                return None
+                return []
 
-        p_kod = periyotlar[secilen_periyot]
-        ham_veri = analiz_verisi_getir(secilen_sembol, p_kod)
+        if girdi_tipi == "Döviz & Emtia (Listeden Seç)":
+            doviz_emtia_sozluk = {
+                "Dolar / TL": "USDTRY=X",
+                "Euro / TL": "EURTRY=X",
+                "Sterlin / TL": "GBPTRY=X",
+                "İsviçre Frangı / TL": "CHFTRY=X",
+                "Japon Yeni / TL": "JPYTRY=X",
+                "Euro / Dolar (Parite)": "EURUSD=X",
+                "Sterlin / Dolar (Parite)": "GBPUSD=X",
+                
+                "Gram Altın (TL)": "GRAM-ALTIN", 
+                "Çeyrek Altın (TL)": "CEYREK-ALTIN", 
+                "Gram Gümüş (TL)": "GRAM-GUMUS", 
+                "Gram Platin (TL)": "GRAM-PLATIN", 
+                
+                "Ons Altın ($)": "GC=F",
+                "Ons Gümüş ($)": "SI=F",
+                "Ons Platin ($)": "PL=F",
+                "Ons Paladyum ($)": "PA=F",
+                "Bakır ($)": "HG=F",
+                "Ham Petrol - WTI ($)": "CL=F",
+                "Brent Petrol ($)": "BZ=F",
+                "Doğalgaz ($)": "NG=F",
+                "Buğday ($)": "ZW=F",
+                "Mısır ($)": "ZC=F"
+            }
+            
+            secilen_isim = c1.selectbox("Altın, Döviz veya Emtia Seçin:", list(doviz_emtia_sozluk.keys()))
+            secilen_sembol = doviz_emtia_sozluk[secilen_isim]
         
-        if ham_veri is None or ham_veri.empty:
-            st.error("Bu sembol için geçmiş veri bulunamadı.")
         else:
-            days_map = {"1mo":30, "3mo":90, "6mo":180, "1y":365, "3y":1095, "5y":1825}
-            grafik_verisi = ham_veri.tail(days_map.get(p_kod, 365))
-            son_fiyat = ham_veri.iloc[-1]
+            arama_metni = c1.text_input("🔍 Aranacak kelimeyi veya kodu yazın (Örn: THY, Apple, BTC):")
             
-            c3.metric(label="Güncel Fiyat", value=f"{son_fiyat:,.2f}")
-            st.markdown("---")
-            
-            col_grafik, col_rapor = st.columns([7, 3])
-            
-            with col_grafik:
-                st.subheader(f"📊 {secilen_sembol} Fiyat Grafiği")
-                st.area_chart(grafik_verisi, use_container_width=True, color="#3b82f6")
+            if arama_metni and len(arama_metni) >= 2:
+                bulunan_sonuclar = sembol_ara(arama_metni)
                 
-                st.markdown("**⏱️ Geçmiş Performans**")
-                p_cols = st.columns(6)
-                araliklar = [("1 Ay", 30), ("3 Ay", 90), ("6 Ay", 180), ("1 Yıl", 365), ("3 Yıl", 1095), ("5 Yıl", 1825)]
+                if bulunan_sonuclar:
+                    secim = c1.selectbox("🎯 Arama Sonuçları (Lütfen Seçin):", bulunan_sonuclar)
+                    secilen_sembol = secim.split(" | ")[0].strip()
+                else:
+                    c1.warning("Buna benzer bir hisse, fon veya kripto bulunamadı.")
+            else:
+                c1.info("Aramayı başlatmak için kutuya en az 2 karakter yazıp 'Enter'a basın.")
+
+        
+        periyotlar = {"1 AY": "1mo", "3 AY": "3mo", "6 AY": "6mo", "1 YIL": "1y", "3 YIL": "3y", "5 YIL": "5y"}
+        secilen_periyot = c2.selectbox("📅 Zaman Aralığı:", list(periyotlar.keys()), index=3)
+        
+        if secilen_sembol:
+            @st.cache_data(ttl=300)
+            def analiz_verisi_getir(sembol, periyot_kodu):
+                try:
+                    if sembol in ["GRAM-ALTIN", "CEYREK-ALTIN", "GRAM-GUMUS", "GRAM-PLATIN"]:
+                        ons_kod = "GC=F"
+                        if "GUMUS" in sembol: ons_kod = "SI=F"
+                        elif "PLATIN" in sembol: ons_kod = "PL=F"
+                        
+                        ons = yf.Ticker(ons_kod).history(period="5y")['Close']
+                        usd = yf.Ticker("USDTRY=X").history(period="5y")['Close']
+                        
+                        df = pd.concat([ons, usd], axis=1, keys=['O','U']).ffill().dropna()
+                        fac = 1.6065 if sembol == "CEYREK-ALTIN" else 1
+                        data = (df['O'] * df['U']) / 31.1035 * fac
+                    else:
+                        t = "XU100.IS" if sembol == "BIST" else sembol
+                        data = yf.Ticker(t).history(period="5y")['Close'].dropna()
+                    return data
+                except:
+                    return None
+
+            p_kod = periyotlar[secilen_periyot]
+            ham_veri = analiz_verisi_getir(secilen_sembol, p_kod)
+            
+            if ham_veri is None or ham_veri.empty:
+                st.error("Bu sembol için geçmiş veri bulunamadı.")
+            else:
+                days_map = {"1mo":30, "3mo":90, "6mo":180, "1y":365, "3y":1095, "5y":1825}
+                grafik_verisi = ham_veri.tail(days_map.get(p_kod, 365))
+                son_fiyat = ham_veri.iloc[-1]
                 
-                for i, (ad, gun) in enumerate(araliklar):
-                    try:
-                        hedef_tarih = ham_veri.index[-1] - pd.Timedelta(days=gun)
-                        idx = ham_veri.index.get_indexer([hedef_tarih], method='nearest')[0]
-                        eski_fiyat = ham_veri.iloc[idx]
-                        yuzde_degisim = ((son_fiyat - eski_fiyat) / eski_fiyat) * 100
-                        
-                        p_cols[i].metric(label=ad, value=f"{yuzde_degisim:+.1f}%", delta=f"{yuzde_degisim:.1f}%")
-                    except:
-                        p_cols[i].metric(label=ad, value="--")
+                c3.metric(label="Güncel Fiyat", value=f"{son_fiyat:,.2f}")
+                st.divider()
+                
+                col_grafik, col_rapor = st.columns([7, 3], gap="large")
+                
+                with col_grafik:
+                    st.subheader(f"📊 {secilen_sembol} Fiyat Grafiği")
+                    st.area_chart(grafik_verisi, use_container_width=True, color="#38bdf8")
+                    
+                    st.markdown("**⏱️ Geçmiş Performans Özeti**")
+                    p_cols = st.columns(6)
+                    araliklar = [("1 Ay", 30), ("3 Ay", 90), ("6 Ay", 180), ("1 Yıl", 365), ("3 Yıl", 1095), ("5 Yıl", 1825)]
+                    
+                    for i, (ad, gun) in enumerate(araliklar):
+                        try:
+                            hedef_tarih = ham_veri.index[-1] - pd.Timedelta(days=gun)
+                            idx = ham_veri.index.get_indexer([hedef_tarih], method='nearest')[0]
+                            eski_fiyat = ham_veri.iloc[idx]
+                            yuzde_degisim = ((son_fiyat - eski_fiyat) / eski_fiyat) * 100
+                            
+                            p_cols[i].metric(label=ad, value=f"{yuzde_degisim:+.1f}%", delta=f"{yuzde_degisim:.1f}%")
+                        except:
+                            p_cols[i].metric(label=ad, value="--")
 
-            with col_rapor:
-                st.subheader("🧠 Akıllı AI Özeti")
-                with st.container(border=True):
-                    
-                    puan = 0
-                    sma50 = ham_veri.rolling(50).mean().iloc[-1]
-                    sma200 = ham_veri.rolling(200).mean().iloc[-1]
-                    son_1_ay_getiri = (son_fiyat - ham_veri.iloc[-30]) / ham_veri.iloc[-30]
-                    
-                    if son_fiyat > sma50: puan += 25  
-                    if son_fiyat > sma200: puan += 25 
-                    if sma50 > sma200: puan += 25     
-                    if son_1_ay_getiri > 0: puan += 25 
-                    
-                    son_1_yil = ham_veri.tail(252)
-                    zirve = son_1_yil.max()
-                    zirveye_uzaklik = ((zirve - son_fiyat) / zirve) * 100
-                    
-                    gunluk_getiri = ham_veri.pct_change().dropna()
-                    volatilite = gunluk_getiri.std() * 100
-                    if volatilite < 1.0: risk_seviyesi = "Düşük (Sakin) 🟢"
-                    elif volatilite < 2.5: risk_seviyesi = "Orta (Dengeli) 🟡"
-                    else: risk_seviyesi = "Yüksek (Agresif) 🔴"
-                    
-                    son_5_gun_getiri = ((son_fiyat - ham_veri.iloc[-5]) / ham_veri.iloc[-5]) * 100
-
-                    st.markdown(f"**Gelişim Skoru:** {puan}/100")
-                    st.progress(puan / 100)
-                    if puan >= 75: st.caption("Durum: **Çok Güçlü** 🚀")
-                    elif puan == 50: st.caption("Durum: **Kararsız/Yatay** ⚖️")
-                    else: st.caption("Durum: **Zayıf** 🌧️")
-                    
-                    st.markdown("---")
-                    
-                    st.markdown("**📉 Zirve Analizi**")
-                    st.write(f"1 yıllık zirvesine göre **%{zirveye_uzaklik:.1f} daha ucuz.**")
-                    if zirveye_uzaklik < 3:
-                        st.info("💡 Tarihi zirvelerinde geziyor, kâr satışlarına dikkat!")
-                    elif zirveye_uzaklik > 20:
-                        st.success("💡 Zirvesinden oldukça uzak, iskontolu olabilir.")
+                with col_rapor:
+                    st.subheader("🧠 Akıllı AI Özeti")
+                    with st.container(border=True):
                         
-                    st.markdown("---")
-                    
-                    st.markdown("**⚠️ Varlık Karakteri**")
-                    st.write(f"Risk Profili: **{risk_seviyesi}**")
-                    st.write(f"*(Günlük ort. dalgalanma: %{volatilite:.1f})*")
-                    
-                    st.markdown("---")
-                    
-                    yon = "Yükseliş ↗️" if son_5_gun_getiri > 0 else "Düşüş ↘️"
-                    renk = "green" if son_5_gun_getiri > 0 else "red"
-                    st.markdown("**🔥 Son 1 Hafta Durumu**")
-                    st.write(f"Yakın ivme yönü: **{yon}** (:{renk}[{son_5_gun_getiri:+.1f}%])")
+                        puan = 0
+                        sma50 = ham_veri.rolling(50).mean().iloc[-1]
+                        sma200 = ham_veri.rolling(200).mean().iloc[-1]
+                        son_1_ay_getiri = (son_fiyat - ham_veri.iloc[-30]) / ham_veri.iloc[-30]
+                        
+                        if son_fiyat > sma50: puan += 25  
+                        if son_fiyat > sma200: puan += 25 
+                        if sma50 > sma200: puan += 25     
+                        if son_1_ay_getiri > 0: puan += 25 
+                        
+                        son_1_yil = ham_veri.tail(252)
+                        zirve = son_1_yil.max()
+                        zirveye_uzaklik = ((zirve - son_fiyat) / zirve) * 100
+                        
+                        gunluk_getiri = ham_veri.pct_change().dropna()
+                        volatilite = gunluk_getiri.std() * 100
+                        if volatilite < 1.0: risk_seviyesi = "Düşük (Sakin) 🟢"
+                        elif volatilite < 2.5: risk_seviyesi = "Orta (Dengeli) 🟡"
+                        else: risk_seviyesi = "Yüksek (Agresif) 🔴"
+                        
+                        son_5_gun_getiri = ((son_fiyat - ham_veri.iloc[-5]) / ham_veri.iloc[-5]) * 100
+
+                        st.markdown(f"**Gelişim Skoru:** {puan}/100")
+                        st.progress(puan / 100)
+                        if puan >= 75: st.caption("Durum: **Çok Güçlü** 🚀")
+                        elif puan == 50: st.caption("Durum: **Kararsız/Yatay** ⚖️")
+                        else: st.caption("Durum: **Zayıf** 🌧️")
+                        
+                        st.divider()
+                        
+                        st.markdown("**📉 Zirve Analizi**")
+                        st.write(f"1 yıllık zirvesine göre **%{zirveye_uzaklik:.1f} daha ucuz.**")
+                        if zirveye_uzaklik < 3:
+                            st.info("💡 Tarihi zirvelerinde geziyor, kâr satışlarına dikkat!")
+                        elif zirveye_uzaklik > 20:
+                            st.success("💡 Zirvesinden oldukça uzak, iskontolu olabilir.")
+                            
+                        st.divider()
+                        
+                        st.markdown("**⚠️ Varlık Karakteri**")
+                        st.write(f"Risk Profili: **{risk_seviyesi}**")
+                        st.write(f"*(Günlük ort. dalgalanma: %{volatilite:.1f})*")
+                        
+                        st.divider()
+                        
+                        yon = "Yükseliş ↗️" if son_5_gun_getiri > 0 else "Düşüş ↘️"
+                        renk = "green" if son_5_gun_getiri > 0 else "red"
+                        st.markdown("**🔥 Son 1 Hafta Durumu**")
+                        st.write(f"Yakın ivme yönü: **{yon}** (:{renk}[{son_5_gun_getiri:+.1f}%])")
